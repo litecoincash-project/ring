@@ -124,3 +124,7 @@ db4/
 
 # clang-check
 *.plist
+
+# Ring-fork
+.vscode
+just*.sh

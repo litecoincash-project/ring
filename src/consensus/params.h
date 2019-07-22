@@ -46,6 +46,9 @@ struct BIP9Deployment {
 /**
  * Parameters that influence chain consensus.
  */
+
+const int FOREIGN_COIN_COUNT = 4;   // Ring-fork: Foreign key count
+
 struct Params {
     uint256 hashGenesisBlock;
     int nSubsidyHalvingInterval;
@@ -75,6 +78,14 @@ struct Params {
     int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespan / nPowTargetSpacing; }
     uint256 nMinimumChainWork;
     uint256 defaultAssumeValid;
+
+    // Ring-fork: Consensus params for foreign chains
+    std::string foreignCoinNames[FOREIGN_COIN_COUNT];
+    unsigned char foreignCoinP2PKHPrefixes[FOREIGN_COIN_COUNT];
+    unsigned char foreignCoinP2SHPrefixes[FOREIGN_COIN_COUNT];
+    unsigned char foreignCoinP2SH2Prefixes[FOREIGN_COIN_COUNT];
+    unsigned char foreignCoinWIFPrefixes[FOREIGN_COIN_COUNT];
+    std::string foreignCoinBech32HRPs[FOREIGN_COIN_COUNT];
 };
 } // namespace Consensus
 

@@ -23,6 +23,7 @@ std::string EncodeExtPubKey(const CExtPubKey& extpubkey);
 
 std::string EncodeDestination(const CTxDestination& dest);
 CTxDestination DecodeDestination(const std::string& str);
+CTxDestination DecodeAnyDestination(const std::string& str, std::string& detectedType); // Ring-fork: Decode any foreign address and transform it into a Ring CTxDestination
 bool IsValidDestinationString(const std::string& str);
 bool IsValidDestinationString(const std::string& str, const CChainParams& params);
 

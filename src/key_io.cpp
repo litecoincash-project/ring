@@ -70,6 +70,92 @@ public:
     std::string operator()(const CNoDestination& no) const { return {}; }
 };
 
+// Ring-fork: Decode any foreign address and transform it into a Ring CTxDestination
+CTxDestination DecodeAnyDestination(const std::string& str, const CChainParams& params, std::string& detectedType)
+{
+    const Consensus::Params& consensusParams = params.GetConsensus();
+
+    std::vector<unsigned char> data;
+    uint160 hash;
+    // Try and parse as non-bech32
+    if (DecodeBase58Check(str, data)) {
+        // For each coin
+        for (int i = 0; i < Consensus::FOREIGN_COIN_COUNT; i++) {
+            // Try p2pkh: Data is RIPEMD160(SHA256(pubkey))
+            const std::vector<unsigned char>& pubkey_prefix = std::vector<unsigned char>(1,consensusParams.foreignCoinP2PKHPrefixes[i]);
+            if (data.size() == hash.size() + pubkey_prefix.size() && std::equal(pubkey_prefix.begin(), pubkey_prefix.end(), data.begin())) {
+                std::copy(data.begin() + pubkey_prefix.size(), data.end(), hash.begin());
+                detectedType = consensusParams.foreignCoinNames[i] + " (P2PKH)";
+                return CKeyID(hash);
+            }
+
+            // Try p2sh: Data is RIPEMD160(SHA256(cscript))
+            const std::vector<unsigned char>& script_prefix = std::vector<unsigned char>(1,consensusParams.foreignCoinP2SHPrefixes[i]);
+            if (data.size() == hash.size() + script_prefix.size() && std::equal(script_prefix.begin(), script_prefix.end(), data.begin())) {
+                std::copy(data.begin() + script_prefix.size(), data.end(), hash.begin());
+                detectedType = consensusParams.foreignCoinNames[i] + " (P2SH)";
+                return CScriptID(hash);
+            }
+
+            // Try p2sh alt prefix (because of LTC, see Thrasher's comment in https://github.com/litecoin-project/litecoin/issues/433)
+            if (consensusParams.foreignCoinP2SH2Prefixes[i] == 0)  // Skip foreign coins without a SCRIPT_KEY2 prefix (most of them)
+                continue;
+            const std::vector<unsigned char>& script_prefix2 = std::vector<unsigned char>(1,consensusParams.foreignCoinP2SH2Prefixes[i]);
+            if (data.size() == hash.size() + script_prefix2.size() && std::equal(script_prefix2.begin(), script_prefix2.end(), data.begin())) {
+                std::copy(data.begin() + script_prefix2.size(), data.end(), hash.begin());
+                detectedType = consensusParams.foreignCoinNames[i] + " (P2SH with alt prefix)";
+                return CScriptID(hash);
+            }
+        }
+    }
+    data.clear();
+
+    // Try and parse as bech32 for each coin
+    for (int i = 0; i < Consensus::FOREIGN_COIN_COUNT; i++) {
+        if (consensusParams.foreignCoinBech32HRPs[i] == "") // Skip foreign coins which don't support bech32
+            continue;
+        auto bech = bech32::Decode(str);
+        if (bech.second.size() > 0 && bech.first == consensusParams.foreignCoinBech32HRPs[i]) {
+            // Bech32 decoding
+            int version = bech.second[0]; // The first 5 bit symbol is the witness version (0-16)
+            // The rest of the symbols are converted witness program bytes.
+            data.reserve(((bech.second.size() - 1) * 5) / 8);
+            if (ConvertBits<5, 8, false>([&](unsigned char c) { data.push_back(c); }, bech.second.begin() + 1, bech.second.end())) {
+                if (version == 0) {
+                    {
+                        WitnessV0KeyHash keyid;
+                        if (data.size() == keyid.size()) {
+                            std::copy(data.begin(), data.end(), keyid.begin());
+                            detectedType = consensusParams.foreignCoinNames[i] + " witness_v0_keyhash (P2WPKH)";
+                            return keyid;
+                        }
+                    }
+                    {
+                        WitnessV0ScriptHash scriptid;
+                        if (data.size() == scriptid.size()) {
+                            std::copy(data.begin(), data.end(), scriptid.begin());
+                            detectedType = consensusParams.foreignCoinNames[i] + " witness_v0_scripthash (P2WSH)";
+                            return scriptid;
+                        }
+                    }
+                }
+                /*
+                if (version > 16 || data.size() < 2 || data.size() > 40) {
+                    return CNoDestination();
+                }*/
+                WitnessUnknown unk;
+                unk.version = version;
+                std::copy(data.begin(), data.end(), unk.program);
+                unk.length = data.size();
+                detectedType = consensusParams.foreignCoinNames[i] + " witness_unknown (P2WUN)";
+                return unk;
+            }
+        }
+    }
+
+    return CNoDestination();
+}
+
 CTxDestination DecodeDestination(const std::string& str, const CChainParams& params)
 {
     std::vector<unsigned char> data;
@@ -141,6 +227,17 @@ CKey DecodeSecret(const std::string& str)
             bool compressed = data.size() == 33 + privkey_prefix.size();
             key.Set(data.begin() + privkey_prefix.size(), data.begin() + privkey_prefix.size() + 32, compressed);
         }
+
+        // Ring-fork: Allow private key import from supported foreign chains
+        const Consensus::Params& consensusParams = Params().GetConsensus();
+        for (int i = 0; i < Consensus::FOREIGN_COIN_COUNT; i++) {
+            const std::vector<unsigned char>& foreign_privkey_prefix = std::vector<unsigned char>(1,consensusParams.foreignCoinWIFPrefixes[i]);
+            if ((data.size() == 32 + foreign_privkey_prefix.size() || (data.size() == 33 + foreign_privkey_prefix.size() && data.back() == 1)) &&
+                std::equal(foreign_privkey_prefix.begin(), foreign_privkey_prefix.end(), data.begin())) {
+                bool compressed = data.size() == 33 + foreign_privkey_prefix.size();
+                key.Set(data.begin() + foreign_privkey_prefix.size(), data.begin() + foreign_privkey_prefix.size() + 32, compressed);
+            }
+        }        
     }
     if (!data.empty()) {
         memory_cleanse(data.data(), data.size());
@@ -216,6 +313,12 @@ std::string EncodeDestination(const CTxDestination& dest)
 CTxDestination DecodeDestination(const std::string& str)
 {
     return DecodeDestination(str, Params());
+}
+
+// Ring-fork: Decode any foreign address and transform it into a Ring CTxDestination
+CTxDestination DecodeAnyDestination(const std::string& str, std::string& detectedType)
+{
+    return DecodeAnyDestination(str, Params(), detectedType);
 }
 
 bool IsValidDestinationString(const std::string& str, const CChainParams& params)
