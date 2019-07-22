@@ -330,6 +330,7 @@ libring_wallet_tool_a_SOURCES = \
   $(RING_CORE_H)
 
 # crypto primitives library
+# Ring-fork: Added crypto/pow/
 crypto_libring_crypto_base_a_CPPFLAGS = $(AM_CPPFLAGS)
 crypto_libring_crypto_base_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_libring_crypto_base_a_SOURCES = \
@@ -351,7 +352,61 @@ crypto_libring_crypto_base_a_SOURCES = \
   crypto/sha512.cpp \
   crypto/sha512.h \
   crypto/siphash.cpp \
-  crypto/siphash.h
+  crypto/siphash.h \
+  crypto/pow/sph_blake.h \
+  crypto/pow/sph_cubehash.h \
+  crypto/pow/sph_echo.h \
+  crypto/pow/sph_fugue.h \
+  crypto/pow/sph_groestl.h \
+  crypto/pow/sph_hamsi.h \
+  crypto/pow/sph_haval.h \
+  crypto/pow/sph_jh.h \
+  crypto/pow/sph_keccak.h \
+  crypto/pow/sph_luffa.h \
+  crypto/pow/sph_sha2.h \
+  crypto/pow/sph_sha2big.c \
+  crypto/pow/sph_shabal.h \
+  crypto/pow/sph_shavite.h \
+  crypto/pow/sph_simd.h \
+  crypto/pow/sph_skein.h \
+  crypto/pow/sph_types.h \
+  crypto/pow/sph_whirlpool.h \
+  crypto/pow/bmw.c \
+  crypto/pow/whirlpool.c \
+  crypto/pow/Sponge.h \
+  crypto/pow/blake.c \
+  crypto/pow/blake2.h \
+  crypto/pow/blake2-impl.h \
+  crypto/pow/blake2s-ref.c \
+  crypto/pow/cubehash.c \
+  crypto/pow/echo.c \
+  crypto/pow/fugue.c \
+  crypto/pow/groestl.c \
+  crypto/pow/hamsi.c \
+  crypto/pow/hashblake.h \
+  crypto/pow/hashgroestl.h \
+  crypto/pow/hashquark.h \
+  crypto/pow/hashqubit.h \
+  crypto/pow/hashskein.h \
+  crypto/pow/hashx11.h \
+  crypto/pow/hashx13.h \
+  crypto/pow/hashx15.h \
+  crypto/pow/hashx17.h \
+  crypto/pow/haval.c \
+  crypto/pow/jh.c \
+  crypto/pow/keccak.c \
+  crypto/pow/luffa.c \
+  crypto/pow/Lyra2.c \
+  crypto/pow/Lyra2.h \
+  crypto/pow/Lyra2RE.c \
+  crypto/pow/Lyra2RE.h \
+  crypto/pow/shabal.c \
+  crypto/pow/shavite.c \
+  crypto/pow/simd.c \
+  crypto/pow/skein.c \
+  crypto/pow/Sponge.c \
+  crypto/pow/sph_bmw.h \
+  crypto/pow/branchtorture.h  
 
 if USE_ASM
 crypto_libring_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp
@@ -597,6 +652,13 @@ CTAES_DIST += crypto/ctaes/ctaes.h
 CTAES_DIST += crypto/ctaes/README.md
 CTAES_DIST += crypto/ctaes/test.c
 
+# Ring-fork
+CRYPTO_HELPER_DIST =  crypto/pow/aes_helper.c
+CRYPTO_HELPER_DIST += crypto/pow/hamsi_helper.c
+CRYPTO_HELPER_DIST += crypto/pow/haval_helper.c
+CRYPTO_HELPER_DIST += crypto/pow/md_helper.c
+CRYPTO_HELPER_DIST += crypto/pow/sph_md_helper.c
+
 CLEANFILES = $(EXTRA_LIBRARIES)
 
 CLEANFILES += *.gcda *.gcno
@@ -613,7 +675,9 @@ CLEANFILES += wallet/test/*.gcda wallet/test/*.gcno
 CLEANFILES += zmq/*.gcda zmq/*.gcno
 CLEANFILES += obj/build.h
 
-EXTRA_DIST = $(CTAES_DIST)
+# Ring-fork
+#EXTRA_DIST = $(CTAES_DIST)
+EXTRA_DIST = $(CTAES_DIST) $(CRYPTO_HELPER_DIST)
 
 
 config/ring-config.h: config/stamp-h1

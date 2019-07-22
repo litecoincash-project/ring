@@ -9,10 +9,17 @@
 #include <tinyformat.h>
 #include <util/strencodings.h>
 #include <crypto/common.h>
+#include <crypto/pow/branchtorture.h> // Ring-fork
+
+// Ring-fork
+#define BEGIN(a)            ((char*)&(a))
+#define END(a)              ((char*)&((&(a))[1]))
 
 uint256 CBlockHeader::GetHash() const
 {
-    return SerializeHash(*this);
+    // Ring-fork: Use BT instead of sha256
+    return BranchTorture(BEGIN(nVersion), END(nNonce));
+    //return SerializeHash(*this);
 }
 
 std::string CBlock::ToString() const
