@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CHECKQUEUE_H
-#define BITCOIN_CHECKQUEUE_H
+#ifndef RING_CHECKQUEUE_H
+#define RING_CHECKQUEUE_H
 
 #include <sync.h>
 
@@ -211,4 +211,4 @@ public:
     }
 };
 
-#endif // BITCOIN_CHECKQUEUE_H
+#endif // RING_CHECKQUEUE_H

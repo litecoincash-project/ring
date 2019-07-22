@@ -9,7 +9,7 @@ Tests correspond to code in rpc/net.cpp.
 
 from decimal import Decimal
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import RingTestFramework
 from test_framework.util import (
     assert_equal,
     assert_greater_than_or_equal,
@@ -22,7 +22,7 @@ from test_framework.util import (
 from test_framework.mininode import P2PInterface
 from test_framework.messages import CAddress, msg_addr, NODE_NETWORK, NODE_WITNESS
 
-class NetTest(BitcoinTestFramework):
+class NetTest(RingTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
@@ -118,7 +118,7 @@ class NetTest(BitcoinTestFramework):
             addr.time = 100000000
             addr.nServices = NODE_NETWORK | NODE_WITNESS
             addr.ip = a
-            addr.port = 8333
+            addr.port = 28971
             msg.addrs.append(addr)
         self.nodes[0].p2p.send_and_ping(msg)
 
@@ -130,7 +130,7 @@ class NetTest(BitcoinTestFramework):
             assert_greater_than(a["time"], 1527811200) # 1st June 2018
             assert_equal(a["services"], NODE_NETWORK | NODE_WITNESS)
             assert a["address"] in imported_addrs
-            assert_equal(a["port"], 8333)
+            assert_equal(a["port"], 28971)
 
         assert_raises_rpc_error(-8, "Address count out of range", self.nodes[0].getnodeaddresses, -1)
 

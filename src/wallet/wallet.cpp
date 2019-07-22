@@ -2823,7 +2823,7 @@ bool CWallet::CreateTransaction(interfaces::Chain::Lock& locked_chain, const std
 
             // Create change script that will be used if we need change
             // TODO: pass in scriptChange instead of reservekey so
-            // change transaction isn't always pay-to-bitcoin-address
+            // change transaction isn't always pay-to-ring-address
             CScript scriptChange;
 
             // coin control: send change to custom address
@@ -3931,7 +3931,7 @@ void CWallet::GetKeyBirthTimes(interfaces::Chain::Lock& locked_chain, std::map<C
  *   the block time.
  *
  * For more information see CWalletTx::nTimeSmart,
- * https://bitcointalk.org/?topic=54527, or
+ * https://ringtalk.org/?topic=54527, or
  * https://github.com/bitcoin/bitcoin/pull/1393.
  */
 unsigned int CWallet::ComputeTimeSmart(const CWalletTx& wtx) const

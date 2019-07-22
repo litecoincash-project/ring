@@ -5,7 +5,7 @@
 #include <util/system.h>
 
 #include <support/allocators/secure.h>
-#include <test/test_bitcoin.h>
+#include <test/test_ring.h>
 
 #include <memory>
 

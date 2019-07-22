@@ -6,12 +6,12 @@
 """
     ZMQ example using python3's asyncio
 
-    Bitcoin should be started with the command line arguments:
-        bitcoind -testnet -daemon \
-                -zmqpubrawtx=tcp://127.0.0.1:28332 \
-                -zmqpubrawblock=tcp://127.0.0.1:28332 \
-                -zmqpubhashtx=tcp://127.0.0.1:28332 \
-                -zmqpubhashblock=tcp://127.0.0.1:28332
+    Ring should be started with the command line arguments:
+        ringd -testnet -daemon \
+                -zmqpubrawtx=tcp://127.0.0.1:228970 \
+                -zmqpubrawblock=tcp://127.0.0.1:228970 \
+                -zmqpubhashtx=tcp://127.0.0.1:228970 \
+                -zmqpubhashblock=tcp://127.0.0.1:228970
 
     We use the asyncio library here.  `self.handle()` installs itself as a
     future at the end of the function.  Since it never returns with the event
@@ -23,7 +23,7 @@
     and `await` keywords respectively.
 
     A blocking example using python 2.7 can be obtained from the git history:
-    https://github.com/bitcoin/bitcoin/blob/37a7fe9e440b83e2364d5498931253937abe9294/contrib/zmq/zmq_sub.py
+    https://github.com/litecoincash-project/ring/blob/37a7fe9e440b83e2364d5498931253937abe9294/contrib/zmq/zmq_sub.py
 """
 
 import binascii
@@ -38,7 +38,7 @@ if (sys.version_info.major, sys.version_info.minor) < (3, 4):
     print("This example only works with Python 3.4 and greater")
     sys.exit(1)
 
-port = 28332
+port = 228970
 
 class ZMQHandler():
     def __init__(self):

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_INTERFACES_NODE_H
-#define BITCOIN_INTERFACES_NODE_H
+#ifndef RING_INTERFACES_NODE_H
+#define RING_INTERFACES_NODE_H
 
 #include <addrdb.h>     // For banmap_t
 #include <amount.h>     // For CAmount
@@ -32,7 +32,7 @@ namespace interfaces {
 class Handler;
 class Wallet;
 
-//! Top-level interface for a bitcoin node (bitcoind process).
+//! Top-level interface for a ring node (ringd process).
 class Node
 {
 public:
@@ -253,4 +253,4 @@ std::unique_ptr<Node> MakeNode();
 
 } // namespace interfaces
 
-#endif // BITCOIN_INTERFACES_NODE_H
+#endif // RING_INTERFACES_NODE_H

@@ -16,7 +16,7 @@ import os
 
 EXCLUDE = [
     # auto generated:
-    'src/qt/bitcoinstrings.cpp',
+    'src/qt/ringstrings.cpp',
     'src/chainparamsseeds.h',
     # other external copyrights:
     'src/tinyformat.h',
@@ -90,7 +90,7 @@ def compile_copyright_regex(copyright_style, year_style, name):
 EXPECTED_HOLDER_NAMES = [
     "Satoshi Nakamoto\n",
     "The Bitcoin Core developers\n",
-    "Bitcoin Core Developers\n",
+    "Ring Core Developers\n",
     "BitPay Inc\.\n",
     "University of Illinois at Urbana-Champaign\.\n",
     "Pieter Wuille\n",
@@ -271,7 +271,7 @@ Usage:
     $ ./copyright_header.py report <base_directory> [verbose]
 
 Arguments:
-    <base_directory> - The base directory of a bitcoin source code repository.
+    <base_directory> - The base directory of a ring source code repository.
     [verbose] - Includes a list of every file of each subcategory in the report.
 """
 
@@ -424,7 +424,7 @@ Usage:
     $ ./copyright_header.py update <base_directory>
 
 Arguments:
-    <base_directory> - The base directory of a bitcoin source code repository.
+    <base_directory> - The base directory of a ring source code repository.
 """
 
 def print_file_action_message(filename, action):
@@ -546,7 +546,7 @@ Usage:
     $ ./copyright_header.py insert <file>
 
 Arguments:
-    <file> - A source file in the bitcoin repository.
+    <file> - A source file in the ring repository.
 """
 
 def insert_cmd(argv):
@@ -571,7 +571,7 @@ def insert_cmd(argv):
 ################################################################################
 
 USAGE = """
-copyright_header.py - utilities for managing copyright headers of 'The Bitcoin
+copyright_header.py - utilities for managing copyright headers of 'The Ring
 Core developers' in repository source files.
 
 Usage:

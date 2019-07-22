@@ -1,24 +1,24 @@
-Bitcoin version 0.7.0 is now available for download at:
-  http://sourceforge.net/projects/bitcoin/files/Bitcoin/bitcoin-0.7.0/
+Ring version 0.7.0 is now available for download at:
+  http://sourceforge.net/projects/ring/files/Ring/ring-0.7.0/
 
-We recommend that everybody running prior versions of bitcoind/Bitcoin-Qt
+We recommend that everybody running prior versions of ringd/Ring-Qt
 upgrade to this release, except for users running Mac OSX 10.5.
 
 Please report bugs using the issue tracker at github:
-  https://github.com/bitcoin/bitcoin/issues
+  https://github.com/litecoincash-project/ring/issues
 
 Project source code is hosted at github; you can get
 source-only tarballs/zipballs directly from there:
-  https://github.com/bitcoin/bitcoin/tarball/v0.7.0  # .tar.gz
-  https://github.com/bitcoin/bitcoin/zipball/v0.7.0  # .zip
+  https://github.com/litecoincash-project/ring/tarball/v0.7.0  # .tar.gz
+  https://github.com/litecoincash-project/ring/zipball/v0.7.0  # .zip
 
 Ubuntu Linux users can use the "Personal Package Archive" (PPA)
 maintained by Matt Corallo to automatically keep 
-bitcoin up-to-date.  Just type
-  sudo apt-add-repository ppa:bitcoin/bitcoin
+ring up-to-date.  Just type
+  sudo apt-add-repository ppa:ring/ring
   sudo apt-get update
-in your terminal, then install the bitcoin-qt package:
-  sudo apt-get install bitcoin-qt
+in your terminal, then install the ring-qt package:
+  sudo apt-get install ring-qt
 
 
 How to Upgrade
@@ -27,10 +27,10 @@ If you are running an older version, shut it down. Wait
 until it has completely shut down (which might take a few minutes for older
 versions), then run the installer (on Windows) or just copy over
 Code:
-/Applications/Bitcoin-Qt
+/Applications/Ring-Qt
 (on Mac) or
 Code:
-bitcoind/bitcoin-qt
+ringd/ring-qt
 (on Linux).
 
 If you were running on Linux with a version that might have been compiled
@@ -45,14 +45,14 @@ Incompatible Changes
   and 'getrawmempool' commands.
 * Remove deprecated RPC 'getblocknumber'
 
-Bitcoin Improvement Proposals implemented
+Ring Improvement Proposals implemented
 
 BIP 22 - 'getblocktemplate', 'submitblock' RPCs
 BIP 34 - block version 2, height in coinbase
 BIP 35 - 'mempool' message, extended 'getdata' message behavior
 
 
-Core bitcoin handling and blockchain database
+Core ring handling and blockchain database
 
 * Reduced CPU usage, by eliminating some redundant hash calculations
 * Cache signature verifications, to eliminate redundant signature checks
@@ -109,7 +109,7 @@ Qt GUI
 * Add 2 labels to the overviewpage that display Wallet and Transaction status (obsolete or current)
 * Extend the optionsdialog (e.g. language selection) and re-work it to a tabbed UI
 * Merge sign/verify message into a single window with tabbed UI
-* Ensure a changed bitcoin unit immediately updates all GUI elements that use units
+* Ensure a changed ring unit immediately updates all GUI elements that use units
 * Update QR Code dialog
 * Improve error reporting at startup
 * Fine-grained UI updates for a much smoother UI during block downloads
@@ -119,8 +119,8 @@ Qt GUI
 * Much better translations
 * Override progress bar design on platforms with segmented progress bars to assist with readability
 * Added 'immature balance' display on the overview page
-* (Windows only): enable ASLR and DEP for bitcoin-qt.exe
-* (Windows only): add meta-data to bitcoin-qt.exe (e.g. description)
+* (Windows only): enable ASLR and DEP for ring-qt.exe
+* (Windows only): add meta-data to ring-qt.exe (e.g. description)
 
 Internal codebase
 
@@ -131,7 +131,7 @@ Internal codebase
 Miscellaneous
 
 * Reopen debug.log upon SIGHUP
-* Bash programmable completion for bitcoind(1)
+* Bash programmable completion for ringd(1)
 * On supported OS's, each thread is given a useful name
 
 

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_TEST_FUZZ_FUZZ_H
-#define BITCOIN_TEST_FUZZ_FUZZ_H
+#ifndef RING_TEST_FUZZ_FUZZ_H
+#define RING_TEST_FUZZ_FUZZ_H
 
 #include <functional>
 #include <stdint.h>
@@ -14,4 +14,4 @@ const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
 
 void test_one_input(std::vector<uint8_t> buffer);
 
-#endif // BITCOIN_TEST_FUZZ_FUZZ_H
+#endif // RING_TEST_FUZZ_FUZZ_H

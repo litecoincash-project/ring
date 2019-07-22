@@ -43,7 +43,7 @@ TEST_EXIT_PASSED = 0
 TEST_EXIT_FAILED = 1
 TEST_EXIT_SKIPPED = 77
 
-TMPDIR_PREFIX = "bitcoin_func_test_"
+TMPDIR_PREFIX = "ring_func_test_"
 
 
 class SkipTest(Exception):
@@ -53,30 +53,30 @@ class SkipTest(Exception):
         self.message = message
 
 
-class BitcoinTestMetaClass(type):
-    """Metaclass for BitcoinTestFramework.
+class RingTestMetaClass(type):
+    """Metaclass for RingTestFramework.
 
-    Ensures that any attempt to register a subclass of `BitcoinTestFramework`
+    Ensures that any attempt to register a subclass of `RingTestFramework`
     adheres to a standard whereby the subclass overrides `set_test_params` and
     `run_test` but DOES NOT override either `__init__` or `main`. If any of
     those standards are violated, a ``TypeError`` is raised."""
 
     def __new__(cls, clsname, bases, dct):
-        if not clsname == 'BitcoinTestFramework':
+        if not clsname == 'RingTestFramework':
             if not ('run_test' in dct and 'set_test_params' in dct):
-                raise TypeError("BitcoinTestFramework subclasses must override "
+                raise TypeError("RingTestFramework subclasses must override "
                                 "'run_test' and 'set_test_params'")
             if '__init__' in dct or 'main' in dct:
-                raise TypeError("BitcoinTestFramework subclasses may not override "
+                raise TypeError("RingTestFramework subclasses may not override "
                                 "'__init__' or 'main'")
 
         return super().__new__(cls, clsname, bases, dct)
 
 
-class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
-    """Base class for a bitcoin test script.
+class RingTestFramework(metaclass=RingTestMetaClass):
+    """Base class for a ring test script.
 
-    Individual bitcoin test scripts should subclass this class and override the set_test_params() and run_test() methods.
+    Individual ring test scripts should subclass this class and override the set_test_params() and run_test() methods.
 
     Individual tests can also override the following methods to customize the test setup:
 
@@ -106,9 +106,9 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
 
         parser = argparse.ArgumentParser(usage="%(prog)s [options]")
         parser.add_argument("--nocleanup", dest="nocleanup", default=False, action="store_true",
-                            help="Leave bitcoinds and test.* datadir on exit or error")
+                            help="Leave ringds and test.* datadir on exit or error")
         parser.add_argument("--noshutdown", dest="noshutdown", default=False, action="store_true",
-                            help="Don't stop bitcoinds after the test execution")
+                            help="Don't stop ringds after the test execution")
         parser.add_argument("--cachedir", dest="cachedir", default=os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/../../cache"),
                             help="Directory for caching pregenerated datadirs (default: %(default)s)")
         parser.add_argument("--tmpdir", dest="tmpdir", help="Root directory for datadirs")
@@ -126,7 +126,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         parser.add_argument("--pdbonfailure", dest="pdbonfailure", default=False, action="store_true",
                             help="Attach a python debugger if test fails")
         parser.add_argument("--usecli", dest="usecli", default=False, action="store_true",
-                            help="use bitcoin-cli instead of RPC for all commands")
+                            help="use ring-cli instead of RPC for all commands")
         parser.add_argument("--perf", dest="perf", default=False, action="store_true",
                             help="profile running nodes with perf for the duration of the test")
         self.add_options(parser)
@@ -141,8 +141,8 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         config = configparser.ConfigParser()
         config.read_file(open(self.options.configfile))
         self.config = config
-        self.options.bitcoind = os.getenv("BITCOIND", default=config["environment"]["BUILDDIR"] + '/src/bitcoind' + config["environment"]["EXEEXT"])
-        self.options.bitcoincli = os.getenv("BITCOINCLI", default=config["environment"]["BUILDDIR"] + '/src/bitcoin-cli' + config["environment"]["EXEEXT"])
+        self.options.ringd = os.getenv("RINGD", default=config["environment"]["BUILDDIR"] + '/src/ringd' + config["environment"]["EXEEXT"])
+        self.options.ringcli = os.getenv("RINGCLI", default=config["environment"]["BUILDDIR"] + '/src/ring-cli' + config["environment"]["EXEEXT"])
 
         os.environ['PATH'] = os.pathsep.join([
             os.path.join(config['environment']['BUILDDIR'], 'src'),
@@ -201,7 +201,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         else:
             for node in self.nodes:
                 node.cleanup_on_exit = False
-            self.log.info("Note: bitcoinds were not stopped and may still be running")
+            self.log.info("Note: ringds were not stopped and may still be running")
 
         should_clean_up = (
             not self.options.nocleanup and
@@ -316,7 +316,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         if extra_args is None:
             extra_args = [[]] * num_nodes
         if binary is None:
-            binary = [self.options.bitcoind] * num_nodes
+            binary = [self.options.ringd] * num_nodes
         assert_equal(len(extra_confs), num_nodes)
         assert_equal(len(extra_args), num_nodes)
         assert_equal(len(binary), num_nodes)
@@ -326,8 +326,8 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
                 get_datadir_path(self.options.tmpdir, i),
                 rpchost=rpchost,
                 timewait=self.rpc_timeout,
-                bitcoind=binary[i],
-                bitcoin_cli=self.options.bitcoincli,
+                ringd=binary[i],
+                ring_cli=self.options.ringcli,
                 coverage_dir=self.options.coveragedir,
                 cwd=self.options.tmpdir,
                 extra_conf=extra_confs[i],
@@ -337,7 +337,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
             ))
 
     def start_node(self, i, *args, **kwargs):
-        """Start a bitcoind"""
+        """Start a ringd"""
 
         node = self.nodes[i]
 
@@ -348,7 +348,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
             coverage.write_all_rpc_commands(self.options.coveragedir, node.rpc)
 
     def start_nodes(self, extra_args=None, *args, **kwargs):
-        """Start multiple bitcoinds"""
+        """Start multiple ringds"""
 
         if extra_args is None:
             extra_args = [None] * self.num_nodes
@@ -368,12 +368,12 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
                 coverage.write_all_rpc_commands(self.options.coveragedir, node.rpc)
 
     def stop_node(self, i, expected_stderr='', wait=0):
-        """Stop a bitcoind test node"""
+        """Stop a ringd test node"""
         self.nodes[i].stop_node(expected_stderr, wait=wait)
         self.nodes[i].wait_until_stopped()
 
     def stop_nodes(self, wait=0):
-        """Stop multiple bitcoind test nodes"""
+        """Stop multiple ringd test nodes"""
         for node in self.nodes:
             # Issue RPC to stop nodes
             node.stop_node(wait=wait)
@@ -427,7 +427,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         # User can provide log level as a number or string (eg DEBUG). loglevel was caught as a string, so try to convert it to an int
         ll = int(self.options.loglevel) if self.options.loglevel.isdigit() else self.options.loglevel.upper()
         ch.setLevel(ll)
-        # Format logs the same as bitcoind's debug.log with microprecision (so log files can be concatenated and sorted)
+        # Format logs the same as ringd's debug.log with microprecision (so log files can be concatenated and sorted)
         formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d000Z %(name)s (%(levelname)s): %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
         formatter.converter = time.gmtime
         fh.setFormatter(formatter)
@@ -437,7 +437,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         self.log.addHandler(ch)
 
         if self.options.trace_rpc:
-            rpc_logger = logging.getLogger("BitcoinRPC")
+            rpc_logger = logging.getLogger("RingRPC")
             rpc_logger.setLevel(logging.DEBUG)
             rpc_handler = logging.StreamHandler(sys.stdout)
             rpc_handler.setLevel(logging.DEBUG)
@@ -464,10 +464,10 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
                 if os.path.isdir(get_datadir_path(self.options.cachedir, i)):
                     shutil.rmtree(get_datadir_path(self.options.cachedir, i))
 
-            # Create cache directories, run bitcoinds:
+            # Create cache directories, run ringds:
             for i in range(MAX_NODES):
                 datadir = initialize_datadir(self.options.cachedir, i)
-                args = [self.options.bitcoind, "-datadir=" + datadir, '-disablewallet']
+                args = [self.options.ringd, "-datadir=" + datadir, '-disablewallet']
                 if i > 0:
                     args.append("-connect=127.0.0.1:" + str(p2p_port(0)))
                 self.nodes.append(TestNode(
@@ -477,8 +477,8 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
                     extra_args=[],
                     rpchost=None,
                     timewait=self.rpc_timeout,
-                    bitcoind=self.options.bitcoind,
-                    bitcoin_cli=self.options.bitcoincli,
+                    ringd=self.options.ringd,
+                    ring_cli=self.options.ringcli,
                     coverage_dir=None,
                     cwd=self.options.tmpdir,
                 ))
@@ -519,7 +519,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
             from_dir = get_datadir_path(self.options.cachedir, i)
             to_dir = get_datadir_path(self.options.tmpdir, i)
             shutil.copytree(from_dir, to_dir)
-            initialize_datadir(self.options.tmpdir, i)  # Overwrite port/rpcport in bitcoin.conf
+            initialize_datadir(self.options.tmpdir, i)  # Overwrite port/rpcport in ring.conf
 
     def _initialize_chain_clean(self):
         """Initialize empty blockchain for use by the test.
@@ -536,10 +536,10 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         except ImportError:
             raise SkipTest("python3-zmq module not available.")
 
-    def skip_if_no_bitcoind_zmq(self):
-        """Skip the running test if bitcoind has not been compiled with zmq support."""
+    def skip_if_no_ringd_zmq(self):
+        """Skip the running test if ringd has not been compiled with zmq support."""
         if not self.is_zmq_compiled():
-            raise SkipTest("bitcoind has not been built with zmq enabled.")
+            raise SkipTest("ringd has not been built with zmq enabled.")
 
     def skip_if_no_wallet(self):
         """Skip the running test if wallet has not been compiled."""
@@ -547,12 +547,12 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
             raise SkipTest("wallet has not been compiled.")
 
     def skip_if_no_cli(self):
-        """Skip the running test if bitcoin-cli has not been compiled."""
+        """Skip the running test if ring-cli has not been compiled."""
         if not self.is_cli_compiled():
-            raise SkipTest("bitcoin-cli has not been compiled.")
+            raise SkipTest("ring-cli has not been compiled.")
 
     def is_cli_compiled(self):
-        """Checks whether bitcoin-cli was compiled."""
+        """Checks whether ring-cli was compiled."""
         config = configparser.ConfigParser()
         config.read_file(open(self.options.configfile))
 

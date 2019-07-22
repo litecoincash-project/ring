@@ -105,7 +105,7 @@ public:
         pchMessageStart[1] = 0xbe;
         pchMessageStart[2] = 0xb4;
         pchMessageStart[3] = 0xd9;
-        nDefaultPort = 8333;
+        nDefaultPort = 28971;
         nPruneAfterHeight = 100000;
         m_assumed_blockchain_size = 240;
         m_assumed_chain_state_size = 3;
@@ -120,13 +120,13 @@ public:
         // This is fine at runtime as we'll fall back to using them as a oneshot if they don't support the
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
-        vSeeds.emplace_back("seed.bitcoin.sipa.be"); // Pieter Wuille, only supports x1, x5, x9, and xd
+        vSeeds.emplace_back("seed.ring.sipa.be"); // Pieter Wuille, only supports x1, x5, x9, and xd
         vSeeds.emplace_back("dnsseed.bluematt.me"); // Matt Corallo, only supports x9
-        vSeeds.emplace_back("dnsseed.bitcoin.dashjr.org"); // Luke Dashjr
-        vSeeds.emplace_back("seed.bitcoinstats.com"); // Christian Decker, supports x1 - xf
-        vSeeds.emplace_back("seed.bitcoin.jonasschnelli.ch"); // Jonas Schnelli, only supports x1, x5, x9, and xd
-        vSeeds.emplace_back("seed.btc.petertodd.org"); // Peter Todd, only supports x1, x5, x9, and xd
-        vSeeds.emplace_back("seed.bitcoin.sprovoost.nl"); // Sjors Provoost
+        vSeeds.emplace_back("dnsseed.ring.dashjr.org"); // Luke Dashjr
+        vSeeds.emplace_back("seed.ringstats.com"); // Christian Decker, supports x1 - xf
+        vSeeds.emplace_back("seed.ring.jonasschnelli.ch"); // Jonas Schnelli, only supports x1, x5, x9, and xd
+        vSeeds.emplace_back("seed.rng.petertodd.org"); // Peter Todd, only supports x1, x5, x9, and xd
+        vSeeds.emplace_back("seed.ring.sprovoost.nl"); // Sjors Provoost
         vSeeds.emplace_back("dnsseed.emzy.de"); // Stephan Oeste
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
@@ -217,7 +217,7 @@ public:
         pchMessageStart[1] = 0x11;
         pchMessageStart[2] = 0x09;
         pchMessageStart[3] = 0x07;
-        nDefaultPort = 18333;
+        nDefaultPort = 28981;
         nPruneAfterHeight = 1000;
         m_assumed_blockchain_size = 30;
         m_assumed_chain_state_size = 2;
@@ -230,9 +230,9 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("testnet-seed.bitcoin.jonasschnelli.ch");
-        vSeeds.emplace_back("seed.tbtc.petertodd.org");
-        vSeeds.emplace_back("seed.testnet.bitcoin.sprovoost.nl");
+        vSeeds.emplace_back("testnet-seed.ring.jonasschnelli.ch");
+        vSeeds.emplace_back("seed.trng.petertodd.org");
+        vSeeds.emplace_back("seed.testnet.ring.sprovoost.nl");
         vSeeds.emplace_back("testnet-seed.bluematt.me"); // Just a static list of stable node(s), only supports x9
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);

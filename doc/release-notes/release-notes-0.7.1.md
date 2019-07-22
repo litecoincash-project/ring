@@ -1,23 +1,23 @@
-Bitcoin version 0.7.1 is now available from:
-  http://sourceforge.net/projects/bitcoin/files/Bitcoin/bitcoin-0.7.1/
+Ring version 0.7.1 is now available from:
+  http://sourceforge.net/projects/ring/files/Ring/ring-0.7.1/
 
 This is a bug-fix minor release.
 
 Please report bugs using the issue tracker at github:
-  https://github.com/bitcoin/bitcoin/issues
+  https://github.com/litecoincash-project/ring/issues
 
 Project source code is hosted at github; you can get
 source-only tarballs/zipballs directly from there:
-  https://github.com/bitcoin/bitcoin/tarball/v0.7.1  # .tar.gz
-  https://github.com/bitcoin/bitcoin/zipball/v0.7.1  # .zip
+  https://github.com/litecoincash-project/ring/tarball/v0.7.1  # .tar.gz
+  https://github.com/litecoincash-project/ring/zipball/v0.7.1  # .zip
 
 Ubuntu Linux users can use the "Personal Package Archive" (PPA)
 maintained by Matt Corallo to automatically keep 
 up-to-date.  Just type:
-  sudo apt-add-repository ppa:bitcoin/bitcoin
+  sudo apt-add-repository ppa:ring/ring
   sudo apt-get update
-in your terminal, then install the bitcoin-qt package:
-  sudo apt-get install bitcoin-qt
+in your terminal, then install the ring-qt package:
+  sudo apt-get install ring-qt
 
 KNOWN ISSUES
 ------------
@@ -30,7 +30,7 @@ How to Upgrade
 If you are running an older version, shut it down. Wait
 until it has completely shut down (which might take a few minutes for older
 versions), then run the installer (on Windows) or just copy over
-/Applications/Bitcoin-Qt (on Mac) or bitcoind/bitcoin-qt (on Linux).
+/Applications/Ring-Qt (on Mac) or ringd/ring-qt (on Linux).
 
 If you were running on Linux with a version that might have been compiled
 with a different version of Berkeley DB (for example, if you were using an
@@ -75,9 +75,9 @@ Dependency changes
 Bug fixes
 ---------
 
-* Clicking on a bitcoin: URI on Windows should now launch Bitcoin-Qt properly.
+* Clicking on a ring: URI on Windows should now launch Ring-Qt properly.
 
-* When running -testnet, use RPC port 18332 by default.
+* When running -testnet, use RPC port 28980 by default.
 
 * Better detection and handling of corrupt wallet.dat and blkindex.dat files.
   Previous versions would crash with a DB_RUNRECOVERY exception, this

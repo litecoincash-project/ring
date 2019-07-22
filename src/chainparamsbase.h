@@ -2,16 +2,16 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CHAINPARAMSBASE_H
-#define BITCOIN_CHAINPARAMSBASE_H
+#ifndef RING_CHAINPARAMSBASE_H
+#define RING_CHAINPARAMSBASE_H
 
 #include <memory>
 #include <string>
 #include <vector>
 
 /**
- * CBaseChainParams defines the base parameters (shared between bitcoin-cli and bitcoind)
- * of a given instance of the Bitcoin system.
+ * CBaseChainParams defines the base parameters (shared between ring-cli and ringd)
+ * of a given instance of the Ring system.
  */
 class CBaseChainParams
 {
@@ -53,4 +53,4 @@ const CBaseChainParams& BaseParams();
 /** Sets the params returned by Params() to those for the given network. */
 void SelectBaseParams(const std::string& chain);
 
-#endif // BITCOIN_CHAINPARAMSBASE_H
+#endif // RING_CHAINPARAMSBASE_H

@@ -1,0 +1,33 @@
+# /etc/conf.d/ringd: config file for /etc/init.d/ringd
+
+# Config file location
+#RINGD_CONFIGFILE="/etc/ring/ring.conf"
+
+# What directory to write pidfile to?  (created and owned by $RINGD_USER)
+#RINGD_PIDDIR="/var/run/ringd"
+
+# What filename to give the pidfile
+#RINGD_PIDFILE="${RINGD_PIDDIR}/ringd.pid"
+
+# Where to write ringd data (be mindful that the blockchain is large)
+#RINGD_DATADIR="/var/lib/ringd"
+
+# User and group to own ringd process
+#RINGD_USER="ring"
+#RINGD_GROUP="ring"
+
+# Path to ringd executable
+#RINGD_BIN="/usr/bin/ringd"
+
+# Nice value to run ringd under
+#RINGD_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#RINGD_OPTS=""
+
+# The timeout in seconds OpenRC will wait for ringd to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+RINGD_SIGTERM_TIMEOUT=60

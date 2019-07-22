@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+#  ringd The ring core server.
+#
+#
+# chkconfig: 345 80 20
+# description: ringd
+# processname: ringd
+#
+
+# Source function library.
+. /etc/init.d/functions
+
+# you can override defaults in /etc/sysconfig/ringd, see below
+if [ -f /etc/sysconfig/ringd ]; then
+        . /etc/sysconfig/ringd
+fi
+
+RETVAL=0
+
+prog=ringd
+# you can override the lockfile via RINGD_LOCKFILE in /etc/sysconfig/ringd
+lockfile=${RINGD_LOCKFILE-/var/lock/subsys/ringd}
+
+# ringd defaults to /usr/bin/ringd, override with RINGD_BIN
+ringd=${RINGD_BIN-/usr/bin/ringd}
+
+# ringd opts default to -disablewallet, override with RINGD_OPTS
+ringd_opts=${RINGD_OPTS--disablewallet}
+
+start() {
+    echo -n $"Starting $prog: "
+    daemon $DAEMONOPTS $ringd $ringd_opts
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc $prog
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    return $RETVAL
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status $prog
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: service $prog {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
