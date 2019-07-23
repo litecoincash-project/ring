@@ -198,6 +198,9 @@ void Shutdown(InitInterfaces& interfaces)
     if (!lockShutdown)
         return;
 
+    // Ring-fork: In-wallet miner: Shut down any active miner threads
+    MineCoins(false, 0, Params());
+
     /// Note: Shutdown() must be able to handle cases in which initialization failed part of the way,
     /// for example if the data directory was found to be locked.
     /// Be sure that anything that writes files or flushes caches only does this if the respective
@@ -538,6 +541,10 @@ void SetupServerArgs()
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), true, OptionsCategory::RPC);
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
+
+    // Ring-fork: In-wallet miner: CPU mining args
+    gArgs.AddArg("-gen", strprintf("Generate coins (default: %u)", DEFAULT_GENERATE), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-genproclimit=<n>", strprintf("Set the number of threads for coin generation if enabled (-1 = all cores, default: %d)", DEFAULT_GENERATE_THREADS), false, OptionsCategory::WALLET);
 
 #if HAVE_DECL_DAEMON
     gArgs.AddArg("-daemon", "Run in the background as a daemon and accept commands", false, OptionsCategory::OPTIONS);
@@ -1797,6 +1804,9 @@ bool AppInitMain(InitInterfaces& interfaces)
     if (!g_connman->Start(scheduler, connOptions)) {
         return false;
     }
+
+    // Ring-fork: In-wallet miner: Start mining if requested in args
+    MineCoins(gArgs.GetBoolArg("-gen", DEFAULT_GENERATE), gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_THREADS), chainparams);
 
     // ********************************************************* Step 13: finished
 

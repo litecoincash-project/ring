@@ -98,6 +98,94 @@ static UniValue getnetworkhashps(const JSONRPCRequest& request)
     return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 120, !request.params[1].isNull() ? request.params[1].get_int() : -1);
 }
 
+// Ring-fork: In-wallet miner
+UniValue getgenerate(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+            RPCHelpMan{"getgenerate",
+                "\nReturn if the server is set to generate coins or not. The default is false.\n"
+                "It is set with the command line argument -gen (or conf file setting gen)\n"
+                "It can also be set with the setgenerate call.\n",
+                {},
+                RPCResult{
+                    "true|false      (boolean) If the server is set to generate coins or not\n"
+                },
+                RPCExamples{
+                    HelpExampleCli("getgenerate", "")
+                    + HelpExampleRpc("getgenerate", "")
+                }
+            }.ToString());
+
+    LOCK(cs_main);
+    return gArgs.GetBoolArg("-gen", DEFAULT_GENERATE);
+}
+
+// Ring-fork: In-wallet miner
+UniValue setgenerate(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
+        throw std::runtime_error(
+            RPCHelpMan{"setgenerate",
+                "\nSet 'generate' true or false to turn generation on or off.\n"
+                "Generation is limited to 'genproclimit' processors, -1 is unlimited.\n"
+                "See the getgenerate call for the current setting.\n",
+                {
+                    {"generate", RPCArg::Type::BOOL, /* default */ "false", "Set to true to turn on generation, off to turn off."},
+                    {"genproclimit", RPCArg::Type::NUM, /* default */ "-1", "Set the processor limit for when generation is on. Can be -1 for unlimited."},
+                },
+                RPCResults{},
+                RPCExamples{
+                    HelpExampleCli("setgenerate", "true 8")
+                    + HelpExampleRpc("setgenerate", "false")
+                }
+            }.ToString());
+
+    if (Params().MineBlocksOnDemand())
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Use the generate method instead of setgenerate on this network");
+
+    bool fGenerate = false;
+    if (!request.params[0].isNull())
+        fGenerate = request.params[0].get_bool();
+
+    int nGenProcLimit = gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_THREADS);
+    if (request.params.size() > 1)
+        nGenProcLimit = request.params[1].get_int();
+
+    if (nGenProcLimit == 0)
+        fGenerate = false;
+
+    gArgs.ForceSetArg("-gen", fGenerate ? "1" : "0");
+    gArgs.ForceSetArg("-genproclimit", itostr(nGenProcLimit));
+
+    MineCoins(fGenerate, nGenProcLimit, Params());
+
+    return NullUniValue;
+}
+
+// Ring-fork: In-wallet miner
+UniValue gethashespersec(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+            RPCHelpMan{"gethashespersec",
+                "\nReturns a recent hashes per second performance measurement while generating.\n"
+                "See the getgenerate and setgenerate calls to turn generation on and off.\n",
+                {},
+                RPCResult{
+                    "n            (numeric) The recent hashes per second when generation is on (will return 0 if generation is off)\n"
+                },
+                RPCExamples{
+                    HelpExampleCli("gethashespersec", "")
+                    + HelpExampleRpc("gethashespersec", "")
+                }
+            }.ToString());
+
+    if (GetTimeMillis() - nHPSTimerStart > 8000)
+        return (int64_t) 0;
+    return (int64_t)dHashesPerSec;
+}
+
 UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript)
 {
     static const int nInnerLoopCount = 0x10000;
@@ -202,6 +290,10 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
                     "  \"pooledtx\": n              (numeric) The size of the mempool\n"
                     "  \"chain\": \"xxxx\",           (string) current network name as defined in BIP70 (main, test, regtest)\n"
                     "  \"warnings\": \"...\"          (string) any network and blockchain warnings\n"
+                    // Ring-fork: In-wallet miner: Show internal miner status
+                    "  \"generate\": true|false     (boolean) If the generation is on or off (see getgenerate or setgenerate calls)\n"
+                    "  \"genproclimit\": n          (numeric) The processor limit for generation. -1 if no generation. (see getgenerate or setgenerate calls)\n"
+                    "  \"hashespersec\": n          (numeric) The hashes per second of the generation, or 0 if no generation.\n"
                     "}\n"
                 },
                 RPCExamples{
@@ -222,9 +314,15 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
     obj.pushKV("pooledtx",         (uint64_t)mempool.size());
     obj.pushKV("chain",            Params().NetworkIDString());
     obj.pushKV("warnings",         GetWarnings("statusbar"));
+    // Ring-fork: In-wallet miner: Show internal miner status
+    int64_t hashesPerSec = 0;
+    if (GetTimeMillis() - nHPSTimerStart >= 8000)
+        hashesPerSec = dHashesPerSec;
+    obj.pushKV("generate",         gArgs.GetBoolArg("-gen", DEFAULT_GENERATE));
+    obj.pushKV("genproclimit",     (int)gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_THREADS));
+    obj.pushKV("hashespersec",     hashesPerSec);
     return obj;
 }
-
 
 // NOTE: Unlike wallet RPC (which use RNG values), mining RPCs follow GBT (BIP 22) in using satoshi amounts
 static UniValue prioritisetransaction(const JSONRPCRequest& request)
@@ -983,7 +1081,9 @@ static const CRPCCommand commands[] =
     { "mining",             "submitblock",            &submitblock,            {"hexdata","dummy"} },
     { "mining",             "submitheader",           &submitheader,           {"hexdata"} },
 
-
+    { "generating",         "getgenerate",            &getgenerate,            {} },                            // Ring-fork: In-wallet miner
+    { "generating",         "setgenerate",            &setgenerate,            {"generate", "genproclimit"} },  // Ring-fork: In-wallet miner
+    { "generating",         "gethashespersec",        &gethashespersec,        {} },                            // Ring-fork: In-wallet miner
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
 
     { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },

@@ -24,10 +24,14 @@
 #include <util/moneystr.h>
 #include <util/system.h>
 #include <validationinterface.h>
+#include <wallet/wallet.h>          // Ring-fork: In-wallet miner
+#include <rpc/server.h>             // Ring-fork: In-wallet miner
+#include <wallet/rpcwallet.h>       // Ring-fork: In-wallet miner
 
 #include <algorithm>
 #include <queue>
 #include <utility>
+#include <boost/thread/thread.hpp>  // Ring-fork: In-wallet miner
 
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
@@ -444,4 +448,207 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+}
+
+// Ring-fork: In-wallet miner: Hashrate measurement vars
+double dHashesPerSec = 0.0;
+int64_t nHPSTimerStart = 0;
+
+// Ring-fork: In-wallet miner: Scans nonces looking for a hash with at least some zero bits. The nonce is usually preserved between calls, but periodically or if the nonce is 0xffff0000 or above, the block is rebuilt and nNonce starts over at zero.
+bool static ScanHash(CBlockHeader *pblock, uint32_t& nNonce, uint256 *phash) {
+    uint256 hash;
+    while (true) {
+        nNonce++;
+
+        pblock->nNonce = nNonce;
+        hash = pblock->GetHash();
+
+        if (hash.ByteAt(31) == 0 && hash.ByteAt(30) == 0) {         // Return the nonce if the hash has at least some zero bits, caller will check if it has enough to reach the target
+            memcpy(phash, &hash, 32);
+            return true;
+        }
+
+        if ((nNonce & 0xffff) == 0)                                 // If nothing found after trying for a while, return -1
+            return false;
+
+        if ((nNonce & 0xfff) == 0)                                  // Fire an interrupt to measure hashrate
+            boost::this_thread::interruption_point();
+    }
+}
+
+// Ring-fork: In-wallet miner: Single thread in the thread group
+void static MinerThread(const CChainParams& chainparams) {
+    LogPrintf("Miner: Thread started\n");
+    SetThreadPriority(THREAD_PRIORITY_LOWEST);
+    RenameThread("cpu-miner");
+
+    unsigned int nExtraNonce = 0;
+
+    try {
+        // Check P2P exists
+        if(!g_connman)
+            throw std::runtime_error("P2P unavailable");
+
+        // Get wallet
+        JSONRPCRequest request;
+        std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+        CWallet* const pwallet = wallet.get();
+
+        if (!EnsureWalletIsAvailable(pwallet, true))
+            throw std::runtime_error("Wallet unavailable");
+
+        // Get coinbase script
+        std::shared_ptr<CReserveScript> coinbaseScript;
+        pwallet->GetScriptForMining(coinbaseScript);
+
+        if (!coinbaseScript)
+            throw std::runtime_error("Keypool ran out, please call keypoolrefill first");
+
+        if (coinbaseScript->reserveScript.empty())
+            throw std::runtime_error(" No coinbase script available");
+
+        while (true) {
+            // Wait for network unless on regtest
+            if (!chainparams.MineBlocksOnDemand()) {
+                do {
+                    if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) > 0 && !IsInitialBlockDownload())
+                        break;
+                    if (IsInitialBlockDownload())
+                        LogPrintf("Miner: Initial block download; sleeping for 10 seconds.\n");
+                    else
+                        LogPrintf("Miner: No peers; sleeping for 10 seconds.\n");
+                    MilliSleep(10000);
+                } while (true);
+            }
+
+            // Create a block
+            unsigned int nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
+            CBlockIndex* pindexPrev = chainActive.Tip();
+            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
+            if (!pblocktemplate.get())
+                throw std::runtime_error("Couldn't get block template. Probably keypool ran out; please call keypoolrefill before restarting the mining thread");
+
+            CBlock *pblock = &pblocktemplate->block;
+            {
+                LOCK(cs_main);
+                IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
+            }
+
+            // Scan for a good nonce
+            LogPrintf("Miner: Running (%u transactions in block)\n", pblock->vtx.size());
+            int64_t nStart = GetTime();
+            arith_uint256 hashTarget = arith_uint256().SetCompact(pblock->nBits);
+            uint256 hash;
+            uint32_t nNonce = 0;
+            uint32_t nOldNonce = 0;
+            while (true) {
+                bool fFound = ScanHash(pblock, nNonce, &hash);
+                uint32_t nHashesDone = nNonce - nOldNonce;
+                nOldNonce = nNonce;
+
+                if (fFound) {                                       // Found a potential (has at least some zeroes)
+                    if (UintToArith256(hash) <= hashTarget) {       // Found a good solution :)
+                        pblock->nNonce = nNonce;
+                        assert(hash == pblock->GetHash());
+
+                        SetThreadPriority(THREAD_PRIORITY_NORMAL);
+                        LogPrintf("Miner: BLOCK FOUND.\nhash: %s\ntarget: %s\n", hash.GetHex(), hashTarget.GetHex());
+
+                        // Make sure the new block's not stale
+                        {
+                            LOCK(cs_main);
+                            if (pblock->hashPrevBlock != chainActive.Tip()->GetBlockHash()) {
+                                LogPrintf("Miner: WARNING: Generated block is stale.\n");
+                                break;
+                            }
+                        }
+
+                        // Process this block the same as if we had received it from another node
+                        std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
+                        if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
+                            LogPrintf("Miner: WARNING: Block was not accepted.\n");
+                            break;
+                        }
+
+                        SetThreadPriority(THREAD_PRIORITY_LOWEST);
+                        coinbaseScript->KeepScript();
+
+                        // In regression test mode, stop mining after a block is found.
+                        if (chainparams.MineBlocksOnDemand())
+                            throw boost::thread_interrupted();
+
+                        break;
+                    }
+                }
+
+                // Meter hashes/sec
+                static int64_t nHashCounter;
+                if (nHPSTimerStart == 0) {
+                    nHPSTimerStart = GetTimeMillis();
+                    nHashCounter = 0;
+                } else
+                    nHashCounter += nHashesDone;
+                if (GetTimeMillis() - nHPSTimerStart > 4000) {
+                    static CCriticalSection cs;
+                    {
+                        LOCK(cs);
+                        if (GetTimeMillis() - nHPSTimerStart > 4000) {
+                            dHashesPerSec = 1000.0 * nHashCounter / (GetTimeMillis() - nHPSTimerStart);
+                            nHPSTimerStart = GetTimeMillis();
+                            nHashCounter = 0;
+                            static int64_t nLogTime;
+                            if (GetTime() - nLogTime > 30 * 60) {
+                                nLogTime = GetTime();
+                                LogPrintf("Miner: Hashrate=%6.0f khash/s\n", dHashesPerSec/1000.0);
+                            }
+                        }
+                    }
+                }
+
+                // Check whether to break or continue
+                boost::this_thread::interruption_point();
+                if (!chainparams.MineBlocksOnDemand() && g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)   // No peers and not in regtest
+                    break;
+                if (nNonce >= 0xffff0000)                                                                           // Nonce space maxed out
+                    break;
+                if (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 60)        // Transactions updated, or been trying a while
+                    break;
+                if (pindexPrev != chainActive.Tip())                                                                // Tip changed
+                    break;
+                if (UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev) < 0)                                 // Clock ran backwards
+                    break;
+                if (chainparams.GetConsensus().fPowAllowMinDifficultyBlocks)                                        // Changing pblock->nTime can change work required on testnet due to diff reset
+                    hashTarget.SetCompact(pblock->nBits);
+            }
+        }
+    }
+    catch (const boost::thread_interrupted&) {
+        LogPrintf("Miner: Thread terminated\n");
+        throw;
+    }
+    catch (const std::runtime_error &e) {
+        LogPrintf("Miner: Runtime error: %s\n", e.what());
+        return;
+    }
+}
+
+// Ring-fork: In-wallet miner: Mining thread controller
+void MineCoins(bool fGenerate, int nThreads, const CChainParams& chainparams) {
+    static boost::thread_group* minerThreads = NULL;
+
+    if (nThreads < 0)
+        nThreads = GetNumCores();
+
+    if (minerThreads != NULL) {
+        minerThreads->interrupt_all();
+        delete minerThreads;
+        minerThreads = NULL;
+    }
+
+    if (nThreads == 0 || !fGenerate)
+        return;
+
+    minerThreads = new boost::thread_group();
+    for (int i = 0; i < nThreads; i++)
+        minerThreads->create_thread(boost::bind(&MinerThread, boost::cref(chainparams)));
 }

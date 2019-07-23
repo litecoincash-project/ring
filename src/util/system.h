@@ -316,8 +316,8 @@ std::string HelpMessageOpt(const std::string& option, const std::string& message
  * @note This does count virtual cores, such as those provided by HyperThreading.
  */
 int GetNumCores();
-
 void RenameThread(const char* name);
+void SetThreadPriority(int nPriority);      // Ring-fork: Set thread priority (used by in-wallet miner)
 
 /**
  * .. and a wrapper that just calls func once

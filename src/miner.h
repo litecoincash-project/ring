@@ -23,6 +23,9 @@ class CScript;
 
 namespace Consensus { struct Params; };
 
+static const bool DEFAULT_GENERATE = false;     // Ring-fork: In-wallet miner
+static const int DEFAULT_GENERATE_THREADS = 1;  // Ring-fork: In-wallet miner
+
 static const bool DEFAULT_PRINTPRIORITY = false;
 
 struct CBlockTemplate
@@ -201,5 +204,9 @@ private:
 /** Modify the extranonce in a block */
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
+
+void MineCoins(bool fGenerate, int nThreads, const CChainParams& chainparams);  // Ring-fork: In-wallet miner: Run miner threads
+extern double dHashesPerSec;                                                    // Ring-fork: In-wallet miner: Measure hashrate
+extern int64_t nHPSTimerStart;                                                  // Ring-fork: In-wallet miner: Measure hashrate
 
 #endif // RING_MINER_H

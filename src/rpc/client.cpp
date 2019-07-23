@@ -164,6 +164,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "createwallet", 2, "blank"},
     { "getnodeaddresses", 0, "count"},
     { "stop", 0, "wait" },
+    { "setgenerate", 0 },   // Ring-fork: In-wallet miner
+    { "setgenerate", 1 },   // Ring-fork: In-wallet miner
 };
 // clang-format on
 

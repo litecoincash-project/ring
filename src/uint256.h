@@ -139,6 +139,10 @@ public:
     uint256(uint512& dat){
         memcpy(begin(), dat.begin(), size());
     }
+    // Ring-fork
+    unsigned char ByteAt(unsigned int n) {
+        return data[n];
+    }
 };
 
 /* uint256 from const char *.
