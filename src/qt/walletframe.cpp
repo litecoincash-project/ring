@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2011-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -129,6 +130,14 @@ void WalletFrame::gotoOverviewPage()
     QMap<WalletModel*, WalletView*>::const_iterator i;
     for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
         i.value()->gotoOverviewPage();
+}
+
+// Ring-fork: Mining page
+void WalletFrame::gotoMiningPage()
+{
+    QMap<WalletModel*, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoMiningPage();
 }
 
 void WalletFrame::gotoHistoryPage()

@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2011-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -11,6 +12,7 @@
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 #include <qt/overviewpage.h>
+#include <qt/miningpage.h>      // Ring-fork: Mining page
 #include <qt/platformstyle.h>
 #include <qt/receivecoinsdialog.h>
 #include <qt/sendcoinsdialog.h>
@@ -39,6 +41,8 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     // Create tabs
     overviewPage = new OverviewPage(platformStyle);
 
+    miningPage = new MiningPage(platformStyle); // Ring-fork: Mining page
+
     transactionsPage = new QWidget(this);
     QVBoxLayout *vbox = new QVBoxLayout();
     QHBoxLayout *hbox_buttons = new QHBoxLayout();
@@ -61,6 +65,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     usedReceivingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
 
     addWidget(overviewPage);
+    addWidget(miningPage);           // Ring-fork: Mining page
     addWidget(transactionsPage);
     addWidget(receiveCoinsPage);
     addWidget(sendCoinsPage);
@@ -117,6 +122,7 @@ void WalletView::setClientModel(ClientModel *_clientModel)
     this->clientModel = _clientModel;
 
     overviewPage->setClientModel(_clientModel);
+    miningPage->setClientModel(_clientModel);   // Ring-fork: Mining page
     sendCoinsPage->setClientModel(_clientModel);
 }
 
@@ -178,6 +184,12 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
 void WalletView::gotoOverviewPage()
 {
     setCurrentWidget(overviewPage);
+}
+
+// Ring-fork: Mining page
+void WalletView::gotoMiningPage()
+{
+    setCurrentWidget(miningPage);
 }
 
 void WalletView::gotoHistoryPage()

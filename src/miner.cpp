@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -25,8 +26,9 @@
 #include <util/system.h>
 #include <validationinterface.h>
 #include <wallet/wallet.h>          // Ring-fork: In-wallet miner
-#include <rpc/server.h>             // Ring-fork: In-wallet miner
 #include <wallet/rpcwallet.h>       // Ring-fork: In-wallet miner
+#include <rpc/server.h>             // Ring-fork: In-wallet miner
+#include <ui_interface.h>           // Ring-fork: In-wallet miner
 
 #include <algorithm>
 #include <queue>
@@ -573,6 +575,8 @@ void static MinerThread(const CChainParams& chainparams) {
                         SetThreadPriority(THREAD_PRIORITY_LOWEST);
                         coinbaseScript->KeepScript();
 
+                        uiInterface.NotifyBlockFound(); // Fire UI notification
+
                         // In regression test mode, stop mining after a block is found.
                         if (chainparams.MineBlocksOnDemand())
                             throw boost::thread_interrupted();
@@ -636,19 +640,21 @@ void static MinerThread(const CChainParams& chainparams) {
 void MineCoins(bool fGenerate, int nThreads, const CChainParams& chainparams) {
     static boost::thread_group* minerThreads = NULL;
 
-    if (nThreads < 0)
+    if (nThreads < 0)                           // Use all cores if -1 specified
         nThreads = GetNumCores();
 
-    if (minerThreads != NULL) {
+    if (minerThreads != NULL) {                 // Kill any existing miner threads
         minerThreads->interrupt_all();
         delete minerThreads;
         minerThreads = NULL;
     }
 
+    uiInterface.NotifyGenerateChanged();        // Fire UI notification
+
     if (nThreads == 0 || !fGenerate)
         return;
 
     minerThreads = new boost::thread_group();
-    for (int i = 0; i < nThreads; i++)
+    for (int i = 0; i < nThreads; i++)          // Start threads
         minerThreads->create_thread(boost::bind(&MinerThread, boost::cref(chainparams)));
 }

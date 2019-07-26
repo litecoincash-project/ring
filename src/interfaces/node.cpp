@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -285,6 +286,16 @@ public:
     {
         return MakeHandler(::uiInterface.NotifyNetworkActiveChanged_connect(fn));
     }
+    // Ring-fork: In-wallet miner
+    std::unique_ptr<Handler> handleNotifyGenerateChanged(NotifyGenerateChangedFn fn) override
+    {
+        return MakeHandler(::uiInterface.NotifyGenerateChanged_connect(fn));
+    }    
+    // Ring-fork: In-wallet miner
+    std::unique_ptr<Handler> handleNotifyBlockFound(NotifyBlockFoundFn fn) override
+    {
+        return MakeHandler(::uiInterface.NotifyBlockFound_connect(fn));
+    }    
     std::unique_ptr<Handler> handleNotifyAlertChanged(NotifyAlertChangedFn fn) override
     {
         return MakeHandler(::uiInterface.NotifyAlertChanged_connect(fn));

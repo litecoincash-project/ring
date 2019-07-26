@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2011-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -82,6 +83,8 @@ private:
     std::unique_ptr<interfaces::Handler> m_handler_show_progress;
     std::unique_ptr<interfaces::Handler> m_handler_notify_num_connections_changed;
     std::unique_ptr<interfaces::Handler> m_handler_notify_network_active_changed;
+    std::unique_ptr<interfaces::Handler> m_handler_notify_generate_changed; // Ring-fork: In-wallet miner
+    std::unique_ptr<interfaces::Handler> m_handler_notify_block_found;      // Ring-fork: In-wallet miner
     std::unique_ptr<interfaces::Handler> m_handler_notify_alert_changed;
     std::unique_ptr<interfaces::Handler> m_handler_banned_list_changed;
     std::unique_ptr<interfaces::Handler> m_handler_notify_block_tip;
@@ -100,6 +103,8 @@ Q_SIGNALS:
     void numBlocksChanged(int count, const QDateTime& blockDate, double nVerificationProgress, bool header);
     void mempoolSizeChanged(long count, size_t mempoolSizeInBytes);
     void networkActiveChanged(bool networkActive);
+    void generateChanged(); // Ring-fork: In-wallet miner
+    void blockFound();      // Ring-fork: In-wallet miner
     void alertsChanged(const QString &warnings);
     void bytesChanged(quint64 totalBytesIn, quint64 totalBytesOut);
 
@@ -113,6 +118,8 @@ public Q_SLOTS:
     void updateTimer();
     void updateNumConnections(int numConnections);
     void updateNetworkActive(bool networkActive);
+    void updateGenerate();      // Ring-fork: In-wallet miner
+    void updateBlockFound();    // Ring-fork: In-wallet miner
     void updateAlert();
     void updateBanlist();
 };

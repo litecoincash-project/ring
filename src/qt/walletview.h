@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2011-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -12,6 +13,7 @@
 class RingGUI;
 class ClientModel;
 class OverviewPage;
+class MiningPage;       // Ring-fork: Mining page
 class PlatformStyle;
 class ReceiveCoinsDialog;
 class SendCoinsDialog;
@@ -60,6 +62,7 @@ private:
     WalletModel *walletModel;
 
     OverviewPage *overviewPage;
+    MiningPage *miningPage;     // Ring-fork: Mining page
     QWidget *transactionsPage;
     ReceiveCoinsDialog *receiveCoinsPage;
     SendCoinsDialog *sendCoinsPage;
@@ -74,6 +77,8 @@ private:
 public Q_SLOTS:
     /** Switch to overview (home) page */
     void gotoOverviewPage();
+    // Ring-fork: Mining page
+    void gotoMiningPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch to receive coins page */

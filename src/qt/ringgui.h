@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2011-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -127,6 +128,7 @@ private:
     QMenuBar* appMenuBar = nullptr;
     QToolBar* appToolBar = nullptr;
     QAction* overviewAction = nullptr;
+    QAction* miningAction = nullptr;    // Ring-fork: Mining page
     QAction* historyAction = nullptr;
     QAction* quitAction = nullptr;
     QAction* sendCoinsAction = nullptr;
@@ -258,6 +260,8 @@ public Q_SLOTS:
 #ifdef ENABLE_WALLET
     /** Switch to overview (home) page */
     void gotoOverviewPage();
+    // Ring-fork: Mining page
+    void gotoMiningPage();    
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch to receive coins page */

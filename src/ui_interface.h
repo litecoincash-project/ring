@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2012-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -95,6 +96,12 @@ public:
 
     /** Network activity state changed. */
     ADD_SIGNALS_DECL_WRAPPER(NotifyNetworkActiveChanged, void, bool networkActive);
+
+    /** Ring-fork: In-wallet miner: Generate changed. */
+    ADD_SIGNALS_DECL_WRAPPER(NotifyGenerateChanged, void, );
+
+    /** Ring-fork: In-wallet miner: Block found. */
+    ADD_SIGNALS_DECL_WRAPPER(NotifyBlockFound, void, );
 
     /**
      * Status bar alerts changed.

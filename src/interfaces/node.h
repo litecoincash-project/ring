@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -228,6 +229,14 @@ public:
     //! Register handler for network active messages.
     using NotifyNetworkActiveChangedFn = std::function<void(bool network_active)>;
     virtual std::unique_ptr<Handler> handleNotifyNetworkActiveChanged(NotifyNetworkActiveChangedFn fn) = 0;
+
+    //! Ring-fork: In-wallet miner: Register handler for gen state change messages.
+    using NotifyGenerateChangedFn = std::function<void()>;
+    virtual std::unique_ptr<Handler> handleNotifyGenerateChanged(NotifyGenerateChangedFn fn) = 0;    
+
+    //! Ring-fork: In-wallet miner: Register handler for block found messages.
+    using NotifyBlockFoundFn = std::function<void()>;
+    virtual std::unique_ptr<Handler> handleNotifyBlockFound(NotifyBlockFoundFn fn) = 0;    
 
     //! Register handler for notify alert messages.
     using NotifyAlertChangedFn = std::function<void()>;

@@ -1,3 +1,4 @@
+// Copyright (c) 2018-2019 The Ring Developers
 // Copyright (c) 2011-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -273,11 +274,21 @@ void RingGUI::createActions()
     historyAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
     tabGroup->addAction(historyAction);
 
+    // Ring-fork: Mining page
+    miningAction = new QAction(platformStyle->SingleColorIcon(":/icons/mining"), tr("CPU &Mining"), this);
+    miningAction->setStatusTip(tr("Show in-wallet CPU miner"));
+    miningAction->setToolTip(miningAction->statusTip());
+    miningAction->setCheckable(true);
+    miningAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
+    tabGroup->addAction(miningAction);
+
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
     // can be triggered from the tray menu, and need to show the GUI to be useful.
     connect(overviewAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(overviewAction, &QAction::triggered, this, &RingGUI::gotoOverviewPage);
+    connect(miningAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });         // Ring-fork: Mining page: Connect actions
+    connect(miningAction, &QAction::triggered, this, &RingGUI::gotoMiningPage);             // Ring-fork: Mining page: Connect actions
     connect(sendCoinsAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(sendCoinsAction, &QAction::triggered, [this]{ gotoSendCoinsPage(); });
     connect(sendCoinsMenuAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
@@ -536,6 +547,7 @@ void RingGUI::createToolBars()
         toolbar->addAction(sendCoinsAction);
         toolbar->addAction(receiveCoinsAction);
         toolbar->addAction(historyAction);
+        toolbar->addAction(miningAction); // Ring-fork: Mining page
         overviewAction->setChecked(true);
 
 #ifdef ENABLE_WALLET
@@ -706,6 +718,7 @@ void RingGUI::removeAllWallets()
 void RingGUI::setWalletActionsEnabled(bool enabled)
 {
     overviewAction->setEnabled(enabled);
+    miningAction->setEnabled(enabled);  // Ring-fork: Mining page
     sendCoinsAction->setEnabled(enabled);
     sendCoinsMenuAction->setEnabled(enabled);
     receiveCoinsAction->setEnabled(enabled);
@@ -835,6 +848,13 @@ void RingGUI::gotoOverviewPage()
 {
     overviewAction->setChecked(true);
     if (walletFrame) walletFrame->gotoOverviewPage();
+}
+
+// Ring-fork: Mining page
+void RingGUI::gotoMiningPage()
+{
+    miningAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoMiningPage();
 }
 
 void RingGUI::gotoHistoryPage()
