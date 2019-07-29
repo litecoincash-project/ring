@@ -66,7 +66,7 @@ void MiningPage::setClientModel(ClientModel *model)
 void MiningPage::increaseBlocksFound()
 {
     static unsigned int blocksFound = 0;
-    ui->blocksFoundLabel->setText(QString::number(blocksFound++));
+    ui->blocksFoundLabel->setText(QString::number(++blocksFound));
 }
 
 void MiningPage::numConnectionsChanged(int connections)
