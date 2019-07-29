@@ -75,8 +75,8 @@ struct Params {
     bool fPowAllowMinDifficultyBlocks;
     bool fPowNoRetargeting;
     int64_t nPowTargetSpacing;
-    int64_t nPowTargetTimespan;
-    int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespan / nPowTargetSpacing; }
+    //int64_t nPowTargetTimespan;           // Ring-fork: Removed
+    int64_t DifficultyAdjustmentInterval() const { return 1; }  // Ring-fork: Difficulty adjustment happens every block
     uint256 nMinimumChainWork;
     uint256 defaultAssumeValid;
 
@@ -87,6 +87,11 @@ struct Params {
     unsigned char foreignCoinP2SH2Prefixes[FOREIGN_COIN_COUNT];
     unsigned char foreignCoinWIFPrefixes[FOREIGN_COIN_COUNT];
     std::string foreignCoinBech32HRPs[FOREIGN_COIN_COUNT];
+
+    // Ring-fork: General consensus params
+    int lastInitialDistributionHeight;      // Height of last block containing initial distribution payouts to foreign coins
+    uint256 powLimitInitialDistribution;    // Lower-than-powLimit difficulty for initial distribution blocks only
+    int slowStartBlocks;                    // Scale initial block reward up over this many blocks    
 };
 } // namespace Consensus
 

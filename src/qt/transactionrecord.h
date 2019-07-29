@@ -81,7 +81,8 @@ public:
         SendToOther,
         RecvWithAddress,
         RecvFromOther,
-        SendToSelf
+        SendToSelf,
+        ForeignChainImport  // Ring-fork: A claim transaction from a supported foreign chain
     };
 
     /** Number of confirmation recommended for accepting a transaction */

@@ -1153,6 +1153,10 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
+    // Ring-fork: Allow any subsidy up to the last initial distribution block
+    if (nHeight <= consensusParams.lastInitialDistributionHeight)
+        return MAX_MONEY;
+
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
@@ -1161,6 +1165,14 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     CAmount nSubsidy = 50 * COIN;
     // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
     nSubsidy >>= halvings;
+
+    // Ring-fork: Slow-start the first n blocks to prevent early miners having an unfair advantage
+    int64_t blocksSinceInitialDistribution = nHeight - consensusParams.lastInitialDistributionHeight;
+    if (blocksSinceInitialDistribution > 0 && blocksSinceInitialDistribution < consensusParams.slowStartBlocks) {
+        CAmount incrementPerBlock = nSubsidy / consensusParams.slowStartBlocks;
+        nSubsidy = blocksSinceInitialDistribution * incrementPerBlock;
+    }
+
     return nSubsidy;
 }
 

@@ -67,8 +67,13 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 }
                 if (wtx.is_coinbase)
                 {
-                    // Generated
-                    sub.type = TransactionRecord::Generated;
+                    // Ring-fork: Show initial distribution claims separately to mined blocks in UI
+                    CScript scriptPubKeyMarker;
+                    scriptPubKeyMarker << OP_RETURN << 0x49 << 0x44;
+                    if (wtx.tx->vout[0].scriptPubKey == scriptPubKeyMarker && wtx.tx->vout[0].nValue == 0)
+                        sub.type = TransactionRecord::ForeignChainImport;   // Claimed
+                    else
+                        sub.type = TransactionRecord::Generated;            // Mined
                 }
 
                 parts.append(sub);

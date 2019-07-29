@@ -22,8 +22,8 @@
 #include <arith_uint256.h>  // Ring-fork: For genesis miner
 
 // Note: The Ring genesis block reward is unspendable. Its scriptpubkey is an embedded 32x32 8-bit raw image; decoding it is left as an exercise to the reader :)
-#define GENESIS_HASH        "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-#define GENESIS_NONCE       0
+#define GENESIS_HASH        "0x000000f14701f876f8b887c4b2bd8a2c476d61728c9770581e578befe335e65a"
+#define GENESIS_NONCE       35296045
 #define GENESIS_TIMESTAMP   1563626919
 #define GENESIS_MERKLE      "0xe6a5c94756b5810910f77dbaa2a646708c36a7b2138412c3a9c05a19b45bb9f0"
 #define GENESIS_STRING      "In memory of Pawel 'demon2k13' Wyszynski (21/7/1994 - 3/7/2019) a ring is forged 20/7/2019"
@@ -67,16 +67,15 @@ public:
         consensus.nSubsidyHalvingInterval = 210000;
         //consensus.BIP16Exception = uint256S("0x0");   // No BIP16 exception on chain
         consensus.BIP34Height = 100;
-        consensus.BIP34Hash = uint256S("");
+        consensus.BIP34Hash = uint256();    // Not needed
         consensus.BIP65Height = 1;  // BIP65 & 66 active since start
         consensus.BIP66Height = 1;
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // 3.5 days
         consensus.nPowTargetSpacing = 2.5 * 60; // 2.5 minutes
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 1916; // 95% of 2016
-        consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
+        consensus.nRuleChangeActivationThreshold = 1916; // 95% of 2016 blocks required for UASF activation
+        consensus.nMinerConfirmationWindow = 2016;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
@@ -107,11 +106,16 @@ public:
         std::copy(std::begin(foreignCoinWIFPrefixes), std::end(foreignCoinWIFPrefixes), std::begin(consensus.foreignCoinWIFPrefixes));
         std::copy(std::begin(foreignCoinBech32HRPs), std::end(foreignCoinBech32HRPs), std::begin(consensus.foreignCoinBech32HRPs));
 
+        // Ring-fork: General consensus fields
+        consensus.lastInitialDistributionHeight = 28339;                                                                            // Height of last block containing initial distribution payouts to foreign coins
+        consensus.powLimitInitialDistribution = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");       // Lower-than-powLimit difficulty for initial distribution blocks only
+        consensus.slowStartBlocks = 2000;                                                                                           // Scale initial block reward up over this many blocks
+
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0");
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000000000000007eb310");               // At lastInitialDistributionHeight
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S(GENESIS_HASH); // 0
+        consensus.defaultAssumeValid = uint256S("0x00edb6172048478737a4b0ef2e7ce4806a8b2158428dbe5544b689b8a59eb3b5");              // At lastInitialDistributionHeight
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -156,6 +160,7 @@ public:
         checkpointData = {
             {
                 {0, uint256S(GENESIS_HASH)},
+                {consensus.lastInitialDistributionHeight, uint256S("0x00edb6172048478737a4b0ef2e7ce4806a8b2158428dbe5544b689b8a59eb3b5")},  // Last initial distribution block
             }
         };
 
@@ -179,12 +184,11 @@ public:
         strNetworkID = "test";
         consensus.nSubsidyHalvingInterval = 210000;
         //consensus.BIP16Exception = uint256S("0x0");   // No BIP16 exception on chain
-        consensus.BIP34Height = 104;
-        consensus.BIP34Hash = uint256S("0x00000e4f48332e0a2a3d944d03647d20f7df83642d45b2ffdd172d65b7ada5fe");
+        consensus.BIP34Height = 100;
+        consensus.BIP34Hash = uint256();    // Not needed
         consensus.BIP65Height = 1;
         consensus.BIP66Height = 1;
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // 3.5 days
         consensus.nPowTargetSpacing = 2.5 * 60; // 2.5 minutes
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
@@ -219,6 +223,11 @@ public:
         std::copy(std::begin(foreignCoinP2SH2Prefixes), std::end(foreignCoinP2SH2Prefixes), std::begin(consensus.foreignCoinP2SH2Prefixes));
         std::copy(std::begin(foreignCoinWIFPrefixes), std::end(foreignCoinWIFPrefixes), std::begin(consensus.foreignCoinWIFPrefixes));
         std::copy(std::begin(foreignCoinBech32HRPs), std::end(foreignCoinBech32HRPs), std::begin(consensus.foreignCoinBech32HRPs));
+
+        // Ring-fork: General consensus fields
+        consensus.lastInitialDistributionHeight = 10000;                                                                            // Height of last block containing initial distribution payouts to foreign coins
+        consensus.powLimitInitialDistribution = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");       // Lower-than-powLimit difficulty for initial distribution blocks only
+        consensus.slowStartBlocks = 40;                                                                                             // Scale initial block reward up over this many blocks
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0");
@@ -287,16 +296,15 @@ public:
         consensus.nSubsidyHalvingInterval = 150;
         //consensus.BIP16Exception = uint256S("0x0");   // No BIP16 exception on chain
         consensus.BIP34Height = 100; // BIP34 activated on regtest (Used in functional tests)
-        consensus.BIP34Hash = uint256();
+        consensus.BIP34Hash = uint256();    // Not needed
         consensus.BIP65Height = 1; // BIP65 activated on regtest (Used in functional tests)
         consensus.BIP66Height = 1; // BIP66 activated on regtest (Used in functional tests)
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // 3.5 days
         consensus.nPowTargetSpacing = 2.5 * 60; // 2.5 minutes
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 144; // Faster than normal for regtest (144 instead of 2016)
+        consensus.nMinerConfirmationWindow = 144;       // Faster than normal for regtest (144 instead of 2016)
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
