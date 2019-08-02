@@ -128,7 +128,8 @@ private:
     QMenuBar* appMenuBar = nullptr;
     QToolBar* appToolBar = nullptr;
     QAction* overviewAction = nullptr;
-    QAction* miningAction = nullptr;    // Ring-fork: Mining page
+    QAction* miningAction = nullptr;                // Ring-fork: Mining page
+    QAction* importPrivateKeyAction = nullptr;      // Ring-fork: Key import helper
     QAction* historyAction = nullptr;
     QAction* quitAction = nullptr;
     QAction* sendCoinsAction = nullptr;

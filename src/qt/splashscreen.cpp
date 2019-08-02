@@ -29,7 +29,7 @@ SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const Netw
     QWidget(nullptr, f), curAlignment(0), m_node(node)
 {
     // set reference point, paddings
-    int paddingRight            = 120;   // Ring-fork: Fix ugly spacing on splash screen
+    int paddingRight            = 120;  // Ring-fork: Fix ugly spacing on splash screen
     int paddingTop              = 50;
     int titleVersionVSpace      = 17;
     int titleCopyrightVSpace    = 40;
@@ -94,6 +94,7 @@ SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const Netw
         pixPaint.setFont(QFont(font, 10*fontFactor));
         titleVersionVSpace -= 5;
     }
+    titleVersionVSpace += 10;   // Ring-fork: Fix ugly spacing on splash screen
     pixPaint.drawText(pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight+2,paddingTop+titleVersionVSpace,versionText);
 
     // draw copyright stuff
@@ -101,7 +102,7 @@ SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const Netw
         pixPaint.setFont(QFont(font, 10*fontFactor));
         const int x = pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight;
         const int y = paddingTop+titleCopyrightVSpace;
-        QRect copyrightRect(x, y, pixmap.width() - x, pixmap.height() - y); // Ring-fork: Fix ugly spacing on splash screen
+        QRect copyrightRect(x, y, 180, pixmap.height() - y);    // Ring-fork: Fix ugly spacing on splash screen
         pixPaint.drawText(copyrightRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, copyrightText);
     }
 

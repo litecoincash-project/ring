@@ -20,6 +20,11 @@
 #include <qt/transactiontablemodel.h>
 #include <qt/transactionview.h>
 #include <qt/walletmodel.h>
+#include <boost/thread.hpp>     // Ring-fork: Key import helper
+#include <wallet/rpcwallet.h>   // Ring-fork: Key import helper
+#include <wallet/wallet.h>      // Ring-fork: Key import helper
+#include <validation.h>         // Ring-fork: Key import helper
+#include <key_io.h>             // Ring-fork: Key import helper
 
 #include <interfaces/node.h>
 #include <ui_interface.h>
@@ -31,6 +36,7 @@
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QInputDialog>         // Ring-fork: Key import helper
 
 WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     QStackedWidget(parent),
@@ -342,4 +348,81 @@ void WalletView::showProgress(const QString &title, int nProgress)
 void WalletView::requestedSyncWarningInfo()
 {
     Q_EMIT outOfSyncWarningClicked();
+}
+
+// Ring-fork: Key import helper
+void WalletView::doRescan(CWallet* pwallet, int64_t startTime)
+{
+    WalletRescanReserver reserver(pwallet);
+    if (!reserver.reserve()) {
+        QMessageBox::critical(0, tr(PACKAGE_NAME), tr("Wallet is currently rescanning. Abort existing rescan or wait."));
+        return;
+    }
+	pwallet->RescanFromTime(0, reserver, true);
+	QMessageBox::information(0, tr(PACKAGE_NAME), tr("Rescan complete."));
+}
+
+// Ring-fork: Key import helper
+void WalletView::importPrivateKey()
+{
+    bool ok;
+    QString privKey = QInputDialog::getText(0, tr(PACKAGE_NAME), tr("Enter a private key from any supported chain to claim Ring into your wallet."), QLineEdit::Normal, "", &ok);
+    if (ok && !privKey.isEmpty()) {
+        std::shared_ptr<CWallet> wallet = GetWalletForQTKeyImport();
+        CWallet* const pwallet = wallet.get();
+
+        if(!pwallet) {
+            QMessageBox::critical(0, tr(PACKAGE_NAME), tr("Couldn't select valid wallet."));
+            return;
+        }
+
+        if (!EnsureWalletIsAvailable(pwallet, false)) {
+            QMessageBox::critical(0, tr(PACKAGE_NAME), tr("Wallet isn't open."));
+            return;
+        }
+
+        LOCK2(cs_main, pwallet->cs_wallet);
+
+        WalletModel::UnlockContext ctx(walletModel->requestUnlock());
+        if(!ctx.isValid())  // Unlock wallet was cancelled
+            return;
+
+        CKey key = DecodeSecret(privKey.toStdString());
+        if (!key.IsValid()) {
+            QMessageBox::critical(0, tr(PACKAGE_NAME), tr("That doesn't seem to be a valid private key."));
+            return;
+        }
+
+        CPubKey pubkey = key.GetPubKey();
+        assert(key.VerifyPubKey(pubkey));
+        CKeyID vchAddress = pubkey.GetID();
+        {
+            pwallet->MarkDirty();
+            pwallet->SetAddressBook(vchAddress, "", "receive");
+
+            if (pwallet->HaveKey(vchAddress)) {
+                QMessageBox::critical(0, tr(PACKAGE_NAME), tr("This key has already been added."));
+                return;
+            }
+
+            pwallet->mapKeyMetadata[vchAddress].nCreateTime = 1;
+
+            if (!pwallet->AddKeyPubKey(key, pubkey)) {
+                QMessageBox::critical(0, tr(PACKAGE_NAME), tr("Error adding key to wallet."));
+                return;
+            }
+
+            pwallet->UpdateTimeFirstKey(1); // Mark as rescan needed, even if we don't do it now (it'll happen next restart if not before)
+            
+            QMessageBox msgBox;
+            msgBox.setText(tr("Key successfully added to wallet."));
+            msgBox.setInformativeText(tr("Rescan now? (Select No if you have more keys to import)"));
+            msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+            msgBox.setDefaultButton(QMessageBox::No);
+            
+            if (msgBox.exec() == QMessageBox::Yes)
+                boost::thread t{WalletView::doRescan, pwallet, 0};                
+        }
+        return;
+    }
 }

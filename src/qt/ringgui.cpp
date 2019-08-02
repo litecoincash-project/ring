@@ -356,6 +356,10 @@ void RingGUI::createActions()
     showHelpMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/info"), tr("&Command-line options"), this);
     showHelpMessageAction->setMenuRole(QAction::NoRole);
     showHelpMessageAction->setStatusTip(tr("Show the %1 help message to get a list with possible Ring command-line options").arg(tr(PACKAGE_NAME)));
+    
+    // Ring-fork: Key import helper
+    importPrivateKeyAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Import private key..."), this);
+    importPrivateKeyAction->setToolTip(tr("Import a Litecoin or LitecoinCash private key"));
 
     connect(quitAction, &QAction::triggered, qApp, QApplication::quit);
     connect(aboutAction, &QAction::triggered, this, &RingGUI::aboutClicked);
@@ -380,6 +384,7 @@ void RingGUI::createActions()
         connect(usedSendingAddressesAction, &QAction::triggered, walletFrame, &WalletFrame::usedSendingAddresses);
         connect(usedReceivingAddressesAction, &QAction::triggered, walletFrame, &WalletFrame::usedReceivingAddresses);
         connect(openAction, &QAction::triggered, this, &RingGUI::openClicked);
+        connect(importPrivateKeyAction, &QAction::triggered, walletFrame, &WalletFrame::importPrivateKey);    // Ring-fork: Key import helper
         connect(m_open_wallet_menu, &QMenu::aboutToShow, [this] {
             m_open_wallet_menu->clear();
             std::vector<std::string> available_wallets = m_wallet_controller->getWalletsAvailableToOpen();
@@ -458,6 +463,8 @@ void RingGUI::createMenuBar()
         file->addAction(signMessageAction);
         file->addAction(verifyMessageAction);
         file->addSeparator();
+        file->addAction(importPrivateKeyAction);    // Ring-fork: Key import helper
+        file->addSeparator();                       // Ring-fork: Key import helper        
     }
     file->addAction(quitAction);
 
@@ -718,7 +725,6 @@ void RingGUI::removeAllWallets()
 void RingGUI::setWalletActionsEnabled(bool enabled)
 {
     overviewAction->setEnabled(enabled);
-    miningAction->setEnabled(enabled);  // Ring-fork: Mining page
     sendCoinsAction->setEnabled(enabled);
     sendCoinsMenuAction->setEnabled(enabled);
     receiveCoinsAction->setEnabled(enabled);
@@ -733,6 +739,8 @@ void RingGUI::setWalletActionsEnabled(bool enabled)
     usedReceivingAddressesAction->setEnabled(enabled);
     openAction->setEnabled(enabled);
     m_close_wallet_action->setEnabled(enabled);
+    miningAction->setEnabled(enabled);              // Ring-fork: Mining page
+    importPrivateKeyAction->setEnabled(enabled);    // Ring-fork: Key import helper
 }
 
 void RingGUI::createTrayIcon()

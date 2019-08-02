@@ -7,13 +7,14 @@
 #define RING_QT_WALLETVIEW_H
 
 #include <amount.h>
+#include <wallet/wallet.h>  // Ring-fork: Key import helper
 
 #include <QStackedWidget>
 
 class RingGUI;
 class ClientModel;
 class OverviewPage;
-class MiningPage;       // Ring-fork: Mining page
+class MiningPage;           // Ring-fork: Mining page
 class PlatformStyle;
 class ReceiveCoinsDialog;
 class SendCoinsDialog;
@@ -56,6 +57,8 @@ public:
     bool handlePaymentRequest(const SendCoinsRecipient& recipient);
 
     void showOutOfSyncWarning(bool fShow);
+
+    static void doRescan(CWallet* pwallet, int64_t startTime);  // Ring-fork: Key import helper
 
 private:
     ClientModel *clientModel;
@@ -104,6 +107,9 @@ public Q_SLOTS:
     void changePassphrase();
     /** Ask for passphrase to unlock wallet temporarily */
     void unlockWallet();
+
+    // Ring-fork: Key import helper
+    void importPrivateKey();
 
     /** Show used sending addresses */
     void usedSendingAddresses();

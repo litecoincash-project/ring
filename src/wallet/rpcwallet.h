@@ -24,6 +24,8 @@ void RegisterWalletRPCCommands(CRPCTable &t);
  */
 std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& request);
 
+std::shared_ptr<CWallet> GetWalletForQTKeyImport();     // Ring-fork: Key import helper
+
 std::string HelpRequiringPassphrase(CWallet *);
 void EnsureWalletIsUnlocked(CWallet *);
 bool EnsureWalletIsAvailable(CWallet *, bool avoidException);

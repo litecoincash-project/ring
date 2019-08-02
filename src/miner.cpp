@@ -485,7 +485,6 @@ void static MinerThread(const CChainParams& chainparams) {
     RenameThread("cpu-miner");
 
     unsigned int nExtraNonce = 0;
-
     try {
         // Check P2P exists
         if(!g_connman)
@@ -603,7 +602,7 @@ void static MinerThread(const CChainParams& chainparams) {
                             static int64_t nLogTime;
                             if (GetTime() - nLogTime > 30 * 60) {
                                 nLogTime = GetTime();
-                                LogPrintf("Miner: Hashrate=%6.0f khash/s\n", dHashesPerSec/1000.0);
+                                LogPrintf("Miner: Hashrate: %6.1f khash/s\n", dHashesPerSec/1000.0);
                             }
                         }
                     }

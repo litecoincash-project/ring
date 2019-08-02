@@ -25,11 +25,6 @@
 #include <QPainter>
 #include <QTimer>
 
-#define DECORATION_SIZE 54
-#define NUM_ITEMS 5
-
-Q_DECLARE_METATYPE(interfaces::WalletBalances)
-
 #include <qt/miningpage.moc>
 
 MiningPage::MiningPage(const PlatformStyle *platformStyle, QWidget *parent) :
@@ -95,7 +90,7 @@ void MiningPage::on_toggleMiningButton_clicked() {
 }
 
 void MiningPage::updateHashRateDisplay() {
-    ui->hashRateDisplayLabel->setText(QString::number(dHashesPerSec/1000.0));
+    ui->hashRateDisplayLabel->setText(QString::number(std::floor(dHashesPerSec/1000.0)));
 }
 
 void MiningPage::updateDisplayedOptions() {

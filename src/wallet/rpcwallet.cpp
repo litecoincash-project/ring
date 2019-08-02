@@ -69,6 +69,13 @@ std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& reques
     return wallets.size() == 1 || (request.fHelp && wallets.size() > 0) ? wallets[0] : nullptr;
 }
 
+// Ring-fork: Key import helper
+std::shared_ptr<CWallet> GetWalletForQTKeyImport() {
+    JSONRPCRequest request;
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    return wallet;
+}
+
 std::string HelpRequiringPassphrase(CWallet * const pwallet)
 {
     return pwallet && pwallet->IsCrypted()

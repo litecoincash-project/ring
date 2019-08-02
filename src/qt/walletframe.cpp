@@ -140,6 +140,14 @@ void WalletFrame::gotoMiningPage()
         i.value()->gotoMiningPage();
 }
 
+// Ring-fork: Key import helper
+void WalletFrame::importPrivateKey()
+{
+    WalletView *walletView = currentWalletView();
+    if(walletView)
+        walletView->importPrivateKey();
+}
+
 void WalletFrame::gotoHistoryPage()
 {
     QMap<WalletModel*, WalletView*>::const_iterator i;

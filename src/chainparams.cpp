@@ -107,15 +107,15 @@ public:
         std::copy(std::begin(foreignCoinBech32HRPs), std::end(foreignCoinBech32HRPs), std::begin(consensus.foreignCoinBech32HRPs));
 
         // Ring-fork: General consensus fields
-        consensus.lastInitialDistributionHeight = 28339;                                                                            // Height of last block containing initial distribution payouts to foreign coins
+        consensus.lastInitialDistributionHeight = 31615;                                                                            // Height of last block containing initial distribution payouts to foreign coins
         consensus.powLimitInitialDistribution = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");       // Lower-than-powLimit difficulty for initial distribution blocks only
         consensus.slowStartBlocks = 2000;                                                                                           // Scale initial block reward up over this many blocks
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000000000000007eb310");               // At lastInitialDistributionHeight
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000000000000008b7f10");               // At lastInitialDistributionHeight
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x00edb6172048478737a4b0ef2e7ce4806a8b2158428dbe5544b689b8a59eb3b5");              // At lastInitialDistributionHeight
+        consensus.defaultAssumeValid = uint256S("0x00ccff539ea442a9bab52168d49cdabccc3000f5f69d95886ae81fd68f379c3d");              // At lastInitialDistributionHeight
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -142,6 +142,7 @@ public:
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
         //vSeeds.emplace_back("xxxxx.xxxxx");
+        vSeeds.emplace_back("tr1-seeds.litecoinca.sh");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);  // for R
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,81);  // for Z
@@ -160,7 +161,7 @@ public:
         checkpointData = {
             {
                 {0, uint256S(GENESIS_HASH)},
-                {consensus.lastInitialDistributionHeight, uint256S("0x00edb6172048478737a4b0ef2e7ce4806a8b2158428dbe5544b689b8a59eb3b5")},  // Last initial distribution block
+                {consensus.lastInitialDistributionHeight, uint256S("0x00ccff539ea442a9bab52168d49cdabccc3000f5f69d95886ae81fd68f379c3d")},  // Last initial distribution block
             }
         };
 

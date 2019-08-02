@@ -42,7 +42,7 @@
       </size>
      </property>
      <property name="styleSheet">
-      <string notr="true">#miningForm{background:url(:/icons/mining_background_flash);
+      <string notr="true">#miningForm{background:url(:/icons/mining_bg);
 background-repeat:no-repeat;
 background-position:bottom right;
 background-color:white;}</string>
@@ -144,7 +144,7 @@ background-color:white;}</string>
            <string>Start miner</string>
           </property>
           <property name="icon">
-           <iconset>
+           <iconset resource="../ring.qrc">
             <normaloff>:/icons/mining</normaloff>:/icons/mining</iconset>
           </property>
          </widget>
@@ -271,6 +271,8 @@ background-color:white;}</string>
    </property>
   </widget>
  </widget>
- <resources/>
+ <resources>
+  <include location="../ring.qrc"/>
+ </resources>
  <connections/>
 </ui>
