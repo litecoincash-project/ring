@@ -64,6 +64,9 @@
 #include <QVBoxLayout>
 #include <QWindow>
 
+#include <qt/uicolours.h>       // Ring-fork: Skinning
+#include <miner.h>              // Ring-fork: Mining page: Status bar icon: For DEFAULT_GENERATE
+
 
 const std::string RingGUI::DEFAULT_UIPLATFORM =
 #if defined(Q_OS_MAC)
@@ -148,6 +151,13 @@ RingGUI::RingGUI(interfaces::Node& node, const PlatformStyle *_platformStyle, co
     unitDisplayControl = new UnitDisplayStatusBarControl(platformStyle);
     labelWalletEncryptionIcon = new QLabel();
     labelWalletHDStatusIcon = new QLabel();
+    
+    // Ring-fork: Mining page: Status bar icon
+    labelMiningStatusIcon = new QLabel();
+    labelMiningStatusIcon->setPixmap(platformStyle->ForceSingleColorIcon(":/icons/tx_mined").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+    labelMiningStatusIcon->setToolTip("In-wallet CPU mining is enabled");
+    updateGenerateIcon();   
+
     labelProxyIcon = new GUIUtil::ClickableLabel();
     connectionsControl = new GUIUtil::ClickableLabel();
     labelBlocksIcon = new GUIUtil::ClickableLabel();
@@ -158,6 +168,8 @@ RingGUI::RingGUI(interfaces::Node& node, const PlatformStyle *_platformStyle, co
         frameBlocksLayout->addStretch();
         frameBlocksLayout->addWidget(labelWalletEncryptionIcon);
         frameBlocksLayout->addWidget(labelWalletHDStatusIcon);
+        frameBlocksLayout->addStretch();
+        frameBlocksLayout->addWidget(labelMiningStatusIcon);    // Ring-fork: Mining page: Status bar icon
     }
     frameBlocksLayout->addWidget(labelProxyIcon);
     frameBlocksLayout->addStretch();
@@ -214,6 +226,9 @@ RingGUI::RingGUI(interfaces::Node& node, const PlatformStyle *_platformStyle, co
 #ifdef Q_OS_MAC
     m_app_nap_inhibitor = new CAppNapInhibitor;
 #endif
+
+    // Ring-fork: Skinning: Apply style changes
+    skinIt();
 }
 
 RingGUI::~RingGUI()
@@ -232,6 +247,57 @@ RingGUI::~RingGUI()
 #endif
 
     delete rpcConsole;
+}
+
+// Ring-fork: Skinning
+void RingGUI::skinIt()
+{
+    // Style the statusbar
+    statusBar()->setStyleSheet(
+        "background-color: " + bgStatusBar + ";"
+    );
+
+    // Style the tabs
+    appToolBar->setIconSize(QSize(32, 32));
+    appToolBar->setFixedHeight(64);
+    appToolBar->setStyleSheet(
+        "QToolBar {"
+            "background-color: " + bgTabs + ";"
+        "}"
+        "QToolBar QToolButton {"
+            "padding-top: 16px;"
+            "padding-bottom: 16px;"
+            "padding-left: 10px;"
+            "margin: 0px;"
+            "font-size: 12px;"
+            "font: bold;"
+            "color: " + textColTabs + ";"
+            "border: 0px solid black;"
+            "outline: none;"
+        "}"
+        "QToolBar QToolButton:hover, QToolBar QToolButton:pressed {"
+            "background-color: " + bgTabHover + ";"
+        "}"
+        "QToolBar QToolButton:checked {"
+            "color: " + textColTabCurrent + ";"
+            "background-color: " + bgTabCurrent + ";"
+        "}"
+    );
+
+    // Main window BG
+    this->centralWidget()->setObjectName("centralWidget");
+    this->centralWidget()->setStyleSheet(
+        "#centralWidget{"
+            "background-image: url(:/icons/form_bg);"
+            "background-repeat: repeat-x;"
+            "background-position: bottom;"
+            "background-attachment: fixed;"
+        "}"
+    );
+    /*
+    this->setStyleSheet(
+        "color: white;"
+    );*/
 }
 
 void RingGUI::createActions()
@@ -605,6 +671,9 @@ void RingGUI::setClientModel(ClientModel *_clientModel)
         // Show progress dialog
         connect(_clientModel, &ClientModel::showProgress, this, &RingGUI::showProgress);
 
+        // Ring-fork: Mining page: Status bar icon
+        connect(_clientModel, &ClientModel::generateChanged, this, &RingGUI::updateGenerateIcon);
+
         rpcConsole->setClientModel(_clientModel);
 
         updateProxyIcon();
@@ -920,7 +989,7 @@ void RingGUI::updateNetworkState()
     tooltip = QString("<nobr>") + tooltip + QString("</nobr>");
     connectionsControl->setToolTip(tooltip);
 
-    connectionsControl->setPixmap(platformStyle->SingleColorIcon(icon).pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+    connectionsControl->setPixmap(platformStyle->ForceSingleColorIcon(icon).pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE)); // Ring-fork: Skinning: Force single col
 }
 
 void RingGUI::setNumConnections(int count)
@@ -1012,7 +1081,7 @@ void RingGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVerifi
     // Set icon state: spinning if catching up, tick otherwise
     if (secs < MAX_BLOCK_TIME_GAP) {
         tooltip = tr("Up to date") + QString(".<br>") + tooltip;
-        labelBlocksIcon->setPixmap(platformStyle->SingleColorIcon(":/icons/synced").pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
+        labelBlocksIcon->setPixmap(platformStyle->ForceSingleColorIcon(":/icons/synced").pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));   // Ring-fork: Skinning: Force single col
 
 #ifdef ENABLE_WALLET
         if(walletFrame)
@@ -1038,7 +1107,7 @@ void RingGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVerifi
         tooltip = tr("Catching up...") + QString("<br>") + tooltip;
         if(count != prevBlocks)
         {
-            labelBlocksIcon->setPixmap(platformStyle->SingleColorIcon(QString(
+            labelBlocksIcon->setPixmap(platformStyle->ForceSingleColorIcon(QString( // Ring-fork: Skinning: Force single col
                 ":/movies/spinner-%1").arg(spinnerFrame, 3, 10, QChar('0')))
                 .pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
             spinnerFrame = (spinnerFrame + 1) % SPINNER_FRAMES;
@@ -1247,7 +1316,7 @@ bool RingGUI::handlePaymentRequest(const SendCoinsRecipient& recipient)
 
 void RingGUI::setHDStatus(bool privkeyDisabled, int hdEnabled)
 {
-    labelWalletHDStatusIcon->setPixmap(platformStyle->SingleColorIcon(privkeyDisabled ? ":/icons/eye" : hdEnabled ? ":/icons/hd_enabled" : ":/icons/hd_disabled").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+    labelWalletHDStatusIcon->setPixmap(platformStyle->ForceSingleColorIcon(privkeyDisabled ? ":/icons/eye" : hdEnabled ? ":/icons/hd_enabled" : ":/icons/hd_disabled").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));  // Ring-fork: Skinning: Force single col
     labelWalletHDStatusIcon->setToolTip(privkeyDisabled ? tr("Private key <b>disabled</b>") : hdEnabled ? tr("HD key generation is <b>enabled</b>") : tr("HD key generation is <b>disabled</b>"));
 
     // eventually disable the QLabel to set its opacity to 50%
@@ -1266,7 +1335,7 @@ void RingGUI::setEncryptionStatus(int status)
         break;
     case WalletModel::Unlocked:
         labelWalletEncryptionIcon->show();
-        labelWalletEncryptionIcon->setPixmap(platformStyle->SingleColorIcon(":/icons/lock_open").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+        labelWalletEncryptionIcon->setPixmap(platformStyle->ForceSingleColorIcon(":/icons/lock_open").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));   // Ring-fork: Skinning: Force single col
         labelWalletEncryptionIcon->setToolTip(tr("Wallet is <b>encrypted</b> and currently <b>unlocked</b>"));
         encryptWalletAction->setChecked(true);
         changePassphraseAction->setEnabled(true);
@@ -1274,7 +1343,7 @@ void RingGUI::setEncryptionStatus(int status)
         break;
     case WalletModel::Locked:
         labelWalletEncryptionIcon->show();
-        labelWalletEncryptionIcon->setPixmap(platformStyle->SingleColorIcon(":/icons/lock_closed").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+        labelWalletEncryptionIcon->setPixmap(platformStyle->ForceSingleColorIcon(":/icons/lock_closed").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE)); // Ring-fork: Skinning: Force single col
         labelWalletEncryptionIcon->setToolTip(tr("Wallet is <b>encrypted</b> and currently <b>locked</b>"));
         encryptWalletAction->setChecked(true);
         changePassphraseAction->setEnabled(true);
@@ -1306,7 +1375,7 @@ void RingGUI::updateProxyIcon()
     if (proxy_enabled) {
         if (labelProxyIcon->pixmap() == nullptr) {
             QString ip_port_q = QString::fromStdString(ip_port);
-            labelProxyIcon->setPixmap(platformStyle->SingleColorIcon(":/icons/proxy").pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
+            labelProxyIcon->setPixmap(platformStyle->ForceSingleColorIcon(":/icons/proxy").pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE)); // Ring-fork: Skinning: Force single col
             labelProxyIcon->setToolTip(tr("Proxy is <b>enabled</b>: %1").arg(ip_port_q));
         } else {
             labelProxyIcon->show();
@@ -1358,6 +1427,12 @@ void RingGUI::detectShutdown()
             rpcConsole->hide();
         qApp->quit();
     }
+}
+
+// Ring-fork: Mining page: Status bar icon
+void RingGUI::updateGenerateIcon()
+{
+    labelMiningStatusIcon->setVisible(gArgs.GetBoolArg("-gen", DEFAULT_GENERATE));
 }
 
 void RingGUI::showProgress(const QString &title, int nProgress)

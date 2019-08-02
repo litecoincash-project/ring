@@ -25,6 +25,7 @@
 #include <wallet/wallet.h>      // Ring-fork: Key import helper
 #include <validation.h>         // Ring-fork: Key import helper
 #include <key_io.h>             // Ring-fork: Key import helper
+#include <qt/uicolours.h>       // Ring-fork: Skinning
 
 #include <interfaces/node.h>
 #include <ui_interface.h>
@@ -91,6 +92,20 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     connect(sendCoinsPage, &SendCoinsDialog::message, this, &WalletView::message);
     // Pass through messages from transactionView
     connect(transactionView, &TransactionView::message, this, &WalletView::message);
+
+    // Ring-fork: Skinning the tabs
+    overviewPage->setStyleSheet("color: " + textCol);
+    miningPage->setStyleSheet("QLabel, QCheckBox {color: " + textCol + ";} #miningForm {background-color: " + bgCol2 + ";}");
+    receiveCoinsPage->setStyleSheet(
+        "QLabel, #useBech32 {color: " + textCol + ";}"
+        "#frame2 {background-color: " + bgCol2 + ";}"
+        "#recentRequestsView {color: " + textCol + "; background-color: " + bgCol2 + "; alternate-background-color: " + bgCol1 + ";}"
+    );
+    transactionsPage->setStyleSheet("QTableView {color: " + textCol + "; background-color: " + bgCol2 + "; alternate-background-color: " + bgCol1 + ";}");
+    sendCoinsPage->setStyleSheet(
+        "#frameFee, #frameCoinControl, #scrollArea, #scrollAreaWidgetContents {background-color: " + bgCol2 + ";}"
+        "QLabel, QCheckBox, QRadioButton {color: " + textCol + ";}"
+    );
 }
 
 WalletView::~WalletView()
@@ -359,7 +374,7 @@ void WalletView::doRescan(CWallet* pwallet, int64_t startTime)
         return;
     }
 	pwallet->RescanFromTime(0, reserver, true);
-	QMessageBox::information(0, tr(PACKAGE_NAME), tr("Rescan complete."));
+	//QMessageBox::information(0, tr(PACKAGE_NAME), tr("Rescan complete."));
 }
 
 // Ring-fork: Key import helper

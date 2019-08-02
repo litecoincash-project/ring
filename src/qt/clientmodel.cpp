@@ -70,6 +70,12 @@ int ClientModel::getNumConnections(unsigned int flags) const
     return m_node.getNodeCount(connections);
 }
 
+// Ring-fork: Get time to solve
+double ClientModel::getTimeToSolve() const
+{
+    return m_node.getTimeToSolve();
+}
+
 int ClientModel::getHeaderTipHeight() const
 {
     if (cachedBestHeaderHeight == -1) {

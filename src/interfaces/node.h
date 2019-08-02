@@ -136,6 +136,9 @@ public:
     //! Get header tip height and time.
     virtual bool getHeaderTip(int& height, int64_t& block_time) = 0;
 
+    // Ring-fork: Get network hash per sec
+    virtual double getTimeToSolve();
+
     //! Get num blocks.
     virtual int getNumBlocks() = 0;
 

@@ -165,6 +165,42 @@ UniValue setgenerate(const JSONRPCRequest& request)
 }
 
 // Ring-fork: In-wallet miner
+double GetTimeToSolve() {
+    if (!gArgs.GetBoolArg("-gen", DEFAULT_GENERATE))
+        return (int64_t)0;
+
+    double ourHash = dHashesPerSec;
+    if (ourHash < 0.1)
+        return (int64_t)0;
+
+    double networkHash = GetNetworkHashPS(20, -1).get_real();
+    double ourRatio = networkHash / ourHash;
+    double timeToSolve = Params().GetConsensus().nPowTargetSpacing * ourRatio;
+
+    return timeToSolve;
+}
+
+// Ring-fork: In-wallet miner
+UniValue gettimetosolve(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+            RPCHelpMan{"gettimetosolve",
+                "\nReturns estimated time to find a block given your current hashrate and network hashrate.\n",
+                {},
+                RPCResult{
+                    "n            (numeric) Estimated time to solve a block in seconds (will return 0 if generation is off)\n"
+                },
+                RPCExamples{
+                    HelpExampleCli("gettimetosolve", "")
+                    + HelpExampleRpc("gettimetosolve", "")
+                }
+            }.ToString());
+
+    return GetTimeToSolve();
+}
+
+// Ring-fork: In-wallet miner
 UniValue gethashespersec(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
@@ -1085,6 +1121,7 @@ static const CRPCCommand commands[] =
     { "generating",         "getgenerate",            &getgenerate,            {} },                            // Ring-fork: In-wallet miner
     { "generating",         "setgenerate",            &setgenerate,            {"generate", "genproclimit"} },  // Ring-fork: In-wallet miner
     { "generating",         "gethashespersec",        &gethashespersec,        {} },                            // Ring-fork: In-wallet miner
+    { "generating",         "gettimetosolve",         &gettimetosolve,         {} },                            // Ring-fork: In-wallet miner
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
 
     { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },

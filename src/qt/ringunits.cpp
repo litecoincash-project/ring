@@ -44,8 +44,8 @@ QString RingUnits::longName(int unit)
     {
     case RNG: return QString("RNG");
     case mRNG: return QString("mRNG");
-    case uRNG: return QString::fromUtf8("µRNG (bits)");
-    case SAT: return QString("Satoshi (sat)");
+    case uRNG: return QString::fromUtf8("µRNG (Ringbits)"); // Ring-fork: Corrected subunit name
+    case SAT: return QString("Satoshi (Ringsat)");          // Ring-fork: Corrected subunit name
     default: return QString("???");
     }
 }
@@ -54,8 +54,8 @@ QString RingUnits::shortName(int unit)
 {
     switch(unit)
     {
-    case uRNG: return QString::fromUtf8("bits");
-    case SAT: return QString("sat");
+    case uRNG: return QString::fromUtf8("Ringbits");    // Ring-fork: Corrected subunit name
+    case SAT: return QString("Ringsat");                // Ring-fork: Corrected subunit name
     default: return longName(unit);
     }
 }
@@ -66,8 +66,8 @@ QString RingUnits::description(int unit)
     {
     case RNG: return QString("Rings");
     case mRNG: return QString("Milli-Rings (1 / 1" THIN_SP_UTF8 "000)");
-    case uRNG: return QString("Micro-Rings (bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
-    case SAT: return QString("Satoshi (sat) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case uRNG: return QString("Micro-Rings (Ringbits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");  // Ring-fork: Corrected subunit name
+    case SAT: return QString("Satoshi (Ringsat) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");      // Ring-fork: Corrected subunit name
     default: return QString("???");
     }
 }

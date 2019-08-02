@@ -23,6 +23,7 @@
 #include <policy/policy.h>
 #include <primitives/block.h>
 #include <rpc/server.h>
+#include <rpc/mining.h> // Ring-fork: For getTimeToSolve
 #include <scheduler.h>
 #include <shutdown.h>
 #include <sync.h>
@@ -187,6 +188,10 @@ public:
             return ::chainActive.Tip()->GetBlockTime();
         }
         return Params().GenesisBlock().GetBlockTime(); // Genesis block's time of current network
+    }
+    double getTimeToSolve()   // Ring-fork: Get time to solve
+    {
+        return GetTimeToSolve();
     }
     double getVerificationProgress() override
     {

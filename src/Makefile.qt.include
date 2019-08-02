@@ -287,7 +287,7 @@ RING_QT_H = \
   qt/walletview.h \
   qt/winshutdownmonitor.h
 
-# Ring-fork: Mining page
+# Ring-fork: Mining page, form BG
 RES_ICONS = \
   qt/res/icons/add.png \
   qt/res/icons/address-book.png \
@@ -330,7 +330,7 @@ RES_ICONS = \
   qt/res/icons/open.png \
   qt/res/icons/overview.png \
   qt/res/icons/mining.png \
-  qt/res/icons/mining_bg.png \
+  qt/res/icons/form_bg.png \
   qt/res/icons/proxy.png \
   qt/res/icons/quit.png \
   qt/res/icons/receive.png \

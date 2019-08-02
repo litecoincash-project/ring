@@ -3,8 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/platformstyle.h>
-
 #include <qt/guiconstants.h>
+#include <qt/uicolours.h>       // Ring-fork: Skinning
 
 #include <QApplication>
 #include <QColor>
@@ -78,6 +78,11 @@ PlatformStyle::PlatformStyle(const QString &_name, bool _imagesOnButtons, bool _
     singleColor(0,0,0),
     textColor(0,0,0)
 {
+    // Ring-fork: Skinning
+    textColor = QColor(iconTextCol);
+    singleColor = QColor(iconSingleCol);
+    
+    /*
     // Determine icon highlighting color
     if (colorizeIcons) {
         const QColor colorHighlightBg(QApplication::palette().color(QPalette::Highlight));
@@ -93,6 +98,7 @@ PlatformStyle::PlatformStyle(const QString &_name, bool _imagesOnButtons, bool _
     }
     // Determine text color
     textColor = QColor(QApplication::palette().color(QPalette::WindowText));
+    */
 }
 
 QImage PlatformStyle::SingleColorImage(const QString& filename) const
@@ -113,6 +119,18 @@ QIcon PlatformStyle::SingleColorIcon(const QIcon& icon) const
 {
     if (!colorizeIcons)
         return icon;
+    return ColorizeIcon(icon, SingleColor());
+}
+
+// Ring-fork: Skinning: Force a single-color icon regardless of platform style
+QIcon PlatformStyle::ForceSingleColorIcon(const QString& filename) const
+{
+    return ColorizeIcon(filename, SingleColor());
+}
+
+// Ring-fork: Skinning: Force a single-color icon regardless of platform style
+QIcon PlatformStyle::ForceSingleColorIcon(const QIcon& icon) const
+{
     return ColorizeIcon(icon, SingleColor());
 }
 

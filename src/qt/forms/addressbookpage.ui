@@ -13,6 +13,9 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QLabel" name="labelExplanation">
+     <property name="styleSheet">
+      <string notr="true">color:black;</string>
+     </property>
      <property name="textFormat">
       <enum>Qt::PlainText</enum>
      </property>

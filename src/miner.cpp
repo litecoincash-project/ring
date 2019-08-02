@@ -650,6 +650,8 @@ void MineCoins(bool fGenerate, int nThreads, const CChainParams& chainparams) {
 
     uiInterface.NotifyGenerateChanged();        // Fire UI notification
 
+    dHashesPerSec = 0;
+
     if (nThreads == 0 || !fGenerate)
         return;
 

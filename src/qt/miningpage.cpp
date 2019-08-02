@@ -27,6 +27,8 @@
 
 #include <qt/miningpage.moc>
 
+#include <rpc/mining.h> // Ring-fork
+
 MiningPage::MiningPage(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::MiningPage),
@@ -91,6 +93,13 @@ void MiningPage::on_toggleMiningButton_clicked() {
 
 void MiningPage::updateHashRateDisplay() {
     ui->hashRateDisplayLabel->setText(QString::number(std::floor(dHashesPerSec/1000.0)));
+
+    double timeToSolve = (this->clientModel) ? this->clientModel->getTimeToSolve() : 0;
+
+    if (timeToSolve > 0)
+        ui->timeToSolveDisplayLabel->setText(timeToSolve > 172800 ? "Longer than 2 days" : QString::number(std::floor(timeToSolve)));
+    else
+        ui->timeToSolveDisplayLabel->setText("N/A");
 }
 
 void MiningPage::updateDisplayedOptions() {
@@ -110,15 +119,18 @@ void MiningPage::updateDisplayedOptions() {
         if (!displayUpdateTimer->isActive())
             displayUpdateTimer->start(5000);
         ui->toggleMiningButton->setText("Stop mining");
+        ui->miningStatusLabel->setText("Miners running");
         ui->threadCountSpinner->setEnabled(false);
         ui->useAllCoresCheckbox->setEnabled(false);
         ui->toggleMiningButton->setStyleSheet("background-color: rgba(204, 22, 22, 1);");
     } else {
         displayUpdateTimer->stop();
         ui->toggleMiningButton->setText("Start mining");
+        ui->miningStatusLabel->setText("Miners stopped");
         ui->useAllCoresCheckbox->setEnabled(true);
         ui->threadCountSpinner->setEnabled(genproclimit != -1);        
         ui->toggleMiningButton->setStyleSheet("background-color: rgba(46, 204, 113, 1);");
-        ui->hashRateDisplayLabel->setText("N/A");        
+        ui->hashRateDisplayLabel->setText("N/A");
+        ui->timeToSolveDisplayLabel->setText("N/A");
     }
 }

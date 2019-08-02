@@ -33,6 +33,12 @@ public:
     /** Colorize an icon (given object) with the icon color */
     QIcon SingleColorIcon(const QIcon& icon) const;
 
+    // Ring-fork: Skinning: Force a single-color icon regardless of platform style
+    QIcon ForceSingleColorIcon(const QString& filename) const;
+
+    // Ring-fork: Skinning: Force a single-color icon regardless of platform style
+    QIcon ForceSingleColorIcon(const QIcon& icon) const;
+
     /** Colorize an icon (given filename) with the text color */
     QIcon TextColorIcon(const QString& filename) const;
 
