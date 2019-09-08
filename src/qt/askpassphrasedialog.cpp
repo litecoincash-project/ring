@@ -18,6 +18,8 @@
 #include <QMessageBox>
 #include <QPushButton>
 
+extern bool fWalletUnlockHiveMiningOnly;   // Ring-fork: Hive: Encrypted wallet support
+
 AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::AskPassphraseDialog),
@@ -40,6 +42,10 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
     ui->passEdit2->installEventFilter(this);
     ui->passEdit3->installEventFilter(this);
 
+	// Ring-fork: Hive: Support unlocking for hive only
+	ui->hiveOnlyLabel->hide();
+	fHiveOnly = fWalletUnlockHiveMiningOnly;
+
     switch(mode)
     {
         case Encrypt: // Ask passphrase x2
@@ -48,6 +54,10 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
             ui->passEdit1->hide();
             setWindowTitle(tr("Encrypt wallet"));
             break;
+        case UnlockHiveMining: // Ring-fork: Hive: Support locked wallets
+            ui->hiveOnlyLabel->show();
+			fHiveOnly = true;
+            // fallthru            
         case Unlock: // Ask passphrase
             ui->warningLabel->setText(tr("This operation needs your wallet passphrase to unlock the wallet."));
             ui->passLabel2->hide();
@@ -151,12 +161,14 @@ void AskPassphraseDialog::accept()
             QDialog::reject(); // Cancelled
         }
         } break;
+    case UnlockHiveMining:  // Ring-fork: Hive: Support locked wallets
     case Unlock:
         try {
-            if (!model->setWalletLocked(false, oldpass)) {
+            if(!model->setWalletLocked(false, oldpass)) {
                 QMessageBox::critical(this, tr("Wallet unlock failed"),
-                                      tr("The passphrase entered for the wallet decryption was incorrect."));
+                                    tr("The passphrase entered for the wallet decryption was incorrect."));
             } else {
+                fWalletUnlockHiveMiningOnly = fHiveOnly;   // Ring-fork: Hive: Support locked wallets
                 QDialog::accept(); // Success
             }
         } catch (const std::runtime_error& e) {
@@ -207,6 +219,7 @@ void AskPassphraseDialog::textChanged()
     case Encrypt: // New passphrase x2
         acceptable = !ui->passEdit2->text().isEmpty() && !ui->passEdit3->text().isEmpty();
         break;
+    case UnlockHiveMining:  // Ring-fork: Hive: Support locked wallets
     case Unlock: // Old passphrase x1
     case Decrypt:
         acceptable = !ui->passEdit1->text().isEmpty();

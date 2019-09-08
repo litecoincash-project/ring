@@ -137,6 +137,7 @@ private:
 
     // Configuration parameters for the block size
     bool fIncludeWitness;
+    bool fIncludeDCTs;              // Ring-fork: Hive: Allow DCTs in block?
     unsigned int nBlockMaxWeight;
     CFeeRate blockMinFeeRate;
 
@@ -163,7 +164,8 @@ public:
     BlockAssembler(const CChainParams& params, const Options& options);
 
     /** Construct a new block template with coinbase to scriptPubKeyIn */
-    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn);
+    // Ring-fork: Hive: If hiveProofScript is passed, create a Hive block instead of a PoW block
+    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, const CScript* hiveProofScript=nullptr);
 
     static Optional<int64_t> m_last_block_num_txs;
     static Optional<int64_t> m_last_block_weight;
@@ -209,5 +211,11 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
 void MineCoins(bool fGenerate, int nThreads, const CChainParams& chainparams);  // Ring-fork: In-wallet miner: Run miner threads
 extern double dHashesPerSec;                                                    // Ring-fork: In-wallet miner: Measure hashrate
 extern int64_t nHPSTimerStart;                                                  // Ring-fork: In-wallet miner: Measure hashrate
+
+// Ring-fork: Hive: Dwarf management thread
+void DwarfMaster(const CChainParams& chainparams);
+
+// Ring-fork: Hive: Attempt to mint the next block
+bool BusyDwarves(const Consensus::Params& consensusParams);
 
 #endif // RING_MINER_H

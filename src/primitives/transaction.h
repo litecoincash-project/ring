@@ -12,6 +12,8 @@
 #include <serialize.h>
 #include <uint256.h>
 
+#include <consensus/params.h>   // Ring-fork: Hive
+
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
@@ -338,6 +340,19 @@ public:
     {
         return (vin.size() == 1 && vin[0].prevout.IsNull());
     }
+
+    // Ring-fork: Hive: Check if this transaction is a Hivemined coinbase transaction
+    // Helper for QT wallet; not used for validation
+    bool IsHiveCoinBase() const {
+        return (IsCoinBase() && vout[0].nValue == 0 
+            && vout[0].scriptPubKey.size() > 1 
+            && vout[0].scriptPubKey[0] == OP_RETURN
+            && vout[0].scriptPubKey[1] == OP_DWARF
+        );
+    }
+    
+    // Ring-fork: Hive: Check if this transaction is a Dwarf Creation Transaction, and if so return the total dwarf fee paid via dwarfFeePaid and reward scriptPubKey via scriptPubKeyReward
+    bool IsDCT(const Consensus::Params& consensusParams, CScript scriptPubKeyBCF, CAmount* dwarfFeePaid = nullptr, CScript* scriptPubKeyReward = nullptr) const;
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {

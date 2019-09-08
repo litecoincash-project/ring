@@ -1811,6 +1811,11 @@ bool AppInitMain(InitInterfaces& interfaces)
 
     // ********************************************************* Step 13: finished
 
+    // Ring-fork: Hive: Start the mining thread
+#ifdef ENABLE_WALLET
+    threadGroup.create_thread(boost::bind(&DwarfMaster, boost::cref(chainparams)));
+#endif
+
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));
 

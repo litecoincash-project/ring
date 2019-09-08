@@ -2,10 +2,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-// Ring-fork: BranchTorture hash algorithm
+// Ring-fork: Minotaur hash algorithm
 
-#ifndef RING_CRYPTO_POW_BRANCHTORTURE_H
-#define RING_CRYPTO_POW_BRANCHTORTURE_H
+#ifndef RING_CRYPTO_POW_MINOTAUR_H
+#define RING_CRYPTO_POW_MINOTAUR_H
 
 #include <uint256.h>
 
@@ -27,9 +27,14 @@
 
 #include "sph_sha2.h"
 
+extern "C" {
+    int LYRA2(void *K, uint64_t kLen, const void *pwd, uint64_t pwdlen, const void *salt, uint64_t saltlen, uint64_t timeCost, uint64_t nRows, uint64_t nCols);
+}
+
 // Config
-#define BRANCHTORTURE_ALGO_COUNT 16
-//#define BRANCHTORTURE_DEBUG
+#define MINOTAUR_ALGO_COUNT 16
+#define MINOTAUR_LYRA_ROWS	16	// Lyra2's memory usage = MINOTAUR_LYRA_ROWS * 256 * 768 bits.
+//#define MINOTAUR_DEBUG
 
 // Graph of hash algos plus SPH contexts
 struct TortureNode {
@@ -154,7 +159,7 @@ uint512 GetHash(uint512 inputHash, TortureGarden *garden, unsigned int algo) {
 uint512 TraverseGarden(TortureGarden *garden, uint512 hash, TortureNode *node) {
     uint512 partialHash = GetHash(hash, garden, node->algo);
 
-#ifdef BRANCHTORTURE_DEBUG
+#ifdef MINOTAUR_DEBUG
     printf("* Ran algo %d. Partial hash:\t%s\n", node->algo, partialHash.ToString().c_str());
     fflush(0);
 #endif
@@ -176,8 +181,8 @@ void LinkNodes(TortureNode *parent, TortureNode *childLeft, TortureNode *childRi
     parent->childRight = childRight;
 }
 
-// Produce a BranchTorture 32-byte hash from variable length data
-template<typename T> inline uint256 BranchTorture(const T begin, const T end) {
+// Produce a Minotaur 32-byte hash from variable length data
+template<typename T> inline uint256 Minotaur(const T begin, const T end) {
     // Create torture garden nodes. Note that both sides of 19 and 20 lead to 21, and 21 has no children (to make traversal complete).
     // Every path through the garden stops at 7 nodes.
     TortureGarden garden;
@@ -214,18 +219,21 @@ template<typename T> inline uint256 BranchTorture(const T begin, const T end) {
 
     // Assign algos to torture net nodes based on initial hash
     for (int i = 0; i < 22; i++)
-        garden.nodes[i].algo = hash.ByteAt(i) % BRANCHTORTURE_ALGO_COUNT;
+        garden.nodes[i].algo = hash.ByteAt(i) % MINOTAUR_ALGO_COUNT;
 
     // Send the initial hash through the torture garden
     hash = TraverseGarden(&garden, hash, &garden.nodes[0]);
 
-#ifdef BRANCHTORTURE_DEBUG
-    printf("*** Final hash:\t\t%s\n", uint256(hash).ToString().c_str());
+	// Finally, derive a key using Lyra2 with memory-hard params
+    uint256 final_hash;
+	LYRA2(static_cast<void*>(&final_hash), 32, static_cast<const void*>(&hash), 64, static_cast<const void*>(&hash), 64, 1, MINOTAUR_LYRA_ROWS, 256);
+
+#ifdef MINOTAUR_DEBUG
+    printf("*** Final hash:\t\t%s\n", uint256(final_hash).ToString().c_str());
     fflush(0);
 #endif
 
-    // Return truncated result
-    return uint256(hash);
+    return final_hash;
 }
 
-#endif // RING_CRYPTO_POW_BRANCHTORTURE_H
+#endif // RING_CRYPTO_POW_MINOTAUR_H

@@ -21,7 +21,9 @@ static constexpr int NUM_GETBLOCKSTATS_PERCENTILES = 5;
  * @return A floating point number that is a multiple of the main net minimum
  * difficulty (4295032833 hashes).
  */
-double GetDifficulty(const CBlockIndex* blockindex);
+// Ring-fork: Hive: If optional argument getHiveDifficulty is true, will return Hive difficulty as close to blockindex.
+// If getHiveDifficulty is false, will return PoW difficulty as close to blockindex as possible.
+double GetDifficulty(const CBlockIndex* blockindex, bool getHiveDifficulty = false);
 
 /** Callback for when block tip changed. */
 void RPCNotifyBlockChange(bool ibd, const CBlockIndex *);

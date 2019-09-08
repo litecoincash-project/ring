@@ -85,6 +85,9 @@ enum RPCErrorCode
     RPC_WALLET_NOT_FOUND            = -18, //!< Invalid wallet specified
     RPC_WALLET_NOT_SPECIFIED        = -19, //!< No wallet specified (error when there are multiple wallets loaded)
 
+    // Ring-fork: Hive: RPC errors
+    RPC_WALLET_DCT_FAIL             = -64,  // Wallet couldn't create a DCT (not enough funds, etc)
+
     //! Backwards compatible aliases
     RPC_WALLET_INVALID_ACCOUNT_NAME = RPC_WALLET_INVALID_LABEL_NAME,
 

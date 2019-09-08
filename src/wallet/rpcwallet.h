@@ -14,6 +14,9 @@ class UniValue;
 struct PartiallySignedTransaction;
 class CTransaction;
 
+struct DwarfPopGraphPoint;                            // Ring-fork: Hive
+extern DwarfPopGraphPoint dwarfPopGraph[1024*40];       // Ring-fork: Hive
+
 void RegisterWalletRPCCommands(CRPCTable &t);
 
 /**

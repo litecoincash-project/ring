@@ -23,6 +23,8 @@
 #include <wallet/walletdb.h>
 #include <wallet/walletutil.h>
 
+#include <consensus/params.h>   // Ring-fork: Hive
+
 #include <algorithm>
 #include <atomic>
 #include <map>
@@ -33,6 +35,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+extern bool fWalletUnlockHiveMiningOnly;  // Ring-fork: Hive: Unlock for hive mining purposes only.
 
 //! Responsible for reading and validating the -wallet arguments and verifying the wallet database.
 //! This function will perform salvage on the wallet if requested, as long as only one wallet is
@@ -325,6 +329,11 @@ public:
 
     const uint256& GetHash() const { return tx->GetHash(); }
     bool IsCoinBase() const { return tx->IsCoinBase(); }
+    bool IsHiveCoinBase() const { return tx->IsHiveCoinBase(); }    // Ring-fork: Hive
+    // Ring-fork: Hive: Check if this transaction is a Dwarf Creation Transaction
+    bool IsDCT(const Consensus::Params& consensusParams, CScript scriptPubKeyBCF, CAmount* dwarfFeePaid = nullptr, CScript* scriptPubKeyReward = nullptr) const {
+        return tx->IsDCT(consensusParams, scriptPubKeyBCF, dwarfFeePaid, scriptPubKeyReward);
+    }    
     bool IsImmatureCoinBase(interfaces::Chain::Lock& locked_chain) const;
 };
 
@@ -632,6 +641,22 @@ struct CoinSelectionParams
 
     CoinSelectionParams(bool use_bnb, size_t change_output_size, size_t change_spend_size, CFeeRate effective_fee, size_t tx_noinputs_size) : use_bnb(use_bnb), change_output_size(change_output_size), change_spend_size(change_spend_size), effective_fee(effective_fee), tx_noinputs_size(tx_noinputs_size) {}
     CoinSelectionParams() {}
+};
+
+// Ring-fork: Hive: DCT results struct
+struct CDwarfCreationTransactionInfo
+{
+    std::string txid;
+    int64_t time;
+    int dwarfCount;
+    CAmount dwarfFeePaid;
+    bool communityContrib;
+    std::string dwarfStatus;
+    std::string rewardAddress;
+    CAmount rewardsPaid;
+    CAmount profit;
+    int blocksFound;
+    int blocksLeft;
 };
 
 class WalletRescanReserver; //forward declarations for ScanForWalletTransactions/RescanFromTime
@@ -956,6 +981,15 @@ public:
     CAmount GetAvailableBalance(const CCoinControl* coinControl = nullptr) const;
 
     OutputType TransactionChangeType(OutputType change_type, const std::vector<CRecipient>& vecSend);
+
+    // Ring-fork: Hive: Create a DCT to gestate given number of dwarves
+    bool CreateDwarfTransaction(int dwarfCount, CTransactionRef& tx, CReserveKey& reservekeyChange, CReserveKey& reservekeyReward, std::string rewardAddress, std::string changeAddress, bool communityContrib, std::string& strFailReason, const Consensus::Params& consensusParams);
+
+    // Ring-fork: Hive: Return info for a single DCT known by this wallet, optionally scanning for blocks minted by dwarves from this DCT
+    CDwarfCreationTransactionInfo GetDCT(const CWalletTx& wtx, bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minRewardConfirmations);
+
+    // Ring-fork: Hive: Return all DCTs known by this wallet, optionally including dead dwarves and optionally scanning for blocks minted by dwarves from each DCT
+    std::vector<CDwarfCreationTransactionInfo> GetDCTs(bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minRewardConfirmations = 1);
 
     /**
      * Insert additional inputs into the transaction by

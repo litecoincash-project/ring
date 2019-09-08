@@ -27,12 +27,15 @@
 
 #include <QObject>
 
+#include <wallet/wallet.h>  // Ring-fork: Hive
+
 enum class OutputType;
 
 class AddressTableModel;
 class OptionsModel;
 class PlatformStyle;
 class RecentRequestsTableModel;
+class HiveTableModel;       // Ring-fork: Hive
 class TransactionTableModel;
 class WalletModelTransaction;
 
@@ -155,6 +158,7 @@ public:
     AddressTableModel *getAddressTableModel();
     TransactionTableModel *getTransactionTableModel();
     RecentRequestsTableModel *getRecentRequestsTableModel();
+    HiveTableModel *getHiveTableModel();    // Ring-fork: Hive
 
     EncryptionStatus getEncryptionStatus() const;
 
@@ -205,11 +209,15 @@ public:
         void CopyFrom(const UnlockContext& rhs);
     };
 
-    UnlockContext requestUnlock();
+    // Ring-fork: Hive: Additional param for locked wallet support
+    UnlockContext requestUnlock(bool hiveOnly=false);
 
     void loadReceiveRequests(std::vector<std::string>& vReceiveRequests);
     bool saveReceiveRequest(const std::string &sAddress, const int64_t nId, const std::string &sRequest);
-
+    
+    void getDCTs(std::vector<CDwarfCreationTransactionInfo>& vDwarfCreationTransactions, bool includeDeadDwarves);     // Ring-fork: Hive
+    bool createDwarves(int dwarfCount, bool communityContrib, QWidget *parent, double dwarfPopIndex);                  // Ring-fork: Hive
+    
     bool bumpFee(uint256 hash, uint256& new_hash);
 
     static bool isWalletEnabled();
@@ -246,6 +254,7 @@ private:
     AddressTableModel *addressTableModel;
     TransactionTableModel *transactionTableModel;
     RecentRequestsTableModel *recentRequestsTableModel;
+    HiveTableModel *hiveTableModel; // Ring-fork: Hive
 
     // Cache some values to be able to detect changes
     interfaces::WalletBalances m_cached_balances;
@@ -263,12 +272,15 @@ Q_SIGNALS:
     void balanceChanged(const interfaces::WalletBalances& balances);
 
     // Encryption status of wallet changed
-    void encryptionStatusChanged();
+    void encryptionStatusChanged(int status);   // Ring-fork: Hive: Support locked wallets
 
     // Signal emitted when wallet needs to be unlocked
     // It is valid behaviour for listeners to keep the wallet locked after this signal;
     // this means that the unlocking failed or was cancelled.
     void requireUnlock();
+	
+    // Ring-fork: Hive: Signal emitted when a wallet needs to be unlocked for hive only
+	void requireUnlockHive();
 
     // Fired when a message should be reported to the user
     void message(const QString &title, const QString &message, unsigned int style);
@@ -287,6 +299,9 @@ Q_SIGNALS:
 
     // Notify that there are now keys in the keypool
     void canGetAddressesChanged();
+    
+    // Ring-fork: Hive: Fired when new hive summary available
+    void newHiveSummaryAvailable();
 
 public Q_SLOTS:
     /* Wallet status might have changed */

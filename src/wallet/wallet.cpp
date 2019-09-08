@@ -37,6 +37,8 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+#include <script/ismine.h>  // Ring-fork: Hive
+
 static const size_t OUTPUT_GROUP_MAX_ENTRIES = 10;
 
 static CCriticalSection cs_wallets;
@@ -2779,6 +2781,273 @@ OutputType CWallet::TransactionChangeType(OutputType change_type, const std::vec
 
     // else use m_default_address_type for change
     return m_default_address_type;
+}
+
+bool fWalletUnlockHiveMiningOnly = false;  // Ring-fork: Hive: Unlock for hive mining purposes only.
+
+// Ring-fork: Hive: Return info for a single DCT known by this wallet, optionally scanning for blocks minted by dwarves from this DCT
+CDwarfCreationTransactionInfo CWallet::GetDCT(const CWalletTx& wtx, bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minRewardConfirmations) {
+    CDwarfCreationTransactionInfo dct;
+
+    if (chainActive.Height() == 0)  // Don't continue if chainActive is invalid; we may be reindexing
+        return dct;
+
+    int maxDepth = consensusParams.dwarfGestationBlocks + consensusParams.dwarfLifespanBlocks;
+
+    CScript scriptPubKeyBCF = GetScriptForDestination(DecodeDestination(consensusParams.dwarfCreationAddress));
+    CScript scriptPubKeyCF = GetScriptForDestination(DecodeDestination(consensusParams.hiveCommunityAddress));
+
+    // Make sure it's really a DCT
+    CAmount dwarfFeePaid;
+    CScript scriptPubKeyReward;
+    if (!wtx.tx->IsDCT(consensusParams, scriptPubKeyBCF, &dwarfFeePaid, &scriptPubKeyReward))
+        return dct;
+
+    // Grab reward address
+    CTxDestination rewardDestination;
+    if (!ExtractDestination(scriptPubKeyReward, rewardDestination)) {
+        LogPrintf ("** Couldn't extract destination from DCT %s (dest=%s)\n", wtx.GetHash().GetHex(), HexStr(scriptPubKeyReward));
+        return dct;
+    }
+    std::string rewardAddress = EncodeDestination(rewardDestination);
+
+    // Check lifespan & maturity
+    auto locked_chain = chain().lock();
+    int depth = wtx.GetDepthInMainChain(*locked_chain);
+    int blocksLeft = maxDepth - depth;
+    blocksLeft++;   // Dwarf life starts at zero immediately AFTER the DCT appears in a block.
+    bool isMature = false;
+    std::string status = "immature";
+    if (blocksLeft < 1) {
+        if (!includeDead)   // Skip dead dwarves unless explicitly including them
+            return dct;
+        blocksLeft = 0;
+        status = "expired";
+        isMature = true;    // We still want to calc rewards
+    } else {
+        if (depth > consensusParams.dwarfGestationBlocks) {
+            status = "mature";
+            isMature = true;
+        }
+    }
+
+    // Find dwarf count & community donation status
+    int height = chainActive.Height() - depth;
+    CAmount dwarfCost = GetDwarfCost(height, consensusParams);
+    bool communityContrib = false;
+    if (wtx.tx->vout.size() > 1 && wtx.tx->vout[1].scriptPubKey == scriptPubKeyCF) {
+        dwarfFeePaid += wtx.tx->vout[1].nValue;            // Add any community fund contribution back to the total paid
+        communityContrib = true;
+    }
+    int dwarfCount = dwarfFeePaid / dwarfCost;
+
+    // If mature, check for coinbase transactions from blocks minted by a dwarf from this DCT
+    std::string dctTxid = wtx.GetHash().GetHex();
+    int blocksFound = 0;
+    CAmount rewardsPaid = 0;
+    if (isMature && scanRewards) {
+        for (const std::pair<uint256, CWalletTx>& pairWtx2 : mapWallet) {
+            const CWalletTx& wtx2 = pairWtx2.second;
+
+            // Skip non-CBTs
+            if (!wtx2.IsHiveCoinBase())
+                continue;
+
+            // Skip unconfirmed transactions and orphans
+            if (wtx2.GetDepthInMainChain(*locked_chain) < minRewardConfirmations)
+                continue;
+
+            // Grab the txid (bytes 14-78)
+            std::vector<unsigned char> blockTxid(&wtx2.tx->vout[0].scriptPubKey[14], &wtx2.tx->vout[0].scriptPubKey[14 + 64]);
+            std::string blockTxidStr = std::string(blockTxid.begin(), blockTxid.end());
+
+            // Check it
+            if (dctTxid!=blockTxidStr)
+                continue;
+
+            blocksFound++;
+            rewardsPaid += wtx2.tx->vout[1].nValue;
+        }
+    }
+
+    int64_t time = 0;
+    if (mapBlockIndex[wtx.hashBlock])
+        time = mapBlockIndex[wtx.hashBlock]->GetBlockTime();
+
+    dct.txid = dctTxid;
+    dct.time = time;
+    dct.dwarfCount = dwarfCount;
+    dct.dwarfFeePaid = dwarfFeePaid;
+    dct.communityContrib = communityContrib;
+    dct.dwarfStatus = status;
+    dct.rewardAddress = rewardAddress;
+    dct.rewardsPaid = rewardsPaid;
+    dct.blocksFound = blocksFound;
+    dct.blocksLeft = blocksLeft;
+    dct.profit = rewardsPaid - dwarfFeePaid;
+
+    return dct;
+}
+
+// Ring-fork: Hive: Return all DCTs known by this wallet, optionally including dead dwarves and optionally scanning for blocks minted by dwarves from each DCT
+std::vector<CDwarfCreationTransactionInfo> CWallet::GetDCTs(bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minRewardConfirmations) {
+    std::vector<CDwarfCreationTransactionInfo> dcts;
+
+    if (chainActive.Height() == 0)  // Don't continue if chainActive is invalid; we may be reindexing
+        return dcts;
+
+    CScript scriptPubKeyBCF = GetScriptForDestination(DecodeDestination(consensusParams.dwarfCreationAddress));
+    CScript scriptPubKeyCF = GetScriptForDestination(DecodeDestination(consensusParams.hiveCommunityAddress));
+
+    auto locked_chain = chain().lock();
+    for (const std::pair<uint256, CWalletTx>& pairWtx : mapWallet) {
+        const CWalletTx& wtx = pairWtx.second;
+
+        // Skip unconfirmed transactions and orphans
+        if (wtx.GetDepthInMainChain(*locked_chain) < 1)
+            continue;
+
+        // Skip CBTs
+        if (wtx.IsCoinBase())
+            continue;
+
+        // Check it's actually our DCT (otherwise comm fund keyholder for example would see all DCTs as wallet txs)
+        if (!IsAllFromMe(*wtx.tx, ISMINE_SPENDABLE))
+            continue;
+
+        // Get its info if it's a DCT
+        CDwarfCreationTransactionInfo dct = GetDCT(wtx, includeDead, scanRewards, consensusParams, minRewardConfirmations);
+        if (dct.txid != "")
+            dcts.push_back(dct);
+    }
+
+    return dcts;
+}
+
+// Ring-fork: Hive: Create a DCT to gestate given number of dwarves
+bool CWallet::CreateDwarfTransaction(int dwarfCount, CTransactionRef& tx, CReserveKey& reservekeyChange, CReserveKey& reservekeyReward, std::string rewardAddress, std::string changeAddress, bool communityContrib, std::string& strFailReason, const Consensus::Params& consensusParams) {
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    assert(pindexPrev != nullptr);
+	
+    // Sanity check dwarfCount
+    if (dwarfCount < 1) {
+        strFailReason = "Error: At least 1 dwarf must be created";
+        return false;
+    }
+	
+    // Check available balance (note: can't check fee at this point because we don't know the tx size)
+    CAmount dwarfCost = GetDwarfCost(chainActive.Height(), consensusParams);
+    CAmount curBalance = GetAvailableBalance();
+    CAmount totalDwarfCost = dwarfCost * dwarfCount;
+    if (totalDwarfCost > curBalance) {
+        strFailReason = "Error: Insufficient balance to pay dwarf creation fee";
+        return false;
+    }
+
+    // Don't spend more than potential rewards in a single DCT
+    CAmount totalPotentialReward = (consensusParams.dwarfLifespanBlocks * GetBlockSubsidy(pindexPrev->nHeight, consensusParams)) / consensusParams.hiveBlockSpacingTargetTypical;
+    if (totalPotentialReward < dwarfCost) {
+        strFailReason = "Error: Dwarf creation would cost more than possible rewards";
+        return false;
+    }
+
+    // Create a new reward address for future coinbase rewards if needed
+    CTxDestination destinationFCA;
+    if (rewardAddress.empty()) {
+        if (!IsLocked())
+            TopUpKeyPool();
+
+        CPubKey newKey;
+        if (!reservekeyReward.GetReservedKey(newKey, true)) {
+            strFailReason = "Error: Couldn't create a new pubkey";
+            return false;
+        }
+
+        std::string strLabel = "Hivemined Reward";
+        OutputType output_type = OutputType::LEGACY;
+        LearnRelatedScripts(newKey, output_type);
+        destinationFCA = GetDestinationForKey(newKey, output_type);
+        SetAddressBook(destinationFCA, strLabel, "receive");
+    } else {
+        // If a reward address was passed in, make sure it decodes
+        destinationFCA = DecodeDestination(rewardAddress);
+        if (!IsValidDestination(destinationFCA)) {
+            strFailReason = "Error: Invalid reward address specified";
+            return false;
+        }
+
+        // Make sure it's legacy format (TX_PUBKEYHASH)
+        std::vector<std::vector<unsigned char>> vSolutions;
+        if (Solver(GetScriptForDestination(destinationFCA), vSolutions) != TX_PUBKEYHASH) {
+            strFailReason = "Error: If specifying a reward address, it must be legacy format (TX_PUBKEYHASH)";
+            return false;
+        }
+
+        // Make sure it's a wallet address (otherwise dwarves won't be able to mint)
+        isminetype isMine = ::IsMine((const CKeyStore&)*this, (const CTxDestination&)destinationFCA);
+        if (isMine != ISMINE_SPENDABLE) {
+            strFailReason = "Error: Wallet doesn't contain the private key for the reward address specified";
+            return false;
+        }
+    }
+	
+	// Check the custom change address is valid and on-wallet
+	CTxDestination destinationChange;
+	if (!changeAddress.empty()) {
+		destinationChange = DecodeDestination(changeAddress);
+        if (!IsValidDestination(destinationChange)) {
+            strFailReason = "Error: Invalid change address specified";
+            return false;
+        }
+		
+        // Make sure it's a wallet address (otherwise the change won't make it back to us)
+        isminetype isMine = ::IsMine((const CKeyStore&)*this, (const CTxDestination&)destinationChange);
+        if (isMine != ISMINE_SPENDABLE) {
+            strFailReason = "Error: Wallet doesn't contain the private key for the reward address specified";
+            return false;
+        }
+	}
+
+    // Create the unspendable dwarf creation fee output (vout[0])
+    std::vector<CRecipient> vecSend;
+    CTxDestination destinationBCF = DecodeDestination(consensusParams.dwarfCreationAddress);
+    CScript scriptPubKeyBCF = GetScriptForDestination(destinationBCF);
+    CScript scriptPubKeyFCA = GetScriptForDestination(destinationFCA);
+    scriptPubKeyBCF << OP_RETURN << OP_DWARF;
+    scriptPubKeyBCF += scriptPubKeyFCA;
+    CAmount dwarfCreationValue = totalDwarfCost;
+    CAmount donationValue = (CAmount)(totalDwarfCost / consensusParams.communityContribFactor);
+    if(communityContrib)
+        dwarfCreationValue -= donationValue;
+    CRecipient recipientBCF = {scriptPubKeyBCF, dwarfCreationValue, false};
+    vecSend.push_back(recipientBCF);
+
+    // Add optional community fund output (vout[1] if present)
+    if (communityContrib) {
+        CTxDestination destinationCF = DecodeDestination(consensusParams.hiveCommunityAddress);
+        CScript scriptPubKeyCF = GetScriptForDestination(destinationCF);
+        CRecipient recipientCF = {scriptPubKeyCF, donationValue, false};
+        vecSend.push_back(recipientCF);
+    }
+
+    // Create the DCT with our specified outputs, adding change address to coin control if set
+    CAmount feeRequired;
+    int changePos = communityContrib ? 2 : 1;      // Always put any change in the last output
+    std::string strError;
+    CCoinControl coinControl;
+	if (!changeAddress.empty()) 
+		coinControl.destChange = destinationChange;
+    auto locked_chain = chain().lock();
+
+    if (!CreateTransaction(*locked_chain, vecSend, tx, reservekeyChange, feeRequired, changePos, strError, coinControl, true)) {
+        if (totalDwarfCost + feeRequired > curBalance)   // Now we know fee requirement, check balance fail again
+            strFailReason = "Error: Insufficient balance to cover dwarf creation fee and transaction fee";
+        else
+            strFailReason = "Error: Couldn't create DCT: " + strError;
+        return false;
+    }
+
+    return true;
 }
 
 bool CWallet::CreateTransaction(interfaces::Chain::Lock& locked_chain, const std::vector<CRecipient>& vecSend, CTransactionRef& tx, CReserveKey& reservekey, CAmount& nFeeRet,

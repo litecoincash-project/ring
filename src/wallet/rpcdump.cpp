@@ -167,6 +167,10 @@ UniValue importprivkey(const JSONRPCRequest& request)
         CKey key = DecodeSecret(strSecret);
         if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
 
+        // Ring-fork: Hive: Support unlocking wallets for hive only
+        if(fWalletUnlockHiveMiningOnly)
+            throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Wallet is unlocked for hive mining only.");
+
         CPubKey pubkey = key.GetPubKey();
         assert(key.VerifyPubKey(pubkey));
         CKeyID vchAddress = pubkey.GetID();
@@ -740,6 +744,10 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
     if (!IsValidDestination(dest)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Ring address");
     }
+
+    if(fWalletUnlockHiveMiningOnly)        // Ring-fork: Hive: Support unlocking wallets for hive only
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Wallet is unlocked for hive mining only.");
+
     auto keyid = GetKeyForDestination(*pwallet, dest);
     if (keyid.IsNull()) {
         throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to a key");

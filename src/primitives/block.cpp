@@ -10,7 +10,8 @@
 #include <tinyformat.h>
 #include <util/strencodings.h>
 #include <crypto/common.h>
-#include <crypto/pow/branchtorture.h> // Ring-fork
+#include <crypto/pow/minotaur.h>    // Ring-fork
+#include <chainparams.h>            // Ring-fork: Hive
 
 // Ring-fork
 #define BEGIN(a)            ((char*)&(a))
@@ -18,16 +19,24 @@
 
 uint256 CBlockHeader::GetHash() const
 {
-    // Ring-fork: Use BT instead of sha256
-    return BranchTorture(BEGIN(nVersion), END(nNonce));
-    //return SerializeHash(*this);
+    return SerializeHash(*this);
 }
 
+// Ring-fork: Seperate block hash and pow hash
+uint256 CBlockHeader::GetPowHash() const
+{
+    return Minotaur(BEGIN(nVersion), END(nNonce));
+}
+
+// Ring-fork: Seperate block hash and pow hash: Include powHash in ToString()
+// Ring-fork: Hive: Include block type in ToString()
 std::string CBlock::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CBlock(hash=%s, ver=0x%08x, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%u)\n",
+    s << strprintf("CBlock(type=%s, hash=%s, powHash=%s, ver=0x%08x, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%u)\n",
+        IsHiveMined(Params().GetConsensus()) ? "hive" : "pow",
         GetHash().ToString(),
+        GetPowHash().ToString(),
         nVersion,
         hashPrevBlock.ToString(),
         hashMerkleRoot.ToString(),

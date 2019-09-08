@@ -14,6 +14,8 @@
 #include <util/system.h>
 #include <util/strencodings.h>
 
+#include <chainparams.h>    // Ring-fork: Hive
+#include <key_io.h>         // Ring-fork: Hive
 
 CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 {
@@ -115,7 +117,14 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
 
     unsigned int nDataOut = 0;
     txnouttype whichType;
+
+    const Consensus::Params& consensusParams = Params().GetConsensus();                                         // Ring-fork: Hive
+    CScript scriptPubKeyBCF = GetScriptForDestination(DecodeDestination(consensusParams.dwarfCreationAddress));   // Ring-fork: Hive
+
     for (const CTxOut& txout : tx.vout) {
+        if (CScript::IsDCTScript(txout.scriptPubKey, scriptPubKeyBCF))      // Ring-fork: Hive
+            return true;                                                    // Ring-fork: Hive
+
         if (!::IsStandard(txout.scriptPubKey, whichType)) {
             reason = "scriptpubkey";
             return false;

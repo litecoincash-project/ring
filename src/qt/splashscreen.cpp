@@ -56,12 +56,12 @@ SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const Netw
     pixmap.setDevicePixelRatio(devicePixelRatio);
 
     QPainter pixPaint(&pixmap);
-    pixPaint.setPen(QColor(textCol));       // Ring-fork: Skinning
+    pixPaint.setPen(QColor(SKIN_TEXT));       // Ring-fork: Skinning
 
     // draw a slightly radial gradient
     QRadialGradient gradient(QPoint(0,0), splashSize.width()/devicePixelRatio);
-    gradient.setColorAt(0, QColor(bgCol1)); // Ring-fork: Skinning
-    gradient.setColorAt(1, QColor(bgCol2)); // Ring-fork: Skinning
+    gradient.setColorAt(0, QColor(SKIN_BG_ROW_ALT)); // Ring-fork: Skinning
+    gradient.setColorAt(1, QColor(SKIN_BG_PANEL)); // Ring-fork: Skinning
     QRect rGradient(QPoint(0,0), splashSize);
     pixPaint.fillRect(rGradient, gradient);
 
@@ -164,7 +164,7 @@ static void InitMessage(SplashScreen *splash, const std::string &message)
         Qt::QueuedConnection,
         Q_ARG(QString, QString::fromStdString(message)),
         Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
-        Q_ARG(QColor, QColor(textCol)));   // Ring-fork: Skinning
+        Q_ARG(QColor, QColor(SKIN_TEXT)));   // Ring-fork: Skinning
     assert(invoked);
 }
 

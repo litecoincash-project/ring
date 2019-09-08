@@ -14,6 +14,8 @@
 #include <qt/transactionfilterproxy.h>
 #include <qt/transactiontablemodel.h>
 #include <qt/walletmodel.h>
+#include <qt/hivetablemodel.h>  // Ring-fork: Hive
+#include <qt/hivedialog.h>      // Ring-fork: Hive: For formatLargeNoLocale()
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
@@ -47,7 +49,7 @@ public:
         int halfheight = (mainRect.height() - 2*ypad)/2;
         QRect amountRect(mainRect.left() + xspace, mainRect.top()+ypad, mainRect.width() - xspace, halfheight);
         QRect addressRect(mainRect.left() + xspace, mainRect.top()+ypad+halfheight, mainRect.width() - xspace, halfheight);
-        icon = platformStyle->ForceSingleColorIcon(icon);    // Ring-fork: Skinning: Force single colour here
+        icon = platformStyle->TextColorIcon(icon);    // Ring-fork: Skinning: Force single colour here
         icon.paint(painter, decorationRect);
 
         QDateTime date = index.data(TransactionTableModel::DateRole).toDateTime();
@@ -139,6 +141,9 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     showOutOfSyncWarning(true);
     connect(ui->labelWalletStatus, &QPushButton::clicked, this, &OverviewPage::handleOutOfSyncWarningClicks);
     connect(ui->labelTransactionsStatus, &QPushButton::clicked, this, &OverviewPage::handleOutOfSyncWarningClicks);
+
+    // Ring-fork: Hive
+    cost = rewardsPaid = profit = 0;    
 }
 
 void OverviewPage::handleTransactionClicked(const QModelIndex &index)
@@ -241,10 +246,51 @@ void OverviewPage::setWalletModel(WalletModel *model)
         connect(model, &WalletModel::notifyWatchonlyChanged, [this](bool showWatchOnly) {
             updateWatchOnlyLabels(showWatchOnly && !walletModel->privateKeysDisabled());
         });
+
+        // Ring-fork: Hive: Connect summary updater
+        connect(model, SIGNAL(newHiveSummaryAvailable()), this, SLOT(updateHiveSummary()));
     }
 
     // update the display unit, to not use the default ("RNG")
     updateDisplayUnit();
+}
+
+// Ring-fork: Hive: Update the hive summary
+void OverviewPage::updateHiveSummary() {
+    if (walletModel && walletModel->getHiveTableModel()) {
+        int immature, mature, dead, blocksFound;
+        walletModel->getHiveTableModel()->getSummaryValues(immature, mature, dead, blocksFound, cost, rewardsPaid, profit);
+
+        ui->rewardsPaidLabel->setText(
+            RingUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rewardsPaid)
+            + " "
+            + RingUnits::shortName(walletModel->getOptionsModel()->getDisplayUnit())
+        );
+        ui->costLabel->setText(
+            RingUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), cost)
+            + " "
+            + RingUnits::shortName(walletModel->getOptionsModel()->getDisplayUnit())
+        );
+        ui->profitLabel->setText(
+            RingUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), profit)
+            + " "
+            + RingUnits::shortName(walletModel->getOptionsModel()->getDisplayUnit())
+        );
+        ui->matureLabel->setText(HiveDialog::formatLargeNoLocale(mature));
+        ui->immatureLabel->setText(HiveDialog::formatLargeNoLocale(immature));
+        ui->blocksFoundLabel->setText(HiveDialog::formatLargeNoLocale(blocksFound));
+        
+        if (dead > 0) {
+            ui->deadLabel->setText(HiveDialog::formatLargeNoLocale(dead));
+            ui->deadLabel->setVisible(true);
+            ui->deadPreLabel->setVisible(true);
+            ui->deadPostLabel->setVisible(true);
+        } else {
+            ui->deadLabel->setVisible(false);
+            ui->deadPreLabel->setVisible(false);
+            ui->deadPostLabel->setVisible(false);         
+        }
+    }
 }
 
 void OverviewPage::updateDisplayUnit()
@@ -259,6 +305,23 @@ void OverviewPage::updateDisplayUnit()
         txdelegate->unit = walletModel->getOptionsModel()->getDisplayUnit();
 
         ui->listTransactions->update();
+
+        // Ring-fork: Hive: Update CAmounts in hive summary
+        ui->rewardsPaidLabel->setText(
+            RingUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rewardsPaid)
+            + " "
+            + RingUnits::shortName(walletModel->getOptionsModel()->getDisplayUnit())
+        );
+        ui->costLabel->setText(
+            RingUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), cost)
+            + " "
+            + RingUnits::shortName(walletModel->getOptionsModel()->getDisplayUnit())
+        );
+        ui->profitLabel->setText(
+            RingUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), profit)
+            + " "
+            + RingUnits::shortName(walletModel->getOptionsModel()->getDisplayUnit())
+        );        
     }
 }
 
@@ -272,4 +335,9 @@ void OverviewPage::showOutOfSyncWarning(bool fShow)
 {
     ui->labelWalletStatus->setVisible(fShow);
     ui->labelTransactionsStatus->setVisible(fShow);
+}
+
+// Ring-fork: Hive: Handle dwarf button click
+void OverviewPage::on_hiveButton_clicked() {
+    Q_EMIT hiveButtonClicked();
 }

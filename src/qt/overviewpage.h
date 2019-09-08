@@ -42,6 +42,7 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void transactionClicked(const QModelIndex &index);
+    void hiveButtonClicked();                   // Ring-fork: Hive
     void outOfSyncWarningClicked();
 
 private:
@@ -49,6 +50,7 @@ private:
     ClientModel *clientModel;
     WalletModel *walletModel;
     interfaces::WalletBalances m_balances;
+    CAmount cost, rewardsPaid, profit;          // Ring-fork: Hive
 
     TxViewDelegate *txdelegate;
     std::unique_ptr<TransactionFilterProxy> filter;
@@ -59,6 +61,8 @@ private Q_SLOTS:
     void updateAlerts(const QString &warnings);
     void updateWatchOnlyLabels(bool showWatchOnly);
     void handleOutOfSyncWarningClicks();
+    void on_hiveButton_clicked();               // Ring-fork: Hive: Hive button handler
+    void updateHiveSummary();                   // Ring-fork: Hive: Update hive summary    
 };
 
 #endif // RING_QT_OVERVIEWPAGE_H

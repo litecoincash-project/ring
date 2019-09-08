@@ -302,6 +302,12 @@ public:
         return *phashBlock;
     }
 
+    // Ring-fork: Seperate block hash and pow hash
+    uint256 GetBlockPowHash() const
+    {
+        return GetBlockHeader().GetPowHash();
+    }
+
     /**
      * Check whether this block's and all previous blocks' transactions have been
      * downloaded (and stored to disk) at some point.
@@ -377,6 +383,9 @@ public:
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);
+
+arith_uint256 GetNumHashes(const CBlockIndex& block);       // Ring-fork: Hive: Reimplement un-boosted GetBlockProof for getnetworkhashps estimation.
+
 /** Return the time it would take to redo the work difference between from and to, assuming the current hashrate corresponds to the difficulty at tip, in seconds. */
 int64_t GetBlockProofEquivalentTime(const CBlockIndex& to, const CBlockIndex& from, const CBlockIndex& tip, const Consensus::Params&);
 /** Find the forking point between two chain tips. */

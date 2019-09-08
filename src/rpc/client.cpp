@@ -90,6 +90,17 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "createrawtransaction", 1, "outputs" },
     { "createrawtransaction", 2, "locktime" },
     { "createrawtransaction", 3, "replaceable" },
+    { "createrawdct", 0, "inputs" },                // Ring-fork: Hive: Create a Raw DCT
+    { "createrawdct", 1, "dwarf_count" },           // Ring-fork: Hive: Create a Raw DCT
+    { "createrawdct", 3, "community_contrib" },     // Ring-fork: Hive: Create a Raw DCT
+    { "createrawdct", 4, "locktime" },              // Ring-fork: Hive: Create a Raw DCT
+    { "createdwarves", 0, "dwarfcount" },           // Ring-fork: Hive: Create a DCT
+    { "createdwarves", 1, "community_contrib" },    // Ring-fork: Hive: Create a DCT
+    { "getdwarfcost", 0, "height" },                // Ring-fork: Hive: Get cost of a single dwarf
+    { "gethiveinfo", 0, "include_dead" },           // Ring-fork: Hive: Get hive info
+    { "gethiveinfo", 1, "min_reward_confirms" },    // Ring-fork: Hive: Get hive info
+    { "getdctinfo", 1, "min_reward_confirms" },     // Ring-fork: Hive: Get single DCT info
+    { "getnetworkhiveinfo", 0, "include_graph" },   // Ring-fork: Hive: Get network hive info
     { "decoderawtransaction", 1, "iswitness" },
     { "signrawtransactionwithkey", 1, "privkeys" },
     { "signrawtransactionwithkey", 2, "prevtxs" },

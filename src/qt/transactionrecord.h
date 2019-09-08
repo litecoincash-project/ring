@@ -82,7 +82,10 @@ public:
         RecvWithAddress,
         RecvFromOther,
         SendToSelf,
-        ForeignChainImport  // Ring-fork: A claim transaction from a supported foreign chain
+        ForeignChainImport, // Ring-fork: A claim transaction from a supported foreign chain
+        HiveDwarfCreation,    // Ring-fork: Hive
+        HiveCommunityFund,  // Ring-fork: Hive
+        HiveReward           // Ring-fork: Hive        
     };
 
     /** Number of confirmation recommended for accepting a transaction */

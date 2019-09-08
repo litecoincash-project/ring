@@ -118,7 +118,8 @@ private:
     UnitDisplayStatusBarControl* unitDisplayControl = nullptr;
     QLabel* labelWalletEncryptionIcon = nullptr;
     QLabel* labelWalletHDStatusIcon = nullptr;
-    QLabel* labelMiningStatusIcon = nullptr;        // Ring-fork: Mining page
+    GUIUtil::ClickableLabel* labelMiningStatusIcon = nullptr;   // Ring-fork: Mining status icon
+    GUIUtil::ClickableLabel* hiveStatusIcon = nullptr;          // Ring-fork: Hive status icon
     GUIUtil::ClickableLabel* labelProxyIcon = nullptr;
     GUIUtil::ClickableLabel* connectionsControl = nullptr;
     GUIUtil::ClickableLabel* labelBlocksIcon = nullptr;
@@ -129,6 +130,7 @@ private:
     QMenuBar* appMenuBar = nullptr;
     QToolBar* appToolBar = nullptr;
     QAction* overviewAction = nullptr;
+    QAction *hiveAction = nullptr;                  // Ring-fork: Hive page
     QAction* miningAction = nullptr;                // Ring-fork: Mining page
     QAction* importPrivateKeyAction = nullptr;      // Ring-fork: Key import helper
     QAction* historyAction = nullptr;
@@ -229,6 +231,9 @@ public Q_SLOTS:
     */
     void message(const QString &title, const QString &message, unsigned int style, bool *ret = nullptr);
 
+    // Ring-fork: Hive: Update hive status icon
+    void updateHiveStatusIcon(QString icon, QString tooltip);
+
 #ifdef ENABLE_WALLET
     void setCurrentWallet(WalletModel* wallet_model);
     void setCurrentWalletBySelectorIndex(int index);
@@ -266,7 +271,9 @@ public Q_SLOTS:
     /** Switch to overview (home) page */
     void gotoOverviewPage();
     // Ring-fork: Mining page
-    void gotoMiningPage();    
+    void gotoMiningPage();
+    // Ring-fork: Hive page
+    void gotoHivePage();    
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch to receive coins page */

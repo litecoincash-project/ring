@@ -13,6 +13,7 @@
 #include <qt/optionsmodel.h>
 #include <qt/paymentserver.h>
 #include <qt/recentrequeststablemodel.h>
+#include <qt/hivetablemodel.h>      // Ring-fork: Hive
 #include <qt/sendcoinsdialog.h>
 #include <qt/transactiontablemodel.h>
 
@@ -20,9 +21,10 @@
 #include <interfaces/node.h>
 #include <key_io.h>
 #include <ui_interface.h>
-#include <util/system.h> // for GetBoolArg
+#include <util/system.h>            // for GetBoolArg
 #include <wallet/coincontrol.h>
 #include <wallet/wallet.h>
+#include <consensus/validation.h>   // Ring-fork: Hive
 
 #include <stdint.h>
 
@@ -31,11 +33,13 @@
 #include <QSet>
 #include <QTimer>
 
+#include <policy/policy.h>  // Ring-fork: Hive: For GetVirtualTransactionSize
 
 WalletModel::WalletModel(std::unique_ptr<interfaces::Wallet> wallet, interfaces::Node& node, const PlatformStyle *platformStyle, OptionsModel *_optionsModel, QObject *parent) :
     QObject(parent), m_wallet(std::move(wallet)), m_node(node), optionsModel(_optionsModel), addressTableModel(nullptr),
     transactionTableModel(nullptr),
     recentRequestsTableModel(nullptr),
+    hiveTableModel(0),      // Ring-fork: Hive
     cachedEncryptionStatus(Unencrypted),
     cachedNumBlocks(0)
 {
@@ -43,6 +47,7 @@ WalletModel::WalletModel(std::unique_ptr<interfaces::Wallet> wallet, interfaces:
     addressTableModel = new AddressTableModel(this);
     transactionTableModel = new TransactionTableModel(platformStyle, this);
     recentRequestsTableModel = new RecentRequestsTableModel(this);
+    hiveTableModel = new HiveTableModel(platformStyle, this);  // Ring-fork: Hive
 
     // This timer will be fired repeatedly to update the balance
     pollTimer = new QTimer(this);
@@ -62,7 +67,7 @@ void WalletModel::updateStatus()
     EncryptionStatus newEncryptionStatus = getEncryptionStatus();
 
     if(cachedEncryptionStatus != newEncryptionStatus) {
-        Q_EMIT encryptionStatusChanged();
+        Q_EMIT encryptionStatusChanged(newEncryptionStatus);    // Ring-fork: Hive: Support locked wallets
     }
 }
 
@@ -322,6 +327,12 @@ RecentRequestsTableModel *WalletModel::getRecentRequestsTableModel()
     return recentRequestsTableModel;
 }
 
+// Ring-fork: Hive
+HiveTableModel *WalletModel::getHiveTableModel()
+{
+    return hiveTableModel;
+}
+
 WalletModel::EncryptionStatus WalletModel::getEncryptionStatus() const
 {
     if(!m_wallet->isCrypted())
@@ -460,18 +471,30 @@ void WalletModel::unsubscribeFromCoreSignals()
 }
 
 // WalletModel::UnlockContext implementation
-WalletModel::UnlockContext WalletModel::requestUnlock()
+// Ring-fork: Hive: Additional param for locked wallet support
+WalletModel::UnlockContext WalletModel::requestUnlock(bool hiveOnly)
 {
     bool was_locked = getEncryptionStatus() == Locked;
+
+    // Ring-fork: Hive: Support unlock for hive mining only
+    if ((!was_locked) && fWalletUnlockHiveMiningOnly)
+    {
+       setWalletLocked(true);
+       was_locked = getEncryptionStatus() == Locked;
+    }
+
     if(was_locked)
     {
         // Request UI to unlock wallet
-        Q_EMIT requireUnlock();
+		if (hiveOnly)
+			Q_EMIT requireUnlockHive();
+		else
+			Q_EMIT requireUnlock();
     }
     // If wallet is still locked, unlock was failed or cancelled, mark context as invalid
     bool valid = getEncryptionStatus() != Locked;
 
-    return UnlockContext(this, valid, was_locked);
+    return UnlockContext(this, valid, was_locked && !fWalletUnlockHiveMiningOnly); // Ring-fork: Hive: Support unlock for hive mining only
 }
 
 WalletModel::UnlockContext::UnlockContext(WalletModel *_wallet, bool _valid, bool _relock):
@@ -499,6 +522,76 @@ void WalletModel::UnlockContext::CopyFrom(const UnlockContext& rhs)
 void WalletModel::loadReceiveRequests(std::vector<std::string>& vReceiveRequests)
 {
     vReceiveRequests = m_wallet->getDestValues("rr"); // receive request
+}
+
+// Ring-fork: Hive
+void WalletModel::getDCTs(std::vector<CDwarfCreationTransactionInfo>& vDwarfCreationTransactions, bool includeDeadDwarves) {
+    vDwarfCreationTransactions = m_wallet->getDCTs(includeDeadDwarves, true, Params().GetConsensus(), 1);
+}
+
+// Ring-fork: Hive
+bool WalletModel::createDwarves(int dwarfCount, bool communityContrib, QWidget *parent, double dwarfPopIndex) {
+    m_wallet->blockUntilSyncedToCurrentChain();
+    auto locked_chain = m_wallet->get()->chain().lock();
+
+    std::string strError;
+    std::string rewardAddress;
+	std::string changeAddress;
+    CReserveKey reservekeyChange(m_wallet->get());
+    CReserveKey reservekeyReward(m_wallet->get());
+    CTransactionRef tx;
+        
+    if (!m_wallet->createDwarfTransaction(dwarfCount, tx, reservekeyChange, reservekeyReward, rewardAddress, changeAddress, communityContrib, strError, Params().GetConsensus())) {
+        QMessageBox::critical(parent, tr("Error"), "Dwarf creation error: " + QString::fromStdString(strError));
+        return false;
+    }
+
+    CWalletTx wtxNew(m_wallet->get(), tx);
+    CAmount totalAmount = wtxNew.GetDebit(ISMINE_ALL) - wtxNew.GetCredit(*locked_chain, ISMINE_ALL);
+    CAmount txFee = wtxNew.GetDebit(ISMINE_ALL) - wtxNew.tx->GetValueOut();
+    CAmount amountWithoutFees = totalAmount - txFee;
+
+    QString questionString = tr("Are you sure you want to create dwarves?<br />");
+
+    if (dwarfPopIndex > 90)
+        questionString.append("<br /><span style='color:#aa0000;'><b>WARNING:</b> Global Index is high and dwarves may not be profitable. Please ensure you understand the consequences before proceeding.</span><br />");
+
+    questionString.append("<br />");
+    questionString.append("<b>" + RingUnits::formatHtmlWithUnit(optionsModel->getDisplayUnit(), amountWithoutFees) + "</b>");
+    questionString.append(" to create " + QString::number(dwarfCount) + " dwarves");
+
+    questionString.append("<hr /><span style='color:#aa0000;'>");
+    questionString.append(RingUnits::formatHtmlWithUnit(optionsModel->getDisplayUnit(), txFee));
+    questionString.append("</span> ");
+    questionString.append(tr("added as transaction fee"));
+    questionString.append(" (" + QString::number((double)GetVirtualTransactionSize(*tx) / 1000) + " kB)");
+    questionString.append("<hr />");
+
+    questionString.append("Total Amount " + RingUnits::formatHtmlWithUnit(optionsModel->getDisplayUnit(), totalAmount));
+    QStringList alternativeUnits;
+    for (RingUnits::Unit u : RingUnits::availableUnits()) {
+        if(u != optionsModel->getDisplayUnit())
+            alternativeUnits.append(RingUnits::formatHtmlWithUnit(u, totalAmount));
+    }
+    questionString.append(QString("<span style='font-size:10pt;font-weight:normal;'><br />(=%1)</span>").arg(alternativeUnits.join(" " + tr("or") + "<br />")));
+
+    SendConfirmationDialog confirmationDialog(tr("Confirm dwarf creation"), questionString);
+    confirmationDialog.exec();
+    QMessageBox::StandardButton retval = (QMessageBox::StandardButton)confirmationDialog.result();
+
+    if (retval != QMessageBox::Yes)
+        return false;
+
+    reservekeyReward.KeepKey();  // Keep the reward key (always needed; UI doesn't expose custom reward address)
+
+    CValidationState state;
+    if (!m_wallet->commitTransaction(tx, {}, {}, reservekeyChange, g_connman.get(), state)) {
+        QMessageBox::critical(parent, tr("Error"), "Dwarf creation error: " + QString::fromStdString(state.GetRejectReason()));
+        return false;
+    }
+
+    QMessageBox::information(parent, tr("Success"), "Dwarves created! Dwarves will appear in your hive as soon as the transaction appears in a block.");
+    return true;
 }
 
 bool WalletModel::saveReceiveRequest(const std::string &sAddress, const int64_t nId, const std::string &sRequest)

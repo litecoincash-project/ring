@@ -57,9 +57,28 @@ static CUpdatedBlock latestblock;
 
 /* Calculate the difficulty for a given block index.
  */
-double GetDifficulty(const CBlockIndex* blockindex)
+// Ring-fork: Hive: Optional getHiveDifficulty param
+double GetDifficulty(const CBlockIndex* blockindex, bool getHiveDifficulty)
 {
     assert(blockindex);
+
+    // Ring-fork: Hive: Step back until we find the blocktype we're looking for
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+    if (getHiveDifficulty) {
+        while (!blockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
+            if (!blockindex->pprev || blockindex->nHeight < consensusParams.minHiveCheckBlock) {   // Ran out of blocks without finding a Hive block? Return min target
+                LogPrint(BCLog::HIVE, "GetDifficulty: No hivemined blocks found in history\n");
+                return 1.0;
+            }
+
+            blockindex = blockindex->pprev;
+        }        
+    } else {
+        while (blockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
+            assert (blockindex->pprev);
+            blockindex = blockindex->pprev;
+        }
+    }
 
     int nShift = (blockindex->nBits >> 24) & 0xff;
     double dDiff =
@@ -89,10 +108,16 @@ static int ComputeNextBlockAndDepth(const CBlockIndex* tip, const CBlockIndex* b
     return blockindex == tip ? 1 : -1;
 }
 
+// Ring-fork: Show pow hash in JSON
+// Ring-fork: Hive: Show block type in JSON
 UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex)
 {
     UniValue result(UniValue::VOBJ);
+    bool isHive = blockindex->GetBlockHeader().IsHiveMined(Params().GetConsensus());
+
     result.pushKV("hash", blockindex->GetBlockHash().GetHex());
+    result.pushKV("type", isHive ? "hive" : "pow");
+    if (!isHive) result.pushKV("powhash", blockindex->GetBlockPowHash().GetHex());
     const CBlockIndex* pnext;
     int confirmations = ComputeNextBlockAndDepth(tip, blockindex, pnext);
     result.pushKV("confirmations", confirmations);
@@ -102,7 +127,7 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
     result.pushKV("merkleroot", blockindex->hashMerkleRoot.GetHex());
     result.pushKV("time", (int64_t)blockindex->nTime);
     result.pushKV("mediantime", (int64_t)blockindex->GetMedianTimePast());
-    result.pushKV("nonce", (uint64_t)blockindex->nNonce);
+    if (!isHive) result.pushKV("nonce", (uint64_t)blockindex->nNonce);
     result.pushKV("bits", strprintf("%08x", blockindex->nBits));
     result.pushKV("difficulty", GetDifficulty(blockindex));
     result.pushKV("chainwork", blockindex->nChainWork.GetHex());
@@ -115,10 +140,16 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
     return result;
 }
 
+// Ring-fork: Show pow hash in JSON
+// Ring-fork: Hive: Show block type in JSON
 UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIndex* blockindex, bool txDetails)
 {
     UniValue result(UniValue::VOBJ);
+    bool isHive = blockindex->GetBlockHeader().IsHiveMined(Params().GetConsensus());
+
     result.pushKV("hash", blockindex->GetBlockHash().GetHex());
+    result.pushKV("type", isHive ? "hive" : "pow");
+    if (!isHive) result.pushKV("powhash", blockindex->GetBlockPowHash().GetHex());
     const CBlockIndex* pnext;
     int confirmations = ComputeNextBlockAndDepth(tip, blockindex, pnext);
     result.pushKV("confirmations", confirmations);
@@ -144,7 +175,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIn
     result.pushKV("tx", txs);
     result.pushKV("time", block.GetBlockTime());
     result.pushKV("mediantime", (int64_t)blockindex->GetMedianTimePast());
-    result.pushKV("nonce", (uint64_t)block.nNonce);
+    if (!isHive) result.pushKV("nonce", (uint64_t)block.nNonce);
     result.pushKV("bits", strprintf("%08x", block.nBits));
     result.pushKV("difficulty", GetDifficulty(blockindex));
     result.pushKV("chainwork", blockindex->nChainWork.GetHex());
@@ -374,6 +405,26 @@ static UniValue getdifficulty(const JSONRPCRequest& request)
 
     LOCK(cs_main);
     return GetDifficulty(chainActive.Tip());
+}
+
+// Ring-fork: Hive: Get hive difficulty
+static UniValue gethivedifficulty(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+            "gethivedifficulty\n"
+            "\nReturns the Hive difficulty as a multiple of the minimum difficulty.\n"
+            "\nResult:\n"
+            "n.nnn       (numeric) the Hive difficulty as a multiple of the minimum difficulty.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("gethivedifficulty", "")
+            + HelpExampleRpc("gethivedifficulty", "")
+        );
+
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    assert(pindexPrev != nullptr);
+    LOCK(cs_main);
+    return GetDifficulty(pindexPrev, true);
 }
 
 static std::string EntryDescriptionString()
@@ -840,6 +891,7 @@ static UniValue getblock(const JSONRPCRequest& request)
                     RPCResult{"for verbosity = 1",
             "{\n"
             "  \"hash\" : \"hash\",     (string) the block hash (same as provided)\n"
+            "  \"powhash\" : \"xxxx\",  (string) The proof-of-work hash\n"  // Ring-fork: Include pow hash in output
             "  \"confirmations\" : n,   (numeric) The number of confirmations, or -1 if the block is not on the main chain\n"
             "  \"size\" : n,            (numeric) The block size\n"
             "  \"strippedsize\" : n,    (numeric) The block size excluding witness data\n"
@@ -2316,6 +2368,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
     { "blockchain",         "getchaintips",           &getchaintips,           {} },
     { "blockchain",         "getdifficulty",          &getdifficulty,          {} },
+    { "blockchain",         "gethivedifficulty",      &gethivedifficulty,      {} },        // Ring-fork: Get Hive difficulty
     { "blockchain",         "getmempoolancestors",    &getmempoolancestors,    {"txid","verbose"} },
     { "blockchain",         "getmempooldescendants",  &getmempooldescendants,  {"txid","verbose"} },
     { "blockchain",         "getmempoolentry",        &getmempoolentry,        {"txid"} },

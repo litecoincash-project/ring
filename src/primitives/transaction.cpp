@@ -96,6 +96,20 @@ unsigned int CTransaction::GetTotalSize() const
     return ::GetSerializeSize(*this, PROTOCOL_VERSION);
 }
 
+// Ring-fork: Hive: Check if this transaction is a Dwarf Creation Transaction, and if so return the total dwarf fee paid via dwarfFeePaid and reward scriptPubKey via scriptPubKeyReward
+bool CTransaction::IsDCT(const Consensus::Params& consensusParams, CScript scriptPubKeyBCF, CAmount* dwarfFeePaid, CScript* scriptPubKeyReward) const {
+    bool isDCT = CScript::IsDCTScript(vout[0].scriptPubKey, scriptPubKeyBCF, scriptPubKeyReward);
+
+    if (!isDCT)
+        return false;
+
+    // Grab fee
+    if (dwarfFeePaid)
+        *dwarfFeePaid = vout[0].nValue;
+
+    return true;
+}
+
 std::string CTransaction::ToString() const
 {
     std::string str;

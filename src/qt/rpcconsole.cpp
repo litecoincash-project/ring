@@ -73,7 +73,8 @@ const QStringList historyFilter = QStringList()
     << "signrawtransactionwithkey"
     << "walletpassphrase"
     << "walletpassphrasechange"
-    << "encryptwallet";
+    << "encryptwallet"
+	<< "walletpassphrasehiveonly";	// Ring-fork: Hive: Locked wallet hive unlock    
 
 }
 

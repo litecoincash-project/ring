@@ -61,10 +61,16 @@ public:
     }
 
     uint256 GetHash() const;
+    uint256 GetPowHash() const;     // Ring-fork: Seperate block hash and pow hash
 
     int64_t GetBlockTime() const
     {
         return (int64_t)nTime;
+    }
+
+    // Ring-fork: Hive: Check if this block is hivemined
+    bool IsHiveMined(const Consensus::Params& consensusParams) const {
+        return (nNonce == consensusParams.hiveNonceMarker);
     }
 };
 

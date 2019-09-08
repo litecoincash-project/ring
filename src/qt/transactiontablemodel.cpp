@@ -356,7 +356,13 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
     case TransactionRecord::Generated:
         return tr("Mined");
     case TransactionRecord::ForeignChainImport:     // Ring-fork
-        return tr("Claimed from another chain");    // Ring-fork
+        return tr("Claimed from another chain");
+    case TransactionRecord::HiveDwarfCreation:        // Ring-fork: Hive: Handle Hive record types
+        return tr("Hive dwarf creation");
+    case TransactionRecord::HiveCommunityFund:
+        return tr("Hive community fund");
+    case TransactionRecord::HiveReward:
+        return tr("Hivemined");        
     default:
         return QString();
     }
@@ -372,6 +378,12 @@ QVariant TransactionTableModel::txAddressDecoration(const TransactionRecord *wtx
     case TransactionRecord::RecvFromOther:
     case TransactionRecord::ForeignChainImport:     // Ring-fork
         return QIcon(":/icons/tx_input");
+    case TransactionRecord::HiveDwarfCreation:        // Ring-fork: Hive: Handle Hive record types
+        return QIcon(":/icons/tx_hive_dct");
+    case TransactionRecord::HiveCommunityFund:
+        return QIcon(":/icons/tx_hive_cf");
+    case TransactionRecord::HiveReward:
+        return QIcon(":/icons/tx_hive_reward");        
     case TransactionRecord::SendToAddress:
     case TransactionRecord::SendToOther:
         return QIcon(":/icons/tx_output");
@@ -397,6 +409,12 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord *wtx, b
     case TransactionRecord::Generated:
     case TransactionRecord::ForeignChainImport:     // Ring-fork
         return lookupAddress(wtx->address, tooltip) + watchAddress;
+    case TransactionRecord::HiveDwarfCreation:        // Ring-fork: Hive: Handle Hive record types
+        return "Hive dwarf creation";
+    case TransactionRecord::HiveReward:
+        return lookupAddress(wtx->address, tooltip);
+    case TransactionRecord::HiveCommunityFund:
+        return "Hive community fund contribution";        
     case TransactionRecord::SendToOther:
         return QString::fromStdString(wtx->address) + watchAddress;
     case TransactionRecord::SendToSelf:

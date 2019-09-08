@@ -140,6 +140,14 @@ void WalletFrame::gotoMiningPage()
         i.value()->gotoMiningPage();
 }
 
+// Ring-fork: Hive: Switch to hive page
+void WalletFrame::gotoHivePage()
+{
+    QMap<WalletModel*, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoHivePage();
+}
+
 // Ring-fork: Key import helper
 void WalletFrame::importPrivateKey()
 {

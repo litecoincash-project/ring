@@ -44,6 +44,8 @@
 
 #include <functional>
 
+#include <pow.h>    // Ring-fork: Hive
+
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 
 bool GetWalletNameFromJSONRPCRequest(const JSONRPCRequest& request, std::string& wallet_name)
@@ -99,6 +101,9 @@ void EnsureWalletIsUnlocked(CWallet * const pwallet)
 {
     if (pwallet->IsLocked()) {
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
+    }
+    if (fWalletUnlockHiveMiningOnly) {  // Ring-fork: Hive: Support locked wallets
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Wallet is unlocked for hive mining only, please enter the wallet passphrase with walletpassphrase first.");
     }
 }
 
@@ -446,6 +451,417 @@ static UniValue sendtoaddress(const JSONRPCRequest& request)
 
     CTransactionRef tx = SendMoney(*locked_chain, pwallet, dest, nAmount, fSubtractFeeFromAmount, coin_control, std::move(mapValue));
     return tx->GetHash().GetHex();
+}
+
+// Ring-fork: Hive: Get current dwarf cost
+UniValue getdwarfcost(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "getdwarfcost ( height )\n"
+            "\nReturns the cost to create a single dwarf at given block height.\n"
+            "\nArguments:\n"
+            "1. height                 (numeric, optional) The block height. Defaults to current tip height.\n"
+            "\nResult:\n"
+            "amount                    (numeric) The amount in " + CURRENCY_UNIT + "\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getdwarfcost", "")
+            + HelpExampleRpc("getdwarfcost", "")
+       );
+
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    assert(pindexPrev != nullptr);
+    
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (request.params[0].isNull() && !EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    int height = !request.params[0].isNull() ? request.params[0].get_int() : chainActive.Height();
+    CAmount dwarfCost = GetDwarfCost(height, consensusParams);
+
+    return ValueFromAmount(dwarfCost);
+}
+
+// Ring-fork: Hive: Create dwarf(s)
+UniValue createdwarves(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
+        throw std::runtime_error(
+            "createdwarves dwarf_count ( community_contrib, \"reward_address\", \"change_address\" )\n"
+            "\nCreate one or more dwarves in a single transaction, sign it, and broadcast it to the network.\n"
+            + HelpRequiringPassphrase(pwallet) +
+            "\nArguments:\n"
+            "1. dwarf_count              (numeric, required) The number of dwarves to create.\n"
+            "2. community_contrib      (boolean, optional, default=true) If true, a small percentage of dwarf creation cost will be paid to a community fund.\n"
+            "3. \"reward_address\"        (string, optional) The RNG address to receive rewards for blocks mined by dwarf(s) created in this transaction.\n"
+			"4. \"change_address\"       (string, optional, default pool address) The RNG address to receive the change.\n"
+            "\nResult:\n"
+            "\"txid\"                    (string) The transaction id.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("createdwarves", "1")
+            + HelpExampleCli("createdwarves", "5 true \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+            + HelpExampleRpc("createdwarves", "12")
+            + HelpExampleRpc("createdwarves", "34 false \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+        );
+
+    RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
+    int dwarfCount = request.params[0].get_int();
+
+    bool communityContrib = true;
+    if (!request.params[1].isNull()) {
+        RPCTypeCheckArgument(request.params[1], UniValue::VBOOL);
+        communityContrib = request.params[1].get_bool();
+    }
+
+    std::string rewardAddress;
+    if (!request.params[2].isNull()) {
+        RPCTypeCheckArgument(request.params[2], UniValue::VSTR);
+        if (!request.params[2].get_str().empty())
+            rewardAddress = request.params[2].get_str();
+    }
+
+	std::string changeAddress;
+	if (!request.params[3].isNull()) {
+        RPCTypeCheckArgument(request.params[3], UniValue::VSTR);
+        if (!request.params[3].get_str().empty())
+            changeAddress = request.params[3].get_str();
+    }
+
+    pwallet->BlockUntilSyncedToCurrentChain();
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    EnsureWalletIsUnlocked(pwallet);
+	
+    
+    std::string strError;
+    CReserveKey reservekeyChange(pwallet);
+    CReserveKey reservekeyReward(pwallet);
+    CTransactionRef tx;
+    if (pwallet->CreateDwarfTransaction(dwarfCount, tx, reservekeyChange, reservekeyReward, rewardAddress, changeAddress, communityContrib, strError, Params().GetConsensus())) {
+        CValidationState state;
+        if (rewardAddress.empty()) // If not using a custom reward address, keep the reward key
+            reservekeyReward.KeepKey();
+        if (!pwallet->CommitTransaction(tx, {} /*mapValue*/, {} /*orderFrom*/, reservekeyChange, g_connman.get(), state))
+            throw JSONRPCError(RPC_WALLET_DCT_FAIL, "Error: Dwarf creation transaction was rejected. Reason given: " + state.GetRejectReason());
+        return tx->GetHash().GetHex();
+    } else
+        throw JSONRPCError(RPC_WALLET_DCT_FAIL, strError);
+}
+
+// Ring-fork: Hive: Get network hive info
+UniValue getnetworkhiveinfo(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "getnetworkhiveinfo ( include_graph )\n"
+            "\nLists the mature and immature dwarf populations across the entire network. Optionally returns values to plot the future dwarf population.\n"
+            "\nArguments:\n"
+            "1. include_graph                  (boolean, optional, default=false) Include dwarf population graph\n"
+            "\nResult:\n"
+            "{\n"
+            "  immature_dwarf_count,             (numeric) The number of immature dwarves\n"
+            "  immature_dct_count,             (numeric) The number of immature Dwarf Creation Transactions\n"
+            "  mature_dwarf_count,               (numeric) The number of mature dwarves\n"
+            "  mature_dct_count,               (numeric) The number of mature Dwarf Creation Transactions\n"
+            "  reward_pot,                      (numeric) Total potential network rewards available during dwarf lifespan (in " + CURRENCY_UNIT + ")\n"
+            "  mature_dwarf_pop_graph: [ ... ],  (numeric array) Graph points for mature dwarf population over upcoming dwarf gestation span + dwarf lifespan blocks\n"
+            "  immature_dwarf_pop_graph: [ ... ] (numeric array) Graph points for immature dwarf population over upcoming dwarf gestation span\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getnetworkhiveinfo", "")
+            + HelpExampleRpc("getnetworkhiveinfo", "")
+        );
+
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    assert(pindexPrev != nullptr);
+
+    bool includeGraph = false;
+    if (!request.params[0].isNull()) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VBOOL);
+        includeGraph = request.params[0].get_bool();
+    }
+
+    int globalImmatureDwarves, globalImmatureDCTs, globalMatureDwarves, globalMatureDCTs;
+    CAmount potentialRewards;
+    if (!GetNetworkHiveInfo(globalImmatureDwarves, globalImmatureDCTs, globalMatureDwarves, globalMatureDCTs, potentialRewards, consensusParams, includeGraph))
+        throw std::runtime_error("Error: A block required to calculate network dwarf population was not available (pruned data / not found on disk)");
+
+    UniValue jsonResults(UniValue::VOBJ);
+    jsonResults.pushKV("immature_dwarf_count", globalImmatureDwarves);
+    jsonResults.pushKV("immature_dct_count", globalImmatureDCTs);
+    jsonResults.pushKV("mature_dwarf_count", globalMatureDwarves);
+    jsonResults.pushKV("mature_dct_count", globalMatureDCTs);
+    jsonResults.pushKV("reward_pot", potentialRewards);
+
+    if (includeGraph) {
+        int totalDwarfLifespan = consensusParams.dwarfLifespanBlocks + consensusParams.dwarfGestationBlocks;
+        UniValue maturePopJSON(UniValue::VARR);
+        for (int i = 1; i < totalDwarfLifespan; i++)
+            maturePopJSON.push_back(dwarfPopGraph[i].maturePop);
+        jsonResults.pushKV("mature_dwarf_pop_graph", maturePopJSON);
+
+        UniValue immaturePopJSON(UniValue::VARR);
+        for (int i = 1; i < consensusParams.dwarfGestationBlocks; i++)
+            immaturePopJSON.push_back(dwarfPopGraph[i].immaturePop);
+        jsonResults.pushKV("immature_dwarf_pop_graph", immaturePopJSON);
+    }
+    return jsonResults;
+}
+
+// Ring-fork: Hive: Return DCT tx id for a reward transaction in this wallet
+UniValue getdwarfcreationtxid(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+            "getdwarfcreationtxid \"reward_txid\"\n"
+            "\nGives the DCT transaction id for a given reward transaction received by this wallet.\n"
+            "\nArguments:\n"
+            "1. reward_txid          (string) Transaction ID of a reward transaction received by this wallet\n"
+            "\nResult:\n"
+            "\"hex\"                  (string) Transaction ID of the DCT responsible for this reward\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getdwarfcreationtxid", "bd76be6d12dfd072a605fd85a2aa956f6f5e0dee5dbbb0b4b5da5e72966b9dfd")
+        );
+
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    uint256 rewardTxHash;
+    rewardTxHash.SetHex(request.params[0].get_str());
+
+    // Grab the tx    
+    auto it = pwallet->mapWallet.find(rewardTxHash);
+    if (it == pwallet->mapWallet.end())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid or non-wallet transaction id");
+    const CWalletTx& wtx = it->second;
+
+    // Make sure it's really a reward tx
+    if (!wtx.IsHiveCoinBase())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a reward transaction");
+
+    // Grab the scriptPubKey
+    const CTxOut& txout = wtx.tx->vout[0];
+    CScript rewardTxProof = txout.scriptPubKey;
+
+    // Grab the txid (bytes 14-78; byte 13 has val 64 as size marker)
+    if (wtx.tx->vout[0].scriptPubKey.size() < 144)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Malformed reward transaction!");  // Should never hit; could probably be an assert.
+    std::vector<unsigned char> dctTxId(&wtx.tx->vout[0].scriptPubKey[14], &wtx.tx->vout[0].scriptPubKey[14 + 64]);
+    std::string dctTxIdStr = std::string(dctTxId.begin(), dctTxId.end());
+    
+    return dctTxIdStr;
+}
+            
+// Ring-fork: Hive: Return hive info for a single DCT
+UniValue getdctinfo(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
+        throw std::runtime_error(
+            "getdctinfo ( \"dct_txid\", min_reward_confirms )\n"
+            "\nLists the status of a single dwarf creation transaction from your current hive.\n"
+            "\nArguments:\n"
+            "1. dct_txid               (string) Transaction ID of a dwarf creation transaction made by this wallet\n"
+            "2. min_reward_confirms     (numeric, optional, default=1) Only include reward rewards with at least this many confirmations\n"
+            "\nResult:\n"
+            "{\n"
+            "    \"txid\",               (string) Transaction ID of the dwarf creation transaction\n"
+            "    time,                 (numeric) Timestamp of block containing the dwarf creation transaction (only present once tx is in a block)\n"
+            "    dwarf_count,            (numeric) The number of dwarves created\n"
+            "    community_contrib,    (boolean) If true, indicates that a portion of the dwarf creation fee was paid to the community fund\n"
+            "    \"dwarf_status\",         (string) immature | mature | dead. Only mature dwarves are capable of mining\n"
+            "    \"reward_address\",      (string) The address which will receive block rewards for blocks minted by the dwarves\n"
+            "    dwarf_fee_paid,         (numeric) Total dwarf creation fee (in " + CURRENCY_UNIT + ")\n"
+            "    rewards_paid,         (numeric) The amount of block rewards earned by the dwarves (in " + CURRENCY_UNIT + ")\n"
+            "    profit,               (numeric) The profit earned by the dwarves (in " + CURRENCY_UNIT + ")\n"
+            "    blocks_found,         (numeric) The number of blocks minted by the dwarves\n"
+            "    blocks_left           (numeric) The number of blocks of dwarf lifespan remaining\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getdctinfo", "1f14fc54cfce1ec53f5a8d36d8aef7ae8485e4cd693b6f404c5d2504017ecd59")
+            + HelpExampleCli("getdctinfo", "1f14fc54cfce1ec53f5a8d36d8aef7ae8485e4cd693b6f404c5d2504017ecd59, 10")
+        );
+
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    uint256 dctHash;
+    dctHash.SetHex(request.params[0].get_str());
+
+    // Grab the tx
+    auto it = pwallet->mapWallet.find(dctHash);
+    if (it == pwallet->mapWallet.end())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid or non-wallet transaction id");
+    const CWalletTx& wtx = it->second;
+
+    int minRewardConfirms = 1;
+    if (!request.params[1].isNull()) {
+        RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
+        minRewardConfirms = request.params[1].get_int();
+    }
+
+    // Get the DCT info
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+    CDwarfCreationTransactionInfo dct = pwallet->GetDCT(wtx, true, true, consensusParams, minRewardConfirms);
+    UniValue jsonResults(UniValue::VOBJ);
+    if (dct.txid != "") {
+        jsonResults.pushKV("txid", dct.txid);
+        jsonResults.pushKV("time", dct.time);
+        jsonResults.pushKV("dwarf_count", dct.dwarfCount);
+        jsonResults.pushKV("community_contrib", dct.communityContrib);
+        jsonResults.pushKV("dwarf_status", dct.dwarfStatus);
+        jsonResults.pushKV("reward_address", dct.rewardAddress);
+        jsonResults.pushKV("dwarf_fee_paid", ValueFromAmount(dct.dwarfFeePaid));
+        jsonResults.pushKV("rewards_paid", ValueFromAmount(dct.rewardsPaid));
+        jsonResults.pushKV("profit", ValueFromAmount(dct.profit));
+        jsonResults.pushKV("blocks_found", dct.blocksFound);
+        jsonResults.pushKV("blocks_left", dct.blocksLeft);
+    }
+    return jsonResults;
+}
+
+// Ring-fork: Hive: Get wallet's own hive info
+UniValue gethiveinfo(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() > 2)
+        throw std::runtime_error(
+            "gethiveinfo ( include_dead, min_reward_confirms )\n"
+            "\nLists the status of your current hive, broken down by dwarf creation transaction.\n"
+            "\nArguments:\n"
+            "1. include_dead           (boolean, optional, default=false) Include dwarves whose lifespans have expired\n"
+            "2. min_reward_confirms     (numeric, optional, default=1) Only include reward rewards with at least this many confirmations\n"
+            "\nResult:\n"
+            "{\n"
+            "    summary: {\n"
+            "        dwarf_count,                (numeric) Total dwarf count in hive\n"
+            "        mature_dwarves,              (numeric) Total mature dwarves\n"
+            "        immature_dwarves,            (numeric) Total immature dwarves\n"
+            "        blocks_found,             (numeric) Total blocks found\n"
+            "        dwarf_fee_paid,             (numeric) Total dwarf creation fees (in " + CURRENCY_UNIT + ")\n"
+            "        rewards_paid,             (numeric) Total rewards paid (in " + CURRENCY_UNIT + ")\n"
+            "        profit,                   (numeric) Total rewards paid (in " + CURRENCY_UNIT + ")\n"
+            "        \"warnings\"                (string) Warnings; empty if no warnings\n"
+            "    },\n"
+            "    dwarves: [\n"
+            "        {\n"
+            "            \"txid\",               (string) Transaction ID of the dwarf creation transaction\n"
+            "            time,                 (numeric) Timestamp of block containing the dwarf creation transaction (only present once tx is in a block)\n"
+            "            dwarf_count,            (numeric) The number of dwarves created\n"
+            "            community_contrib,    (boolean) If true, indicates that a portion of the dwarf creation fee was paid to the community fund\n"
+            "            \"dwarf_status\",         (string) immature | mature | dead. Only mature dwarves are capable of mining\n"
+            "            \"reward_address\",      (string) The address which will receive block rewards for blocks minted by the dwarves\n"
+            "            dwarf_fee_paid,         (numeric) Total dwarf creation fee (in " + CURRENCY_UNIT + ")\n"
+            "            rewards_paid,         (numeric) The amount of block rewards earned by the dwarves (in " + CURRENCY_UNIT + ")\n"
+            "            profit,               (numeric) The profit earned by the dwarves (in " + CURRENCY_UNIT + ")\n"
+            "            blocks_found,         (numeric) The number of blocks minted by the dwarves\n"
+            "            blocks_left           (numeric) The number of blocks of dwarf lifespan remaining\n"
+            "        },...\n"
+            "    ]\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("gethiveinfo", "")
+            + HelpExampleCli("gethiveinfo", "true")
+            + HelpExampleRpc("gethiveinfo", "false, 10")
+        );
+
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    assert(pindexPrev != nullptr);
+
+    bool includeDead = false;
+    if (!request.params[0].isNull()) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VBOOL);
+        includeDead = request.params[0].get_bool();
+    }
+
+    int minRewardConfirms = 1;
+    if (!request.params[1].isNull()) {
+        RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
+        minRewardConfirms = request.params[1].get_int();
+    }
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    // Iterate wallet txs looking for dwarf creation txs (DCTs)
+    std::vector<CDwarfCreationTransactionInfo> dcts = pwallet->GetDCTs(includeDead, true, consensusParams, minRewardConfirms);
+    UniValue dctList(UniValue::VARR);
+
+    int totalDwarves = 0;
+    int totalImmature = 0;
+    int totalMature = 0;
+    int totalBlocksFound = 0;
+    CAmount totalDwarfFee = 0;
+    CAmount totalRewards = 0;
+    for (std::vector<CDwarfCreationTransactionInfo>::const_iterator it = dcts.begin(); it != dcts.end(); it++) {
+        CDwarfCreationTransactionInfo dct = *it;
+
+        if (dct.txid!="") {
+            UniValue entry(UniValue::VOBJ);
+            entry.pushKV("txid", dct.txid);
+            entry.pushKV("time", dct.time);
+            entry.pushKV("dwarf_count", dct.dwarfCount);
+            entry.pushKV("community_contrib", dct.communityContrib);
+            entry.pushKV("dwarf_status", dct.dwarfStatus);
+            entry.pushKV("reward_address", dct.rewardAddress);
+            entry.pushKV("dwarf_fee_paid", ValueFromAmount(dct.dwarfFeePaid));
+            entry.pushKV("rewards_paid", ValueFromAmount(dct.rewardsPaid));
+            entry.pushKV("profit", ValueFromAmount(dct.profit));
+            entry.pushKV("blocks_found", dct.blocksFound);
+            entry.pushKV("blocks_left", dct.blocksLeft);
+
+            totalBlocksFound += dct.blocksFound;
+            totalDwarfFee += dct.dwarfFeePaid;
+            totalRewards += dct.rewardsPaid;
+            totalDwarves += dct.dwarfCount;
+            if (dct.dwarfStatus == "immature")
+                totalImmature += dct.dwarfCount;
+            else if (dct.dwarfStatus == "mature")
+                totalMature += dct.dwarfCount;
+
+            dctList.push_back(entry);
+        }
+    }
+
+    UniValue summary(UniValue::VOBJ);
+    summary.pushKV("dwarf_count", totalDwarves);
+    summary.pushKV("mature_dwarves", totalMature);
+    summary.pushKV("immature_dwarves", totalImmature);
+    summary.pushKV("blocks_found", totalBlocksFound);
+    summary.pushKV("dwarf_fee_paid", ValueFromAmount(totalDwarfFee));
+    summary.pushKV("rewards_paid", ValueFromAmount(totalRewards));
+    summary.pushKV("profit", ValueFromAmount(totalRewards-totalDwarfFee));
+    summary.pushKV("warnings", pwallet->IsLocked()? "Wallet is locked and must be unlocked to mine" : "");
+            
+    UniValue jsonResults(UniValue::VOBJ);
+    jsonResults.pushKV("summary", summary);
+    jsonResults.pushKV("dwarves", dctList);
+
+    return jsonResults;
 }
 
 static UniValue listaddressgroupings(const JSONRPCRequest& request)
@@ -1339,6 +1755,10 @@ static void ListTransactions(interfaces::Chain::Lock& locked_chain, CWallet* con
                 entry.pushKV("involvesWatchonly", true);
             }
             MaybePushAddress(entry, s.destination);
+
+            // Ring-fork: Hive: Sent transactions are never reward
+            entry.pushKV("isreward", false);
+
             entry.pushKV("category", "send");
             entry.pushKV("amount", ValueFromAmount(-s.amount));
             if (pwallet->mapAddressBook.count(s.destination)) {
@@ -1370,6 +1790,10 @@ static void ListTransactions(interfaces::Chain::Lock& locked_chain, CWallet* con
                 entry.pushKV("involvesWatchonly", true);
             }
             MaybePushAddress(entry, r.destination);
+
+            // Ring-fork: Hive: Indicate whether this is reward (hive block coinbase tx)
+            entry.pushKV("isreward", wtx.IsHiveCoinBase());
+
             if (wtx.IsCoinBase())
             {
                 if (wtx.GetDepthInMainChain(locked_chain) < 1)
@@ -1404,6 +1828,7 @@ UniValue listtransactions(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
+    // Ring-fork: Hive: Include isreward in documentation
     if (request.fHelp || request.params.size() > 4)
         throw std::runtime_error(
             RPCHelpMan{"listtransactions",
@@ -1420,6 +1845,7 @@ UniValue listtransactions(const JSONRPCRequest& request)
             "[\n"
             "  {\n"
             "    \"address\":\"address\",    (string) The ring address of the transaction.\n"
+            "    \"isreward\": xxx,          (bool) Whether this transaction is reward (hive block coinbase transaction)\n"
             "    \"category\":               (string) The transaction category.\n"
             "                \"send\"                  Transactions sent.\n"
             "                \"receive\"               Non-coinbase transactions received.\n"
@@ -1912,7 +2338,6 @@ static UniValue keypoolrefill(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-
 static UniValue walletpassphrase(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1972,6 +2397,13 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
         nSleepTime = MAX_SLEEP_TIME;
     }
 
+	// Ring-fork: Hive: Support locked wallets
+	bool wasUnLockedHiveOnly = false;
+	if (!pwallet->IsLocked() && fWalletUnlockHiveMiningOnly) {
+		pwallet->Lock();
+		wasUnLockedHiveOnly = true;
+	}
+
     if (strWalletPass.empty()) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "passphrase can not be empty");
     }
@@ -1982,23 +2414,92 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
 
     pwallet->TopUpKeyPool();
 
-    pwallet->nRelockTime = GetTime() + nSleepTime;
-
+    // Ring-fork: Hive: Support locked wallets
+    fWalletUnlockHiveMiningOnly = false;	
+    
     // Keep a weak pointer to the wallet so that it is possible to unload the
     // wallet before the following callback is called. If a valid shared pointer
     // is acquired in the callback then the wallet is still loaded.
     std::weak_ptr<CWallet> weak_wallet = wallet;
-    RPCRunLater(strprintf("lockwallet(%s)", pwallet->GetName()), [weak_wallet] {
-        if (auto shared_wallet = weak_wallet.lock()) {
-            LOCK(shared_wallet->cs_wallet);
-            shared_wallet->Lock();
-            shared_wallet->nRelockTime = 0;
-        }
-    }, nSleepTime);
+    // Ring-fork: Hive: Support locked wallets
+    if (!wasUnLockedHiveOnly) {
+        pwallet->nRelockTime = GetTime() + nSleepTime;
+        RPCRunLater(strprintf("lockwallet(%s)", pwallet->GetName()), [weak_wallet] {
+            if (auto shared_wallet = weak_wallet.lock()) {
+                LOCK(shared_wallet->cs_wallet);
+                shared_wallet->Lock();
+                shared_wallet->nRelockTime = 0;
+            }
+        }, nSleepTime);
+    } else {
+        RPCRunLater(strprintf("sethiveonly(%s)", pwallet->GetName()), [weak_wallet] {
+            if (auto shared_wallet = weak_wallet.lock()) {
+                fWalletUnlockHiveMiningOnly = true;
+            }
+        }, nSleepTime);
+    }
 
     return NullUniValue;
 }
 
+// Ring-fork: Hive: Unlock wallet for hiving only (Prevent trivial sendmoney attack if user OS account compromised)
+UniValue walletpassphrasehiveonly(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+            "walletpassphrasehiveonly \"passphrase\"\n"
+            "\nStores the wallet decryption key in memory indefinitely for hive mining use only.\n"
+            "This is needed to enable the hive mining thread to run. Performing other transactions related to\n" 
+			"private keys such as sending litecoincash, is not enabled and will require you to run\n"
+			"walletpassphrase separately.\n"
+            "\nArguments:\n"
+            "1. \"passphrase\"       (string, required) The wallet passphrase\n"
+            
+            "\nExamples:\n"
+            "\nUnlock the wallet for hive mining only\n"
+            + HelpExampleCli("walletpassphrasehiveonly", "\"my pass phrase\"") +
+            "\nAs json rpc call\n"
+            + HelpExampleRpc("walletpassphrasehiveonly", "\"my pass phrase\"")
+        );
+    }
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    if (request.fHelp)
+        return true;
+    if (!pwallet->IsCrypted()) {
+        throw JSONRPCError(RPC_WALLET_WRONG_ENC_STATE, "Error: running with an unencrypted wallet, but walletpassphrasehiveonly was called.");
+    }
+
+    // Note that the walletpassphrase is stored in request.params[0] which is not mlock()ed
+    SecureString strWalletPass;
+    strWalletPass.reserve(100);
+    // TODO: get rid of this .c_str() by implementing SecureString::operator=(std::string)
+    // Alternately, find a way to make request.params[0] mlock()'d to begin with.
+    strWalletPass = request.params[0].get_str().c_str();
+
+    if (strWalletPass.length() > 0)
+    {
+        if (!pwallet->Unlock(strWalletPass)) {
+            throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect.");
+        }
+    }
+    else
+        throw std::runtime_error(
+            "walletpassphrasehiveonly <passphrase>\n"
+            "Stores the wallet decryption key in memory indefinitely for hive mining use only.");
+
+    pwallet->TopUpKeyPool();
+	fWalletUnlockHiveMiningOnly = true;
+
+    return NullUniValue;
+}
 
 static UniValue walletpassphrasechange(const JSONRPCRequest& request)
 {
@@ -4164,6 +4665,12 @@ static const CRPCCommand commands[] =
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },
     { "hidden",             "resendwallettransactions",         &resendwallettransactions,      {} },
     { "rawtransactions",    "fundrawtransaction",               &fundrawtransaction,            {"hexstring","options","iswitness"} },
+    { "wallet",             "getdwarfcost",                     &getdwarfcost,                  {"height"} },                                           // Ring-fork: Hive: Get dwarf cost for given height (defaults to tipheight)
+    { "wallet",             "createdwarves",                    &createdwarves,                 {"dwarf_count","community_contrib","reward_address"} }, // Ring-fork: Hive: Create dwarf(s)
+    { "wallet",             "gethiveinfo",                      &gethiveinfo,                   {"include_dead","min_reward_confirms"} },               // Ring-fork: Hive: Get current hive info
+    { "wallet",             "getnetworkhiveinfo",               &getnetworkhiveinfo,            {"include_graph"} },                                    // Ring-fork: Hive: Get current dwarf populations across whole network
+    { "wallet",             "getdwarfcreationtxid",             &getdwarfcreationtxid,          {"reward_txid"} },                                      // Ring-fork: Hive: Return DCT tx id for a reward transaction in this wallet
+    { "wallet",             "getdctinfo",                       &getdctinfo,                    {"dct_txid","min_reward_confirms"} },                   // Ring-fork: Hive: Return hive info for a single DCT
     { "wallet",             "abandontransaction",               &abandontransaction,            {"txid"} },
     { "wallet",             "abortrescan",                      &abortrescan,                   {} },
     { "wallet",             "addmultisigaddress",               &addmultisigaddress,            {"nrequired","keys","label","address_type"} },
@@ -4216,6 +4723,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "walletlock",                       &walletlock,                    {} },
     { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","timeout"} },
     { "wallet",             "walletpassphrasechange",           &walletpassphrasechange,        {"oldpassphrase","newpassphrase"} },
+    { "wallet",             "walletpassphrasehiveonly",         &walletpassphrasehiveonly,      {"passphrase"} },    // Ring-fork: Hive: Support locked wallets
     { "wallet",             "walletprocesspsbt",                &walletprocesspsbt,             {"psbt","sign","sighashtype","bip32derivs"} },
 };
 // clang-format on

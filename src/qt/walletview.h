@@ -15,6 +15,7 @@ class RingGUI;
 class ClientModel;
 class OverviewPage;
 class MiningPage;           // Ring-fork: Mining page
+class HiveDialog;           // Ring-fork: Hive: Hive page
 class PlatformStyle;
 class ReceiveCoinsDialog;
 class SendCoinsDialog;
@@ -66,6 +67,7 @@ private:
 
     OverviewPage *overviewPage;
     MiningPage *miningPage;     // Ring-fork: Mining page
+    HiveDialog *hivePage;       // Ring-fork: Hive: Hive page
     QWidget *transactionsPage;
     ReceiveCoinsDialog *receiveCoinsPage;
     SendCoinsDialog *sendCoinsPage;
@@ -82,6 +84,8 @@ public Q_SLOTS:
     void gotoOverviewPage();
     // Ring-fork: Mining page
     void gotoMiningPage();
+    // Ring-fork: Hive: Hive page
+    void gotoHivePage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch to receive coins page */
@@ -107,6 +111,8 @@ public Q_SLOTS:
     void changePassphrase();
     /** Ask for passphrase to unlock wallet temporarily */
     void unlockWallet();
+    // Ring-coin: Hive: Unlock wallet just for hive
+	void unlockWalletHive();
 
     // Ring-fork: Key import helper
     void importPrivateKey();
@@ -131,7 +137,7 @@ Q_SIGNALS:
     /**  Fired when a message should be reported to the user */
     void message(const QString &title, const QString &message, unsigned int style);
     /** Encryption status of wallet changed */
-    void encryptionStatusChanged();
+    void encryptionStatusChanged(int status);   // Ring-fork: Hive: Support locked wallets
     /** HD-Enabled status of wallet changed (only possible during startup) */
     void hdEnabledStatusChanged();
     /** Notify that a new transaction appeared */

@@ -29,6 +29,8 @@
 #include <wallet/rpcwallet.h>       // Ring-fork: In-wallet miner
 #include <rpc/server.h>             // Ring-fork: In-wallet miner
 #include <ui_interface.h>           // Ring-fork: In-wallet miner
+#include <sync.h>                   // Ring-fork: Hive
+#include <key_io.h>                 // Ring-fork: Hive
 
 #include <algorithm>
 #include <queue>
@@ -44,8 +46,11 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
         pblock->nTime = nNewTime;
 
     // Updating time can change work required on testnet:
+    // Ring-fork: Don't do this, it's ugly
+    /*
     if (consensusParams.fPowAllowMinDifficultyBlocks)
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
+    */
 
     return nNewTime - nOldTime;
 }
@@ -87,6 +92,7 @@ void BlockAssembler::resetBlock()
     nBlockWeight = 4000;
     nBlockSigOpsCost = 400;
     fIncludeWitness = false;
+    fIncludeDCTs = true;    // Ring-fork: Hive
 
     // These counters do not include coinbase tx
     nBlockTx = 0;
@@ -96,7 +102,8 @@ void BlockAssembler::resetBlock()
 Optional<int64_t> BlockAssembler::m_last_block_num_txs{nullopt};
 Optional<int64_t> BlockAssembler::m_last_block_weight{nullopt};
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn)
+// Ring-fork: Hive: If hiveProofScript is passed, create a Hive block instead of a PoW block
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, const CScript* hiveProofScript)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -144,6 +151,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
+
+    // Ring-fork: Don't include DCTs in hivemined blocks
+    if (hiveProofScript)
+        fIncludeDCTs = false;
+
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
 
     int64_t nTime1 = GetTimeMicros();
@@ -152,24 +164,56 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     m_last_block_weight = nBlockWeight;
 
     // Create coinbase transaction.
-    CMutableTransaction coinbaseTx;
-    coinbaseTx.vin.resize(1);
-    coinbaseTx.vin[0].prevout.SetNull();
-    coinbaseTx.vout.resize(1);
-    coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
-    pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
-    pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
-    pblocktemplate->vTxFees[0] = -nFees;
+    // Ring-fork: Hive: Create appropriate coinbase tx for pow or Hive block
+    if (hiveProofScript) {
+        CMutableTransaction coinbaseTx;
+
+        // 1 vin with empty prevout
+        coinbaseTx.vin.resize(1);
+        coinbaseTx.vin[0].prevout.SetNull();
+        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+
+        // vout[0]: Hive proof
+        coinbaseTx.vout.resize(2);
+        coinbaseTx.vout[0].scriptPubKey = *hiveProofScript;
+        coinbaseTx.vout[0].nValue = 0;
+
+        // vout[1]: Reward :)
+        coinbaseTx.vout[1].scriptPubKey = scriptPubKeyIn;
+        coinbaseTx.vout[1].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+
+        // vout[2]: Coinbase commitment
+        pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
+        pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
+        pblocktemplate->vTxFees[0] = -nFees;
+    } else {    
+        CMutableTransaction coinbaseTx;
+        coinbaseTx.vin.resize(1);
+        coinbaseTx.vin[0].prevout.SetNull();
+        coinbaseTx.vout.resize(1);
+        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+        coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+        pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
+        pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
+        pblocktemplate->vTxFees[0] = -nFees;
+    }
 
     LogPrintf("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
 
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
     UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
-    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
-    pblock->nNonce         = 0;
+    
+    // Ring-fork: Hive: Choose correct nBits depending on whether a Hive block is requested
+    if (hiveProofScript)
+        pblock->nBits = GetNextHiveWorkRequired(pindexPrev, chainparams.GetConsensus());
+    else
+        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
+
+    // Ring-fork: Hive: Set nonce marker for hivemined blocks
+    pblock->nNonce = hiveProofScript ? chainparams.GetConsensus().hiveNonceMarker : 0;
+
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
@@ -212,11 +256,16 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
 //   segwit activation)
 bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package)
 {
+    const Consensus::Params& consensusParams = Params().GetConsensus(); // Ring-fork: Hive
+
     for (CTxMemPool::txiter it : package) {
         if (!IsFinalTx(it->GetTx(), nHeight, nLockTimeCutoff))
             return false;
         if (!fIncludeWitness && it->GetTx().HasWitness())
             return false;
+        // Ring-fork: Hive: Inhibit DCTs if required
+        if (!fIncludeDCTs && it->GetTx().IsDCT(consensusParams, GetScriptForDestination(DecodeDestination(consensusParams.dwarfCreationAddress))))
+            return false;            
     }
     return true;
 }
@@ -463,7 +512,7 @@ bool static ScanHash(CBlockHeader *pblock, uint32_t& nNonce, uint256 *phash) {
         nNonce++;
 
         pblock->nNonce = nNonce;
-        hash = pblock->GetHash();
+        hash = pblock->GetPowHash();                                // Ring-fork: Seperate block hash and pow hash
 
         if (hash.ByteAt(31) == 0 && hash.ByteAt(30) == 0) {         // Return the nonce if the hash has at least some zero bits, caller will check if it has enough to reach the target
             memcpy(phash, &hash, 32);
@@ -550,7 +599,7 @@ void static MinerThread(const CChainParams& chainparams) {
                 if (fFound) {                                       // Found a potential (has at least some zeroes)
                     if (UintToArith256(hash) <= hashTarget) {       // Found a good solution :)
                         pblock->nNonce = nNonce;
-                        assert(hash == pblock->GetHash());
+                        assert(hash == pblock->GetPowHash());       // Ring-fork: Seperate block hash and pow hash
 
                         SetThreadPriority(THREAD_PRIORITY_NORMAL);
                         LogPrintf("Miner: BLOCK FOUND.\nhash: %s\ntarget: %s\n", hash.GetHex(), hashTarget.GetHex());
@@ -658,4 +707,238 @@ void MineCoins(bool fGenerate, int nThreads, const CChainParams& chainparams) {
     minerThreads = new boost::thread_group();
     for (int i = 0; i < nThreads; i++)          // Start threads
         minerThreads->create_thread(boost::bind(&MinerThread, boost::cref(chainparams)));
+}
+
+// Ring-fork: Hive: Dwarf management thread
+void DwarfMaster(const CChainParams& chainparams) {
+    const Consensus::Params& consensusParams = chainparams.GetConsensus();
+
+    LogPrintf("DwarfMaster: Thread started\n");
+    RenameThread("hive-dwarfmaster");
+
+    int height;
+    {
+        LOCK(cs_main);
+        height = chainActive.Tip()->nHeight;
+    }
+
+    try {
+        while (true) {
+            MilliSleep(1000);
+            int newHeight;
+            {
+                LOCK(cs_main);
+                newHeight = chainActive.Tip()->nHeight;
+            }
+            if (newHeight != height) {
+                // Height changed; release the dwarves!
+                height = newHeight;
+                try {
+                    BusyDwarves(consensusParams);
+                } catch (const std::runtime_error &e) {
+                    LogPrintf("! DwarfMaster: Error: %s\n", e.what());
+                }
+            }
+        }
+    } catch (const boost::thread_interrupted&) {
+        LogPrintf("!!! DwarfMaster: FATAL: Thread interrupted\n");
+        throw;
+    }
+}
+
+// Ring-fork: Hive: Attempt to mint the next block
+bool BusyDwarves(const Consensus::Params& consensusParams) {
+    bool verbose = LogAcceptCategory(BCLog::HIVE);
+
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    assert(pindexPrev != nullptr);
+
+    // Sanity checks
+    if(!g_connman) {
+        LogPrint(BCLog::HIVE, "BusyDwarves: Skipping hive check: Peer-to-peer functionality missing or disabled\n");
+        return false;
+    }
+    if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0) {
+        LogPrint(BCLog::HIVE, "BusyDwarves: Skipping hive check (not connected)\n");
+        return false;
+    }
+    if (IsInitialBlockDownload()) {
+        LogPrint(BCLog::HIVE, "BusyDwarves: Skipping hive check (in initial block download)\n");
+        return false;
+    }
+
+    // Ring-fork: Hive: Check that there aren't too many consecutive Hive blocks
+    int hiveBlocksAtTip = 0;
+    CBlockIndex* pindexTemp = pindexPrev;
+    while (pindexTemp->GetBlockHeader().IsHiveMined(consensusParams)) {
+        assert(pindexTemp->pprev);
+        pindexTemp = pindexTemp->pprev;
+        hiveBlocksAtTip++;
+    }
+    if (hiveBlocksAtTip >= consensusParams.maxConsecutiveHiveBlocks) {
+        LogPrintf("BusyDwarves: Skipping hive check (max Hive blocks without a POW block reached)\n");
+        return false;
+    }
+
+    // Get wallet
+    JSONRPCRequest request;
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, true)) {
+        LogPrint(BCLog::HIVE, "BusyDwarves: Skipping hive check (wallet unavailable)\n");
+        return false;
+    }
+    if (pwallet->IsLocked()) {
+        LogPrint(BCLog::HIVE, "BusyDwarves: Skipping hive check, wallet is locked\n");
+        return false;
+    }
+
+    LogPrintf("********************* Hive: Dwarves at work *********************\n");
+
+    // Find deterministicRandString
+    std::string deterministicRandString = GetDeterministicRandString(pindexPrev);
+    if (verbose) LogPrintf("BusyDwarves: deterministicRandString   = %s\n", deterministicRandString);
+
+    // Find dwarfHashTarget
+    arith_uint256 dwarfHashTarget;
+    dwarfHashTarget.SetCompact(GetNextHiveWorkRequired(pindexPrev, consensusParams));
+    if (verbose) LogPrintf("BusyDwarves: dwarfHashTarget             = %s\n", dwarfHashTarget.ToString());
+
+    // Iterate all our active DCTs, letting their dwarves try and solve
+    LogPrint(BCLog::HIVE, "BusyDwarves: Checking dwarf hashes....\n");
+    std::vector<CDwarfCreationTransactionInfo> dcts = pwallet->GetDCTs(false, false, consensusParams);
+    arith_uint256 bestHash = arith_uint256("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+    CDwarfCreationTransactionInfo bestBct;
+    int dwarvesChecked = 0;
+    uint32_t bestHashDwarf;
+    bool solutionFound = false;
+    for (std::vector<CDwarfCreationTransactionInfo>::const_iterator it = dcts.begin(); it != dcts.end(); it++) {
+        CDwarfCreationTransactionInfo dct = *it;
+        // Skip immature and dead dwarves
+        if (dct.dwarfStatus != "mature")
+            continue;
+
+        // Iterate all dwarves in this DCT, keeping only the best hash found so far across all dwarves
+        for (uint32_t dwarf = 0; dwarf < (uint32_t)dct.dwarfCount; dwarf++) {
+            std::string hashHex = (CHashWriter(SER_GETHASH, 0) << deterministicRandString << dct.txid << dwarf).GetHash().GetHex();
+            //LogPrintf("Dwarf %i gives hash %s\n", dwarf, hashHex);
+            dwarvesChecked++;
+            arith_uint256 dwarfHash = arith_uint256(hashHex);
+            if (dwarfHash < dwarfHashTarget) {
+                bestHash = dwarfHash;
+                bestHashDwarf = dwarf;
+                bestBct = dct;
+                solutionFound = true;
+                break;
+            }
+        }
+
+        if(solutionFound)
+            break;
+    }
+
+    if (dwarvesChecked == 0) {
+        LogPrintf("BusyDwarves: No dwarves currently mature.\n");
+        return false;
+    }
+
+    // Check if our best dwarf hash meets the target
+    if (bestHash >= dwarfHashTarget) {
+        LogPrintf("BusyDwarves: Checked %i dwarves; none strong enough to mint.\n", dwarvesChecked);
+        return false;
+    }
+
+    if (verbose) LogPrintf("BusyDwarves: DWARF MEETS HASH TARGET. Checked %i dwarves; solution with dwarf #%i from DCT %s with hash %s. Reward address is %s.\n", dwarvesChecked, bestHashDwarf, bestBct.txid, bestHash.ToString(), bestBct.rewardAddress);
+
+    // Assemble the Hive proof script
+    std::vector<unsigned char> messageProofVec;
+    std::vector<unsigned char> txidVec(bestBct.txid.begin(), bestBct.txid.end());
+    CScript hiveProofScript;
+    uint32_t dctHeight;
+    {   // Don't lock longer than needed
+        LOCK2(cs_main, pwallet->cs_wallet);
+
+        CTxDestination dest = DecodeDestination(bestBct.rewardAddress);
+        if (!IsValidDestination(dest)) {
+            LogPrintf("BusyDwarves: Reward destination invalid\n");
+            return false;
+        }
+
+        const CKeyID *keyID = boost::get<CKeyID>(&dest);
+        if (!keyID) {
+            LogPrintf("BusyDwarves: Wallet doesn't have privkey for reward destination\n");
+            return false;
+        }
+
+        CKey key;
+        if (!pwallet->GetKey(*keyID, key)) {
+            LogPrintf("BusyDwarves: Privkey unavailable\n");
+            return false;
+        }
+
+        CHashWriter ss(SER_GETHASH, 0);
+        ss << deterministicRandString;
+        uint256 mhash = ss.GetHash();
+        if (!key.SignCompact(mhash, messageProofVec)) {
+            LogPrintf("BusyDwarves: Couldn't sign the dwarf proof!\n");
+            return false;
+        }
+        if (verbose) LogPrintf("BusyDwarves: messageSig                = %s\n", HexStr(&messageProofVec[0], &messageProofVec[messageProofVec.size()]));
+
+        COutPoint out(uint256S(bestBct.txid), 0);
+        Coin coin;
+        if (!pcoinsTip || !pcoinsTip->GetCoin(out, coin)) {
+            LogPrintf("BusyDwarves: Couldn't get the dct utxo!\n");
+            return false;
+        }
+        dctHeight = coin.nHeight;
+    }
+
+    unsigned char dwarfNonceEncoded[4];
+    WriteLE32(dwarfNonceEncoded, bestHashDwarf);
+    std::vector<unsigned char> dwarfNonceVec(dwarfNonceEncoded, dwarfNonceEncoded + 4);
+
+    unsigned char dctHeightEncoded[4];
+    WriteLE32(dctHeightEncoded, dctHeight);
+    std::vector<unsigned char> dctHeightVec(dctHeightEncoded, dctHeightEncoded + 4);
+
+    opcodetype communityContribFlag = bestBct.communityContrib ? OP_TRUE : OP_FALSE;
+    hiveProofScript << OP_RETURN << OP_DWARF << dwarfNonceVec << dctHeightVec << communityContribFlag << txidVec << messageProofVec;
+
+    // Create reward script from reward address
+    CScript rewardScript = GetScriptForDestination(DecodeDestination(bestBct.rewardAddress));
+
+    // Create a Hive block
+    std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(rewardScript, &hiveProofScript));
+    if (!pblocktemplate.get()) {
+        LogPrintf("BusyDwarves: Couldn't create block\n");
+        return false;
+    }
+    CBlock *pblock = &pblocktemplate->block;
+    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);  // Calc the merkle root
+
+    // Make sure the new block's not stale
+    {
+        LOCK(cs_main);
+        if (pblock->hashPrevBlock != chainActive.Tip()->GetBlockHash()) {
+            LogPrintf("BusyDwarves: Generated block is stale.\n");
+            return false;
+        }
+    }
+
+    if (verbose) {
+        LogPrintf("BusyDwarves: Block created:\n");
+        LogPrintf("%s",pblock->ToString());
+    }
+
+    // Commit and propagate the block
+    std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
+    if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
+        LogPrintf("BusyDwarves: Block wasn't accepted\n");
+        return false;
+    }
+
+    LogPrintf("BusyDwarves: ** Block mined\n");
+    return true;
 }

@@ -20,14 +20,16 @@
 #include <qt/transactionfilterproxy.h>
 #include <qt/transactiontablemodel.h>
 #include <qt/walletmodel.h>
+#include <qt/walletmodel.h>
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
 #include <QTimer>
+#include <QGraphicsPixmapItem>
 
 #include <qt/miningpage.moc>
 
-#include <rpc/mining.h> // Ring-fork
+#include <rpc/mining.h>
 
 MiningPage::MiningPage(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
@@ -41,6 +43,9 @@ MiningPage::MiningPage(const PlatformStyle *platformStyle, QWidget *parent) :
 
     ui->threadCountSpinner->setMaximum(GetNumCores());
     updateDisplayedOptions();
+
+    makeMinotaurs();
+    drawMinotaurs(0);
 }
 
 MiningPage::~MiningPage()
@@ -92,12 +97,12 @@ void MiningPage::on_toggleMiningButton_clicked() {
 }
 
 void MiningPage::updateHashRateDisplay() {
-    ui->hashRateDisplayLabel->setText(QString::number(std::floor(dHashesPerSec/1000.0)));
+    ui->hashRateDisplayLabel->setText(QString::number(std::floor(dHashesPerSec)));
 
     double timeToSolve = (this->clientModel) ? this->clientModel->getTimeToSolve() : 0;
 
     if (timeToSolve > 0)
-        ui->timeToSolveDisplayLabel->setText(timeToSolve > 172800 ? "Longer than 2 days" : QString::number(std::floor(timeToSolve)));
+        ui->timeToSolveDisplayLabel->setText(timeToSolve > 172800 ? "> 2 days" : QString::number(std::floor(timeToSolve)));
     else
         ui->timeToSolveDisplayLabel->setText("N/A");
 }
@@ -115,6 +120,7 @@ void MiningPage::updateDisplayedOptions() {
     }
 
     if (mining) {
+        drawMinotaurs(genproclimit);
         updateHashRateDisplay();
         if (!displayUpdateTimer->isActive())
             displayUpdateTimer->start(5000);
@@ -122,9 +128,10 @@ void MiningPage::updateDisplayedOptions() {
         ui->miningStatusLabel->setText("Miners running");
         ui->threadCountSpinner->setEnabled(false);
         ui->useAllCoresCheckbox->setEnabled(false);
-        ui->toggleMiningButton->setStyleSheet("background-color: rgba(204, 22, 22, 1);");
+        ui->toggleMiningButton->setStyleSheet("background-color: rgba(204, 22, 22, 1);");        
     } else {
         displayUpdateTimer->stop();
+        drawMinotaurs(0);
         ui->toggleMiningButton->setText("Start mining");
         ui->miningStatusLabel->setText("Miners stopped");
         ui->useAllCoresCheckbox->setEnabled(true);
@@ -132,5 +139,44 @@ void MiningPage::updateDisplayedOptions() {
         ui->toggleMiningButton->setStyleSheet("background-color: rgba(46, 204, 113, 1);");
         ui->hashRateDisplayLabel->setText("N/A");
         ui->timeToSolveDisplayLabel->setText("N/A");
+    }
+}
+
+void MiningPage::makeMinotaurs() {
+    QImage img(":/icons/minotaur");
+    img = img.convertToFormat(QImage::Format_ARGB32);
+    QColor cols[8] = {Qt::black, Qt::red, QColor("#FFA500"), Qt::yellow, Qt::green, Qt::blue, QColor("#4b0082"), QColor("#EE82EE")};
+    for (int i = 0; i < 8; i++) {
+        QColor c = cols[i];
+        for (int x = img.width(); x--;) {
+            for (int y = img.height(); y--;) {
+                const QRgb rgb = img.pixel(x, y);
+                img.setPixel(x, y, qRgba(c.red(), c.green(), c.blue(), i == 0 ? qAlpha(rgb) / 2 : qAlpha(rgb)));
+            }
+        }
+        minotaurs[i] = QPixmap::fromImage(img);
+    }
+}
+
+void MiningPage::drawMinotaurs(int coloured) {
+    scene = new QGraphicsScene(this);
+    ui->graphicsView->setAlignment(Qt::AlignRight | Qt::AlignBottom);
+    ui->graphicsView->setScene(scene);
+
+    if (coloured == 0) {
+        scene->addPixmap(minotaurs[0]);
+        return;
+    }
+
+    int total = GetNumCores();
+    if (coloured == -1)
+        coloured = total;
+    if (coloured > 16)
+        coloured = 16;
+
+    for (int i = 0; i < coloured; i++) {
+        int which = (i % 7) + 1;
+        QGraphicsPixmapItem *item = scene->addPixmap(minotaurs[which]);
+        item->setOffset(60 * i, 0);
     }
 }

@@ -153,10 +153,22 @@ RingGUI::RingGUI(interfaces::Node& node, const PlatformStyle *_platformStyle, co
     labelWalletHDStatusIcon = new QLabel();
     
     // Ring-fork: Mining page: Status bar icon
-    labelMiningStatusIcon = new QLabel();
+    labelMiningStatusIcon = new GUIUtil::ClickableLabel();
     labelMiningStatusIcon->setPixmap(platformStyle->ForceSingleColorIcon(":/icons/tx_mined").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
-    labelMiningStatusIcon->setToolTip("In-wallet CPU mining is enabled");
-    updateGenerateIcon();   
+    labelMiningStatusIcon->setToolTip("In-wallet CPU mining is enabled");    
+    connect(labelMiningStatusIcon, &GUIUtil::ClickableLabel::clicked, [this] {
+        walletFrame->gotoMiningPage();
+    });
+    updateGenerateIcon();
+
+    // Ring-fork: Hive: Hive status bar icon
+    hiveStatusIcon = new GUIUtil::ClickableLabel();
+    hiveStatusIcon->setPixmap(QIcon(":/icons/hivestatus_clear").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+    //hiveStatusIcon->setToolTip("In-wallet CPU mining is enabled");    
+    connect(hiveStatusIcon, &GUIUtil::ClickableLabel::clicked, [this] {
+        walletFrame->gotoHivePage();
+    });
+    updateGenerateIcon();
 
     labelProxyIcon = new GUIUtil::ClickableLabel();
     connectionsControl = new GUIUtil::ClickableLabel();
@@ -170,6 +182,7 @@ RingGUI::RingGUI(interfaces::Node& node, const PlatformStyle *_platformStyle, co
         frameBlocksLayout->addWidget(labelWalletHDStatusIcon);
         frameBlocksLayout->addStretch();
         frameBlocksLayout->addWidget(labelMiningStatusIcon);    // Ring-fork: Mining page: Status bar icon
+        frameBlocksLayout->addWidget(hiveStatusIcon);           // Ring-fork: Hive: Hive status icon
     }
     frameBlocksLayout->addWidget(labelProxyIcon);
     frameBlocksLayout->addStretch();
@@ -254,7 +267,23 @@ void RingGUI::skinIt()
 {
     // Style the statusbar
     statusBar()->setStyleSheet(
-        "background-color: " + bgStatusBar + ";"
+        "background-color: " + SKIN_BG_STATUSBAR + ";"
+        "QStatusBar::item {border: None;}"
+    );
+    progressBarLabel->setStyleSheet(
+        "color: " + SKIN_TEXT + ";"
+    );
+    progressBar->setStyleSheet(
+        "QProgressBar {"
+            "border: None;"
+            "border-radius: 5px;"
+            "text-align: center;"
+            "color: " + SKIN_TEXT + ";"
+        "}"
+        "QProgressBar::chunk {"
+            "background-color: " + SKIN_ICON_STATUSBAR + ";"
+            "width: 20px;"
+        "}"
     );
 
     // Style the tabs
@@ -262,7 +291,7 @@ void RingGUI::skinIt()
     appToolBar->setFixedHeight(64);
     appToolBar->setStyleSheet(
         "QToolBar {"
-            "background-color: " + bgTabs + ";"
+            "background-color: " + SKIN_BG_TAB + ";"
         "}"
         "QToolBar QToolButton {"
             "padding-top: 16px;"
@@ -271,16 +300,16 @@ void RingGUI::skinIt()
             "margin: 0px;"
             "font-size: 12px;"
             "font: bold;"
-            "color: " + textColTabs + ";"
+            "color: " + SKIN_TEXT_TAB + ";"
             "border: 0px solid black;"
             "outline: none;"
         "}"
         "QToolBar QToolButton:hover, QToolBar QToolButton:pressed {"
-            "background-color: " + bgTabHover + ";"
+            "background-color: " + SKIN_BG_TAB_HOVER + ";"
         "}"
         "QToolBar QToolButton:checked {"
-            "color: " + textColTabCurrent + ";"
-            "background-color: " + bgTabCurrent + ";"
+            "color: " + SKIN_TEXT_TAB_ACTIVE + ";"
+            "background-color: " + SKIN_BG_TAB_ACTIVE + ";"
         "}"
     );
 
@@ -293,18 +322,17 @@ void RingGUI::skinIt()
             "background-position: bottom;"
             "background-attachment: fixed;"
         "}"
+        // Styles we can inherit everywhere from here
+        // TODO: SET DEFAULT FOR POPUPS HERE?
+        "QPushButton {background-color: " + SKIN_BG_BUTTON + ";}"
     );
-    /*
-    this->setStyleSheet(
-        "color: white;"
-    );*/
 }
 
 void RingGUI::createActions()
 {
     QActionGroup *tabGroup = new QActionGroup(this);
 
-    overviewAction = new QAction(platformStyle->SingleColorIcon(":/icons/overview"), tr("&Overview"), this);
+    overviewAction = new QAction(platformStyle->SingleColorIcon(":/icons/overview"), tr("H&ome"), this);
     overviewAction->setStatusTip(tr("Show general overview of wallet"));
     overviewAction->setToolTip(overviewAction->statusTip());
     overviewAction->setCheckable(true);
@@ -333,7 +361,7 @@ void RingGUI::createActions()
     receiveCoinsMenuAction->setStatusTip(receiveCoinsAction->statusTip());
     receiveCoinsMenuAction->setToolTip(receiveCoinsMenuAction->statusTip());
 
-    historyAction = new QAction(platformStyle->SingleColorIcon(":/icons/history"), tr("&Transactions"), this);
+    historyAction = new QAction(platformStyle->SingleColorIcon(":/icons/history"), tr("&History"), this);
     historyAction->setStatusTip(tr("Browse transaction history"));
     historyAction->setToolTip(historyAction->statusTip());
     historyAction->setCheckable(true);
@@ -348,6 +376,14 @@ void RingGUI::createActions()
     miningAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
     tabGroup->addAction(miningAction);
 
+    // Ring-fork: Hive: Hive page
+    hiveAction = new QAction(platformStyle->SingleColorIcon(":/icons/hiveicon"), tr("Hive Mining"), this);
+    hiveAction->setStatusTip(tr("Show Hive Mining page"));
+    hiveAction->setToolTip(hiveAction->statusTip());
+    hiveAction->setCheckable(true);
+    hiveAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
+    tabGroup->addAction(hiveAction);
+
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
     // can be triggered from the tray menu, and need to show the GUI to be useful.
@@ -355,6 +391,8 @@ void RingGUI::createActions()
     connect(overviewAction, &QAction::triggered, this, &RingGUI::gotoOverviewPage);
     connect(miningAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });         // Ring-fork: Mining page: Connect actions
     connect(miningAction, &QAction::triggered, this, &RingGUI::gotoMiningPage);             // Ring-fork: Mining page: Connect actions
+    connect(hiveAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });           // Ring-fork: Hive: Connect actions
+    connect(hiveAction, &QAction::triggered, this, &RingGUI::gotoHivePage);                 // Ring-fork: Hive: Connect actions
     connect(sendCoinsAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(sendCoinsAction, &QAction::triggered, [this]{ gotoSendCoinsPage(); });
     connect(sendCoinsMenuAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
@@ -425,7 +463,7 @@ void RingGUI::createActions()
     
     // Ring-fork: Key import helper
     importPrivateKeyAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Import private key..."), this);
-    importPrivateKeyAction->setToolTip(tr("Import a Litecoin or LitecoinCash private key"));
+    importPrivateKeyAction->setToolTip(tr("Import a private key from any supported chain"));
 
     connect(quitAction, &QAction::triggered, qApp, QApplication::quit);
     connect(aboutAction, &QAction::triggered, this, &RingGUI::aboutClicked);
@@ -620,7 +658,8 @@ void RingGUI::createToolBars()
         toolbar->addAction(sendCoinsAction);
         toolbar->addAction(receiveCoinsAction);
         toolbar->addAction(historyAction);
-        toolbar->addAction(miningAction); // Ring-fork: Mining page
+        toolbar->addAction(miningAction);   // Ring-fork: Mining page
+        toolbar->addAction(hiveAction);     // Ring-fork: Hive: Hive page
         overviewAction->setChecked(true);
 
 #ifdef ENABLE_WALLET
@@ -809,6 +848,7 @@ void RingGUI::setWalletActionsEnabled(bool enabled)
     openAction->setEnabled(enabled);
     m_close_wallet_action->setEnabled(enabled);
     miningAction->setEnabled(enabled);              // Ring-fork: Mining page
+    hiveAction->setEnabled(enabled);                // Ring-fork: Hive: Hive page
     importPrivateKeyAction->setEnabled(enabled);    // Ring-fork: Key import helper
 }
 
@@ -934,6 +974,13 @@ void RingGUI::gotoMiningPage()
     if (walletFrame) walletFrame->gotoMiningPage();
 }
 
+// Ring-fork: Hive page
+void RingGUI::gotoHivePage()
+{
+    hiveAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoHivePage();
+}
+
 void RingGUI::gotoHistoryPage()
 {
     historyAction->setChecked(true);
@@ -990,6 +1037,12 @@ void RingGUI::updateNetworkState()
     connectionsControl->setToolTip(tooltip);
 
     connectionsControl->setPixmap(platformStyle->ForceSingleColorIcon(icon).pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE)); // Ring-fork: Skinning: Force single col
+}
+
+// Ring-fork: Hive: Update the hive status icon
+void RingGUI::updateHiveStatusIcon(QString icon, QString tooltip) {
+    hiveStatusIcon->setPixmap(QIcon(icon).pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+    hiveStatusIcon->setToolTip(tooltip);
 }
 
 void RingGUI::setNumConnections(int count)
@@ -1516,7 +1569,7 @@ UnitDisplayStatusBarControl::UnitDisplayStatusBarControl(const PlatformStyle *pl
     }
     setMinimumSize(max_width, 0);
     setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    setStyleSheet(QString("QLabel { color : %1 }").arg(platformStyle->SingleColor().name()));
+    setStyleSheet(QString("QLabel, QMenu { color : %1 }").arg(platformStyle->SingleColor().name()));    // Ring-fork: Skinning: Apply this colour to the dropdown menu too
 }
 
 /** So that it responds to button clicks */

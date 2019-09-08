@@ -153,6 +153,25 @@ public:
     void abortRescan() override { m_wallet->AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet->BackupWallet(filename); }
     std::string getWalletName() override { return m_wallet->GetName(); }
+
+    // Ring-fork: Hive: Interface pass-throughs
+    std::vector<CDwarfCreationTransactionInfo> getDCTs(bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minRewardConfirmations) override
+    {
+        return m_wallet->GetDCTs(includeDead, scanRewards, consensusParams, minRewardConfirmations);
+    }
+    void blockUntilSyncedToCurrentChain() override {
+        m_wallet->BlockUntilSyncedToCurrentChain();
+    }
+    bool commitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm, CReserveKey& reservekey, CConnman* connman, CValidationState& state) override {
+        return m_wallet->CommitTransaction(tx, mapValue, orderForm, reservekey, connman, state);
+    }
+    bool createDwarfTransaction(int dwarfCount, CTransactionRef& tx, CReserveKey& reservekeyChange, CReserveKey& reservekeyReward, std::string rewardAddress, std::string changeAddress, bool communityContrib, std::string& strFailReason, const Consensus::Params& consensusParams) override {
+        return m_wallet->CreateDwarfTransaction(dwarfCount, tx, reservekeyChange, reservekeyReward, rewardAddress, changeAddress, communityContrib, strFailReason, consensusParams);
+    }
+    CWallet *get() override {
+        return m_wallet.get();
+    }
+
     bool getKeyFromPool(bool internal, CPubKey& pub_key) override
     {
         return m_wallet->GetKeyFromPool(pub_key, internal);

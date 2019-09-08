@@ -9,6 +9,10 @@
 #include <interfaces/wallet.h>
 
 #include <QWidget>
+#include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QGraphicsItem>
+
 #include <memory>
 
 class ClientModel;
@@ -39,6 +43,11 @@ private:
     Ui::MiningPage *ui;
     ClientModel *clientModel;
     QTimer *displayUpdateTimer;
+
+    QGraphicsScene *scene;
+    QPixmap minotaurs[8];
+    void drawMinotaurs(int coloured);
+    void makeMinotaurs();
 
 private Q_SLOTS:
     void on_toggleMiningButton_clicked();

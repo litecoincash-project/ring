@@ -68,9 +68,12 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 if (wtx.is_coinbase)
                 {
                     // Ring-fork: Show initial distribution claims separately to mined blocks in UI
+                    // Ring-fork: Hive: Show hivemined blocks separately to mined blocks in UI
                     CScript scriptPubKeyMarker;
                     scriptPubKeyMarker << OP_RETURN << 0x49 << 0x44;
-                    if (wtx.tx->vout[0].scriptPubKey == scriptPubKeyMarker && wtx.tx->vout[0].nValue == 0)
+                    if (wtx.tx.get()->IsHiveCoinBase())
+                        sub.type = TransactionRecord::HiveReward;            // Hivemined
+                    else if (wtx.tx->vout[0].scriptPubKey == scriptPubKeyMarker && wtx.tx->vout[0].nValue == 0)
                         sub.type = TransactionRecord::ForeignChainImport;   // Claimed
                     else
                         sub.type = TransactionRecord::Generated;            // Mined
@@ -127,11 +130,19 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     continue;
                 }
 
-                if (!boost::get<CNoDestination>(&wtx.txout_address[nOut]))
+                // Ring-fork: Hive: Check for a DCT
+                if (CScript::IsDCTScript(txout.scriptPubKey, GetScriptForDestination(DecodeDestination(Params().GetConsensus().dwarfCreationAddress)))) {
+                    sub.type = TransactionRecord::HiveDwarfCreation;
+                }
+                else if (!boost::get<CNoDestination>(&wtx.txout_address[nOut]))
                 {
                     // Sent to Ring Address
                     sub.type = TransactionRecord::SendToAddress;
                     sub.address = EncodeDestination(wtx.txout_address[nOut]);
+
+                    // Ring-fork: Hive: Check for additional hive-related send types
+                    if (sub.address == Params().GetConsensus().hiveCommunityAddress)
+                        sub.type = TransactionRecord::HiveCommunityFund;
                 }
                 else
                 {
@@ -192,7 +203,8 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, int 
         }
     }
     // For generated transactions, determine maturity
-    else if(type == TransactionRecord::Generated)
+    // Ring-fork: Hive: Do the same for hivemined transactions
+    else if(type == TransactionRecord::Generated || type == TransactionRecord::HiveReward)
     {
         if (wtx.blocks_to_maturity > 0)
         {

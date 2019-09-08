@@ -13,6 +13,7 @@
 #include <qt/optionsmodel.h>
 #include <qt/overviewpage.h>
 #include <qt/miningpage.h>      // Ring-fork: Mining page
+#include <qt/hivedialog.h>      // Ring-fork: Hive: Hive page
 #include <qt/platformstyle.h>
 #include <qt/receivecoinsdialog.h>
 #include <qt/sendcoinsdialog.h>
@@ -25,6 +26,7 @@
 #include <wallet/wallet.h>      // Ring-fork: Key import helper
 #include <validation.h>         // Ring-fork: Key import helper
 #include <key_io.h>             // Ring-fork: Key import helper
+#include <miner.h>              // Ring-fork: Key import helper: For DEFAULT_GENERATE
 #include <qt/uicolours.h>       // Ring-fork: Skinning
 
 #include <interfaces/node.h>
@@ -49,6 +51,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     overviewPage = new OverviewPage(platformStyle);
 
     miningPage = new MiningPage(platformStyle); // Ring-fork: Mining page
+    hivePage = new HiveDialog(platformStyle);   // Ring-fork: Hive page
 
     transactionsPage = new QWidget(this);
     QVBoxLayout *vbox = new QVBoxLayout();
@@ -72,10 +75,11 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     usedReceivingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
 
     addWidget(overviewPage);
-    addWidget(miningPage);           // Ring-fork: Mining page
     addWidget(transactionsPage);
     addWidget(receiveCoinsPage);
     addWidget(sendCoinsPage);
+    addWidget(miningPage);          // Ring-fork: Mining page
+    addWidget(hivePage);            // Ring-fork: Hive page
 
     // Clicking on a transaction on the overview pre-selects the transaction on the transaction history page
     connect(overviewPage, &OverviewPage::transactionClicked, transactionView, static_cast<void (TransactionView::*)(const QModelIndex&)>(&TransactionView::focusTransaction));
@@ -94,18 +98,33 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     connect(transactionView, &TransactionView::message, this, &WalletView::message);
 
     // Ring-fork: Skinning the tabs
-    overviewPage->setStyleSheet("color: " + textCol);
-    miningPage->setStyleSheet("QLabel, QCheckBox {color: " + textCol + ";} #miningForm {background-color: " + bgCol2 + ";}");
+    overviewPage->setStyleSheet(
+        "QLabel, QListView {color: " + SKIN_TEXT + "};"
+    );
+    miningPage->setStyleSheet("QLabel, QCheckBox {color: " + SKIN_TEXT + ";} #miningForm {background-color: " + SKIN_BG_PANEL + ";}");
     receiveCoinsPage->setStyleSheet(
-        "QLabel, #useBech32 {color: " + textCol + ";}"
-        "#frame2 {background-color: " + bgCol2 + ";}"
-        "#recentRequestsView {color: " + textCol + "; background-color: " + bgCol2 + "; alternate-background-color: " + bgCol1 + ";}"
+        "QLabel, #useBech32 {color: " + SKIN_TEXT + ";}"
+        "#frame2 {background-color: " + SKIN_BG_PANEL + ";}"
+        "#recentRequestsView {color: " + SKIN_TEXT + "; background-color: " + SKIN_BG_PANEL + "; alternate-background-color: " + SKIN_BG_ROW_ALT + ";}"
     );
-    transactionsPage->setStyleSheet("QTableView {color: " + textCol + "; background-color: " + bgCol2 + "; alternate-background-color: " + bgCol1 + ";}");
+    transactionsPage->setStyleSheet("QTableView {color: " + SKIN_TEXT + "; background-color: " + SKIN_BG_PANEL + "; alternate-background-color: " + SKIN_BG_ROW_ALT + ";}");
     sendCoinsPage->setStyleSheet(
-        "#frameFee, #frameCoinControl, #scrollArea, #scrollAreaWidgetContents {background-color: " + bgCol2 + ";}"
-        "QLabel, QCheckBox, QRadioButton {color: " + textCol + ";}"
+        "#frameFee, #frameCoinControl, #scrollArea, #scrollAreaWidgetContents {background-color: " + SKIN_BG_PANEL + ";}"
+        "#frameFee QLabel, #frameFee QCheckBox, #frameFee QRadioButton {color: " + SKIN_TEXT + ";}"
+        "#frameCoinControl QLabel, #frameCoinControl QCheckBox, #frameCoinControl QRadioButton {color: " + SKIN_TEXT + ";}"
+        "#scrollAreaWidgetContents QLabel, #scrollAreaWidgetContents QCheckBox, #scrollAreaWidgetContents QRadioButton {color: " + SKIN_TEXT + ";}"
+        "#label, #labelBalance {color: " + SKIN_TEXT + ";}"
     );
+    hivePage->setStyleSheet(
+        "#createDwarvesTitleLabel, #showAdvancedStatsCheckbox, #globalNetworkHiveTitleLabel, #yourHiveStatsLabel, #includeDeadDwarvesCheckbox {color: " + SKIN_TEXT + ";}"
+        "#createDwarvesForm QLabel, #createDwarvesForm QRadioButton, #createDwarvesForm QCheckBox {color: " + SKIN_TEXT + ";}"
+        "#globalHiveFrame QLabel, #globalHiveFrame QRadioButton, #globalHiveFrame QCheckBox {color: " + SKIN_TEXT + ";}"
+        "#walletHiveStatsFrame QLabel, #walletHiveStatsFrame QRadioButton, #walletHiveStatsFrame QCheckBox {color: " + SKIN_TEXT + ";}"
+        "#createDwarvesForm, #globalHiveSummaryError, #globalHiveSummary {background-color: " + SKIN_BG_PANEL + ";}"
+        "#currentHiveView {color: " + SKIN_TEXT + "; background-color: " + SKIN_BG_PANEL + "; alternate-background-color: " + SKIN_BG_ROW_ALT + ";}"
+        "#globalHiveSummaryErrorLabel {color: " + SKIN_TEXT + ";}"
+    );
+    
 }
 
 WalletView::~WalletView()
@@ -118,6 +137,9 @@ void WalletView::setRingGUI(RingGUI *gui)
     {
         // Clicking on a transaction on the overview page simply sends you to transaction history page
         connect(overviewPage, &OverviewPage::transactionClicked, gui, &RingGUI::gotoHistoryPage);
+
+        // Ring-fork: Hive: Go to hive page if button on overview clicked
+        connect(overviewPage, SIGNAL(hiveButtonClicked()), gui, SLOT(gotoHivePage()));
 
         // Navigate to transaction history page after send
         connect(sendCoinsPage, &SendCoinsDialog::coinsSent, gui, &RingGUI::gotoHistoryPage);
@@ -135,6 +157,9 @@ void WalletView::setRingGUI(RingGUI *gui)
 
         // Connect HD enabled state signal
         connect(this, &WalletView::hdEnabledStatusChanged, gui, &RingGUI::updateWalletStatus);
+
+        // Ring-fork: Hive: Connect hive status update signal
+        connect(hivePage, &HiveDialog::hiveStatusIconChanged, gui, &RingGUI::updateHiveStatusIcon);
     }
 }
 
@@ -143,8 +168,9 @@ void WalletView::setClientModel(ClientModel *_clientModel)
     this->clientModel = _clientModel;
 
     overviewPage->setClientModel(_clientModel);
-    miningPage->setClientModel(_clientModel);   // Ring-fork: Mining page
     sendCoinsPage->setClientModel(_clientModel);
+    miningPage->setClientModel(_clientModel);   // Ring-fork: Mining page
+    hivePage->setClientModel(_clientModel);     // Ring-fork: Hive page
 }
 
 void WalletView::setWalletModel(WalletModel *_walletModel)
@@ -158,7 +184,8 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
     sendCoinsPage->setModel(_walletModel);
     usedReceivingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
     usedSendingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
-
+    hivePage->setModel(_walletModel);         // Ring-fork: Hive page
+    
     if (_walletModel)
     {
         // Receive and pass through messages from wallet model
@@ -176,6 +203,9 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
 
         // Ask for passphrase if needed
         connect(_walletModel, &WalletModel::requireUnlock, this, &WalletView::unlockWallet);
+
+		// Ring-fork: Hive: Ask for passphrase if needed hive only
+        connect(_walletModel, &WalletModel::requireUnlockHive, this, &WalletView::unlockWalletHive);
 
         // Show progress dialog
         connect(_walletModel, &WalletModel::showProgress, this, &WalletView::showProgress);
@@ -211,6 +241,13 @@ void WalletView::gotoOverviewPage()
 void WalletView::gotoMiningPage()
 {
     setCurrentWidget(miningPage);
+}
+
+// Ring-fork: Hive page
+void WalletView::gotoHivePage()
+{
+    hivePage->updateData();
+    setCurrentWidget(hivePage);
 }
 
 void WalletView::gotoHistoryPage()
@@ -267,7 +304,7 @@ void WalletView::showOutOfSyncWarning(bool fShow)
 
 void WalletView::updateEncryptionStatus()
 {
-    Q_EMIT encryptionStatusChanged();
+    Q_EMIT encryptionStatusChanged(walletModel->getEncryptionStatus());     // Ring-fork: Hive: Support locked wallets
 }
 
 void WalletView::encryptWallet(bool status)
@@ -315,6 +352,20 @@ void WalletView::unlockWallet()
     if (walletModel->getEncryptionStatus() == WalletModel::Locked)
     {
         AskPassphraseDialog dlg(AskPassphraseDialog::Unlock, this);
+        dlg.setModel(walletModel);
+        dlg.exec();
+    }
+}
+
+// Ring-fork: Hive: Unlock wallet just for hive
+void WalletView::unlockWalletHive()
+{
+    if(!walletModel)
+        return;
+    // Unlock wallet when requested by wallet model
+    if (walletModel->getEncryptionStatus() == WalletModel::Locked)
+    {
+        AskPassphraseDialog dlg(AskPassphraseDialog::UnlockHiveMining, this);
         dlg.setModel(walletModel);
         dlg.exec();
     }
@@ -380,6 +431,16 @@ void WalletView::doRescan(CWallet* pwallet, int64_t startTime)
 // Ring-fork: Key import helper
 void WalletView::importPrivateKey()
 {
+    if (gArgs.GetBoolArg("-gen", DEFAULT_GENERATE)) {
+        QMessageBox::critical(0, tr(PACKAGE_NAME), tr("Please stop mining before importing keys."));
+        return;
+    }
+
+    if (clientModel->node().isInitialBlockDownload()) {
+        QMessageBox::critical(0, tr(PACKAGE_NAME), tr("Please wait until wallet is synced before importing keys."));
+        return;
+    }
+
     bool ok;
     QString privKey = QInputDialog::getText(0, tr(PACKAGE_NAME), tr("Enter a private key from any supported chain to claim Ring into your wallet."), QLineEdit::Normal, "", &ok);
     if (ok && !privKey.isEmpty()) {

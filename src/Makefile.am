@@ -407,7 +407,7 @@ crypto_libring_crypto_base_a_SOURCES = \
   crypto/pow/skein.c \
   crypto/pow/Sponge.c \
   crypto/pow/sph_bmw.h \
-  crypto/pow/branchtorture.h  
+  crypto/pow/minotaur.h  
 
 if USE_ASM
 crypto_libring_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp
@@ -445,7 +445,6 @@ libring_consensus_a_SOURCES = \
   hash.cpp \
   hash.h \
   prevector.h \
-  primitives/block.cpp \
   primitives/block.h \
   primitives/transaction.cpp \
   primitives/transaction.h \
@@ -468,6 +467,7 @@ libring_consensus_a_SOURCES = \
   version.h
 
 # common: shared between ringd, and ring-qt and non-server tools
+# Ring-fork: primitives/block.cpp moved to common from consensus
 libring_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(RING_INCLUDES)
 libring_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libring_common_a_SOURCES = \
@@ -484,6 +484,7 @@ libring_common_a_SOURCES = \
   netaddress.cpp \
   netbase.cpp \
   policy/feerate.cpp \
+  primitives/block.cpp \
   psbt.cpp \
   protocol.cpp \
   scheduler.cpp \

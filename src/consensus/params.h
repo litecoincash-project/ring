@@ -12,6 +12,8 @@
 #include <map>
 #include <string>
 
+#include <amount.h> // Ring-fork: Hive params need CAmount
+
 namespace Consensus {
 
 enum DeploymentPos
@@ -92,6 +94,28 @@ struct Params {
     int lastInitialDistributionHeight;      // Height of last block containing initial distribution payouts to foreign coins
     uint256 powLimitInitialDistribution;    // Lower-than-powLimit difficulty for initial distribution blocks only
     int slowStartBlocks;                    // Scale initial block reward up over this many blocks    
+
+    // Ring-fork: Hive-related consensus params
+    CAmount minDwarfCost;               // Minimum cost of a dwarf, used when no more block rewards
+    int dwarfCostFactor;                // Dwarf cost is block_reward/dwarfCostFactor
+    std::string dwarfCreationAddress;   // Unspendable address for dwarf creation
+    std::string hiveCommunityAddress;   // Community fund address
+    int communityContribFactor;         // Optionally, donate dct_value/maxCommunityContribFactor to community fund
+    int dwarfGestationBlocks;           // The number of blocks for a new dwarf to mature
+    int dwarfLifespanBlocks;            // The number of blocks a dwarf lives for after maturation
+    uint256 powLimitHive;               // Highest (easiest) dwarf hash target
+    uint32_t hiveNonceMarker;           // Nonce marker for hivemined blocks
+    int minHiveCheckBlock;              // Don't bother checking below this height for Hive blocks (not used for consensus/validation checks, just efficiency when looking for potential DCTs)
+    int hiveBlockSpacingTarget;         // Target Hive block frequency (1 out of this many blocks should be Hive)
+    int hiveBlockSpacingTargetTypical;  // Observed Hive block frequency (1 out of this many blocks are observed to be Hive)
+    int minK;                           // Minimum chainwork scale for Hive blocks (see Hive whitepaper section 5)
+    int maxK;                           // Maximum chainwork scale for Hive blocks (see Hive whitepaper section 5)
+    double maxHiveDiff;                 // Hive difficulty at which max chainwork bonus is awarded
+    int maxKPow;                        // Maximum chainwork scale for PoW blocks
+    double powSplit1;                   // Below this Hive difficulty threshold, PoW block chainwork bonus is halved
+    double powSplit2;                   // Below this Hive difficulty threshold, PoW block chainwork bonus is halved again
+    int maxConsecutiveHiveBlocks;       // Maximum hive blocks that can occur consecutively before a PoW block is required
+    int hiveDifficultyWindow;           // How many blocks the SMA averages over in hive difficulty adjust
 };
 } // namespace Consensus
 

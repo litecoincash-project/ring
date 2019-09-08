@@ -187,6 +187,9 @@ enum opcodetype
     OP_NOP9 = 0xb8,
     OP_NOP10 = 0xb9,
 
+    // Ring-fork: Hive
+    OP_DWARF = 0xbe,
+
     OP_INVALIDOPCODE = 0xff,
 };
 
@@ -562,6 +565,29 @@ public:
         // The default prevector::clear() does not release memory
         CScriptBase::clear();
         shrink_to_fit();
+    }
+
+    // Ring-fork: Hive: Check if script is a Dwarf Creation script and optionally get the reward scriptPubKey in scriptPubKeyReward
+    static bool IsDCTScript(CScript scriptPubKey, CScript scriptPubKeyBCF, CScript* scriptPubKeyReward = nullptr) {
+        // Check for correct size
+        if (scriptPubKey.size() != 52)
+            return false;
+
+        // Check for the unspendable dwarf creation script
+        CScript scriptPubKeyBCFCheck(&scriptPubKey[0], &scriptPubKey[25]);
+        if (scriptPubKeyBCFCheck != scriptPubKeyBCF)
+            return false;
+
+        // Check OP_RETURN OP_DWARF delimiter
+        if (scriptPubKey[25] != OP_RETURN || scriptPubKey[26] != OP_DWARF)
+            return false;
+
+        // Grab scriptPubKeyReward
+        CScript localScriptPubKeyReward(&scriptPubKey[27], &scriptPubKey[scriptPubKey.size()]);
+        if (scriptPubKeyReward)
+            *scriptPubKeyReward = localScriptPubKeyReward;
+
+        return true;
     }
 };
 

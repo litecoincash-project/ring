@@ -23,7 +23,7 @@ static const struct {
     {"macosx", false, false, true},
     {"windows", true, false, false},
     /* Other: linux, unix, ... */
-    {"other", true, true, false}
+    {"other", true, false, false}   // Ring-fork: Fix linux icons
 };
 static const unsigned platform_styles_count = sizeof(platform_styles)/sizeof(*platform_styles);
 
@@ -79,8 +79,8 @@ PlatformStyle::PlatformStyle(const QString &_name, bool _imagesOnButtons, bool _
     textColor(0,0,0)
 {
     // Ring-fork: Skinning
-    textColor = QColor(iconTextCol);
-    singleColor = QColor(iconSingleCol);
+    textColor = QColor(SKIN_ICON);
+    singleColor = QColor(SKIN_ICON_STATUSBAR);
     
     /*
     // Determine icon highlighting color

@@ -4,6 +4,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chain.h>
+#include <chainparams.h>        // Ring-fork: Hive
+#include <logging.h>            // Ring-fork: Hive
+#include <rpc/blockchain.h>     // Ring-fork: Hive
+#include <validation.h>         // Ring-fork: Hive
+#include <cmath>                // Ring-fork: Hive
 
 /**
  * CChain implementation
@@ -118,14 +123,112 @@ void CBlockIndex::BuildSkip()
         pskip = pprev->GetAncestor(GetSkipHeight(nHeight));
 }
 
+// Ring-fork: Hive: Grant hive-mined blocks bonus work value
 arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+
     arith_uint256 bnTarget;
     bool fNegative;
     bool fOverflow;
     bnTarget.SetCompact(block.nBits, &fNegative, &fOverflow);
     if (fNegative || fOverflow || bnTarget == 0)
         return 0;
+
+    // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256
+    // as it's too large for an arith_uint256. However, as 2**256 is at least as large
+    // as bnTarget+1, it is equal to ((2**256 - bnTarget - 1) / (bnTarget+1)) + 1,
+    // or ~bnTarget / (bnTarget+1) + 1.
+    arith_uint256 bnTargetScaled = (~bnTarget / (bnTarget + 1)) + 1;
+
+    if (block.GetBlockHeader().IsHiveMined(consensusParams)) {
+        assert(block.pprev);
+
+        // Set bnPreviousTarget from nBits in most recent pow block, not just assuming it's one back. Note this logic is still valid for Hive 1.0 so doesn't need to be gated.
+        CBlockIndex* pindexTemp = block.pprev;
+        while (pindexTemp->GetBlockHeader().IsHiveMined(consensusParams)) {
+            assert(pindexTemp->pprev);
+            pindexTemp = pindexTemp->pprev;
+        }
+
+        arith_uint256 bnPreviousTarget;
+        bnPreviousTarget.SetCompact(pindexTemp->nBits, &fNegative, &fOverflow); // Set bnPreviousTarget from nBits in most recent pow block, not just assuming it's one back
+        if (fNegative || fOverflow || bnPreviousTarget == 0)
+            return 0;
+        bnTargetScaled += (~bnPreviousTarget / (bnPreviousTarget + 1)) + 1;
+
+        // Enable bonus chainwork for Hive blocks
+        //LogPrintf("**** HIVE-1.1: ENABLING BONUS CHAINWORK ON HIVE BLOCK %s\n", block.GetBlockHash().ToString());
+        //LogPrintf("**** Initial block chainwork = %s\n", bnTargetScaled.ToString());
+        double hiveDiff = GetDifficulty(&block, true);                                  // Current hive diff
+        //LogPrintf("**** Hive diff = %.12f\n", hiveDiff);
+        unsigned int k = floor(std::min(hiveDiff/consensusParams.maxHiveDiff, 1.0) * (consensusParams.maxK - consensusParams.minK) + consensusParams.minK);
+
+        bnTargetScaled *= k;
+
+        //LogPrintf("**** k = %d\n", k);
+        //LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
+
+        LogPrintf("Hive chainwork scalar k = %d\n", k);
+    } else {
+        //LogPrintf("**** HIVE-1.1: CHECKING FOR BONUS CHAINWORK ON POW BLOCK %s\n", block.GetBlockHash().ToString());
+        //LogPrintf("**** Initial block chainwork = %s\n", bnTargetScaled.ToString());
+
+        // Find last hive block
+        if (!block.pprev)
+            return bnTargetScaled;
+
+        CBlockIndex *currBlock = block.pprev;
+        int blocksSinceHive;
+        double lastHiveDifficulty = 0;
+
+        for (blocksSinceHive = 0; blocksSinceHive < consensusParams.maxKPow; blocksSinceHive++) {
+            if (currBlock->GetBlockHeader().IsHiveMined(consensusParams)) {
+                lastHiveDifficulty = GetDifficulty(currBlock, true);
+                //LogPrintf("**** Got last Hive diff = %.12f, at %s\n", lastHiveDifficulty, currBlock->GetBlockHash().ToString());
+                break;
+            }
+
+            if (!currBlock->pprev)
+                return bnTargetScaled;
+
+            currBlock = currBlock->pprev;
+        }
+
+        //LogPrintf("**** Pow blocks since last Hive block = %d\n", blocksSinceHive);
+
+        // Apply k scaling
+        unsigned int k = consensusParams.maxKPow - blocksSinceHive;
+        if (lastHiveDifficulty < consensusParams.powSplit1)
+            k = k >> 1;
+        if (lastHiveDifficulty < consensusParams.powSplit2)
+            k = k >> 1;
+
+        if (k < 1)
+            k = 1;
+
+        bnTargetScaled *= k;
+
+        //LogPrintf("**** k = %d\n", k);
+        //LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
+
+        LogPrintf("PoW chainwork scalar k = %d\n", k);
+    }
+
+    return bnTargetScaled;
+}
+
+// Ring-fork: Hive: Use this to compute estimated hashes for GetNetworkHashPS()
+arith_uint256 GetNumHashes(const CBlockIndex& block)
+{
+    arith_uint256 bnTarget;
+    bool fNegative;
+    bool fOverflow;
+
+    bnTarget.SetCompact(block.nBits, &fNegative, &fOverflow);
+    if (fNegative || fOverflow || bnTarget == 0 || block.GetBlockHeader().IsHiveMined(Params().GetConsensus()))
+        return 0;
+
     // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256
     // as it's too large for an arith_uint256. However, as 2**256 is at least as large
     // as bnTarget+1, it is equal to ((2**256 - bnTarget - 1) / (bnTarget+1)) + 1,

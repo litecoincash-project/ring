@@ -67,15 +67,17 @@ public:
 public Q_SLOTS:
     /** Switch to overview (home) page */
     void gotoOverviewPage();
-    // Ring-fork: Mining page
-    void gotoMiningPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
-    
+
+    // Ring-fork: Mining page
+    void gotoMiningPage();
+    // Ring-fork: Hive: Switch to hive page
+    void gotoHivePage();    
     // Ring-fork: Key import helper
     void importPrivateKey();
 

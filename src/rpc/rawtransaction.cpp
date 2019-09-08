@@ -533,6 +533,149 @@ static UniValue createrawtransaction(const JSONRPCRequest& request)
     return EncodeHexTx(CTransaction(rawTx));
 }
 
+// Ring-fork: Hive: Create a raw dwarf creation transaction allowing user to specify the inputs
+UniValue createrawdct(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
+        throw std::runtime_error(
+            "createrawdct [{\"txid\":\"id\",\"vout\":n},...] {\"address\":amount,\"data\":\"hex\",...} ( locktime ) ( replaceable )\n"
+            "\nCreate a raw dwarf creation transaction spending the given inputs and creating the given number of dwarves.\n"
+            "Does not add change address for unspent inputs, so be sure to add one as the final output using fundrawtransaction.\n"
+            "Returns hex-encoded raw transaction.\n"
+            "Note that the transaction's inputs are not signed, and\n"
+            "it is not stored in the wallet or transmitted to the network.\n"
+            "\nArguments:\n"
+            "1. \"inputs\"               (array, required) A json array of json objects\n"
+            "     [\n"
+            "       {\n"
+            "         \"txid\":\"id\",     (string, required) The transaction id\n"
+            "         \"vout\":n,        (numeric, required) The output number\n"
+            "         \"sequence\":n     (numeric, optional) The sequence number\n"
+            "       } \n"
+            "       ,...\n"
+            "     ]\n"
+            "2. dwarf_count              (numeric, required) The number of dwarves to create.\n"
+            "3. \"reward_address\"        (string, required) The RNG address to receive rewards for blocks mined by dwarf(s) created in this transaction.\n"
+            "4. community_contrib      (boolean, optional, default=true) If true, a small percentage of dwarf creation cost will be paid to a community fund.\n"
+            "5. locktime               (numeric, optional, default=0) Raw locktime. Non-0 value also locktime-activates inputs\n"
+            "\nResult:\n"
+            "\"transaction\"             (string) hex string of the transaction\n"
+
+            "\nExamples:\n"
+            + HelpExampleCli("createrawdct", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" 1 \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+            + HelpExampleCli("createrawdct", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" 5 \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\" false")
+            + HelpExampleRpc("createrawdct", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", 12 \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+            + HelpExampleRpc("createrawdct", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", 34 \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\" false")
+        );
+
+    RPCTypeCheck(request.params, {UniValue::VARR, UniValue::VNUM, UniValue::VSTR, UniValue::VBOOL, UniValue::VNUM}, true);
+    if (request.params[0].isNull() || request.params[1].isNull() || request.params[2].isNull() || request.params[2].get_str().empty())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, arguments 1, 2 and 3 must be non-null");
+
+    UniValue inputs = request.params[0].get_array();
+    int dwarfCount = request.params[1].get_int();
+
+    std::string rewardAddress;
+    RPCTypeCheckArgument(request.params[2], UniValue::VSTR);
+    rewardAddress = request.params[2].get_str();
+
+    bool communityContrib = true;
+    if (!request.params[3].isNull())
+        communityContrib = request.params[3].get_bool();
+
+    CMutableTransaction rawTx;
+
+    if (!request.params[4].isNull()) {
+        int64_t nLockTime = request.params[4].get_int64();
+        if (nLockTime < 0 || nLockTime > std::numeric_limits<uint32_t>::max())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, locktime out of range");
+        rawTx.nLockTime = nLockTime;
+    }
+
+    bool rbfOptIn = false;
+
+    // Add the inputs
+    for (unsigned int idx = 0; idx < inputs.size(); idx++) {
+        const UniValue& input = inputs[idx];
+        const UniValue& o = input.get_obj();
+
+        uint256 txid = ParseHashO(o, "txid");
+
+        const UniValue& vout_v = find_value(o, "vout");
+        if (!vout_v.isNum())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing vout key");
+        int nOutput = vout_v.get_int();
+        if (nOutput < 0)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout must be positive");
+
+        uint32_t nSequence;
+        if (rbfOptIn) {
+            nSequence = MAX_BIP125_RBF_SEQUENCE;
+        } else if (rawTx.nLockTime) {
+            nSequence = std::numeric_limits<uint32_t>::max() - 1;
+        } else {
+            nSequence = std::numeric_limits<uint32_t>::max();
+        }
+
+        // set the sequence number if passed in the parameters object
+        const UniValue& sequenceObj = find_value(o, "sequence");
+        if (sequenceObj.isNum()) {
+            int64_t seqNr64 = sequenceObj.get_int64();
+            if (seqNr64 < 0 || seqNr64 > std::numeric_limits<uint32_t>::max()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, sequence number is out of range");
+            } else {
+                nSequence = (uint32_t)seqNr64;
+            }
+        }
+
+        CTxIn in(COutPoint(txid, nOutput), CScript(), nSequence);
+
+        rawTx.vin.push_back(in);
+    }
+
+    // Start Dwarf Creation
+    Consensus::Params consensusParams = Params().GetConsensus();
+    CAmount dwarfCost = GetDwarfCost(chainActive.Height(), consensusParams);
+    CAmount totalDwarfCost = dwarfCost * dwarfCount;
+
+    // Check the reward address
+    CTxDestination destinationFCA;
+    destinationFCA = DecodeDestination(rewardAddress);
+    if (!IsValidDestination(destinationFCA)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, Invalid reward address specified");
+    }
+
+    // Make sure it's legacy format (TX_PUBKEYHASH)
+    std::vector<std::vector<unsigned char>> vSolutions;
+    if (Solver(GetScriptForDestination(destinationFCA), vSolutions) != TX_PUBKEYHASH) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, Reward address must be legacy format (TX_PUBKEYHASH)");
+    }
+
+    CTxDestination destinationBCF = DecodeDestination(consensusParams.dwarfCreationAddress);
+    CScript scriptPubKeyBCF = GetScriptForDestination(destinationBCF);
+    CScript scriptPubKeyFCA = GetScriptForDestination(destinationFCA);
+    scriptPubKeyBCF << OP_RETURN << OP_DWARF;
+    scriptPubKeyBCF += scriptPubKeyFCA;
+    CAmount dwarfCreationValue = totalDwarfCost;
+    CAmount donationValue = (CAmount)(totalDwarfCost / consensusParams.communityContribFactor);
+    if(communityContrib) {
+        dwarfCreationValue -= donationValue;
+    }
+
+    CTxOut outDwarfCreation(dwarfCreationValue, scriptPubKeyBCF);
+    rawTx.vout.push_back(outDwarfCreation);
+
+    // Add optional community fund output (vout[1] if present)
+    if (communityContrib) {
+        CTxDestination destinationCF = DecodeDestination(consensusParams.hiveCommunityAddress);
+        CScript scriptPubKeyCF = GetScriptForDestination(destinationCF);
+        CTxOut outCommunityContrib(donationValue,scriptPubKeyCF);
+        rawTx.vout.push_back(outCommunityContrib);
+    }
+
+    return EncodeHexTx(CTransaction(rawTx));
+}
+
 static UniValue decoderawtransaction(const JSONRPCRequest& request)
 {
     const RPCHelpMan help{"decoderawtransaction",
@@ -2060,6 +2203,7 @@ static const CRPCCommand commands[] =
   //  --------------------- ------------------------        -----------------------     ----------
     { "rawtransactions",    "getrawtransaction",            &getrawtransaction,         {"txid","verbose","blockhash"} },
     { "rawtransactions",    "createrawtransaction",         &createrawtransaction,      {"inputs","outputs","locktime","replaceable"} },
+    { "rawtransactions",    "createrawdct",                 &createrawdct,              {"inputs","dwarfcount","reward_address","community_contrib", "locktime"} }, // Ring-fork: Hive
     { "rawtransactions",    "decoderawtransaction",         &decoderawtransaction,      {"hexstring","iswitness"} },
     { "rawtransactions",    "decodescript",                 &decodescript,              {"hexstring"} },
     { "rawtransactions",    "sendrawtransaction",           &sendrawtransaction,        {"hexstring","allowhighfees"} },
