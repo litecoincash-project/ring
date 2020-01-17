@@ -1,7 +1,7 @@
 // LitecoinCash: Hexagon pie :)
 
-#ifndef BITCOIN_QT_TINYPIE_H
-#define BITCOIN_QT_TINYPIE_H
+#ifndef RING_QT_TINYPIE_H
+#define RING_QT_TINYPIE_H
 
 #include <QWidget>
 #include <QPainter>

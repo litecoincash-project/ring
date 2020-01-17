@@ -948,7 +948,7 @@
         <translation>Naujausi sandoriai gali būti dar nematomi, todėl jūsų piniginės likutis gali būti neteisingas. Ši informacija bus teisinga, kai jūsų piniginė bus baigta sinchronizuoti su ring tinklu, kaip nurodyta žemiau.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>Tinklas nepriims bandymų išleisti ringus, kurie yra vis dar nematomi.</translation>
     </message>
     <message>

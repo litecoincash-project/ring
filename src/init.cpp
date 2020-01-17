@@ -200,7 +200,10 @@ void Shutdown(InitInterfaces& interfaces)
         return;
 
     // Ring-fork: In-wallet miner: Shut down any active miner threads
-    MineCoins(false, 0, Params());
+    if (gArgs.GetBoolArg("-gen", DEFAULT_GENERATE)) {
+        MineCoins(false, 0, Params());
+        MilliSleep(1000);
+    }
 
     /// Note: Shutdown() must be able to handle cases in which initialization failed part of the way,
     /// for example if the data directory was found to be locked.

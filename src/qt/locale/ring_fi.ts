@@ -912,7 +912,7 @@
         <translation>Viimeiset tapahtumat eivät välttämättä vielä näy, joten lompakkosi saldo voi olla virheellinen. Tieto korjautuu, kunhan lompakkosi synkronointi ring-verkon kanssa on päättynyt. Tiedot näkyvät alla.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>Verkko ei tule hyväksymään sellaisten ringien käyttämistä, jotka liittyvät vielä näkymättömissä oleviin siirtoihin.</translation>
     </message>
     <message>

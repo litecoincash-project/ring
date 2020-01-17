@@ -35,7 +35,8 @@ class AddressTableModel;
 class OptionsModel;
 class PlatformStyle;
 class RecentRequestsTableModel;
-class HiveTableModel;       // Ring-fork: Hive
+class HiveTableModel;               // Ring-fork: Hive
+class AvailableGamesTableModel;     // Ring-fork: Pop
 class TransactionTableModel;
 class WalletModelTransaction;
 
@@ -158,7 +159,8 @@ public:
     AddressTableModel *getAddressTableModel();
     TransactionTableModel *getTransactionTableModel();
     RecentRequestsTableModel *getRecentRequestsTableModel();
-    HiveTableModel *getHiveTableModel();    // Ring-fork: Hive
+    HiveTableModel *getHiveTableModel();                        // Ring-fork: Hive
+    AvailableGamesTableModel *getAvailableGamesTableModel();    // Ring-fork: Pop
 
     EncryptionStatus getEncryptionStatus() const;
 
@@ -215,8 +217,10 @@ public:
     void loadReceiveRequests(std::vector<std::string>& vReceiveRequests);
     bool saveReceiveRequest(const std::string &sAddress, const int64_t nId, const std::string &sRequest);
     
-    void getDCTs(std::vector<CDwarfCreationTransactionInfo>& vDwarfCreationTransactions, bool includeDeadDwarves);     // Ring-fork: Hive
-    bool createDwarves(int dwarfCount, bool communityContrib, QWidget *parent, double dwarfPopIndex);                  // Ring-fork: Hive
+    void getDCTs(std::vector<CDwarfCreationTransactionInfo>& vDwarfCreationTransactions, bool includeDeadDwarves);                      // Ring-fork: Hive
+    bool createDwarves(int dwarfCount, bool communityContrib, QWidget *parent, double dwarfPopIndex);                                   // Ring-fork: Hive
+    void getAvailableGames(std::vector<CAvailableGame>& vGames);                                                                        // Ring-fork: Pop
+    bool submitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason); // Ring-fork: Pop
     
     bool bumpFee(uint256 hash, uint256& new_hash);
 
@@ -254,7 +258,8 @@ private:
     AddressTableModel *addressTableModel;
     TransactionTableModel *transactionTableModel;
     RecentRequestsTableModel *recentRequestsTableModel;
-    HiveTableModel *hiveTableModel; // Ring-fork: Hive
+    HiveTableModel *hiveTableModel;                         // Ring-fork: Hive
+    AvailableGamesTableModel *availableGamesTableModel;     // Ring-fork: Pop
 
     // Cache some values to be able to detect changes
     interfaces::WalletBalances m_cached_balances;

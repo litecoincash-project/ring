@@ -350,6 +350,16 @@ public:
             && vout[0].scriptPubKey[1] == OP_DWARF
         );
     }
+
+    // Ring-fork: Pop: Check if this transaction is a pop coinbase transaction
+    // Helper for QT wallet; not used for validation
+    bool IsPopCoinBase() const {
+        return (IsCoinBase() && vout[0].nValue == 0 
+            && vout[0].scriptPubKey.size() > 1 
+            && vout[0].scriptPubKey[0] == OP_RETURN
+            && vout[0].scriptPubKey[1] == OP_GAME
+        );
+    }
     
     // Ring-fork: Hive: Check if this transaction is a Dwarf Creation Transaction, and if so return the total dwarf fee paid via dwarfFeePaid and reward scriptPubKey via scriptPubKeyReward
     bool IsDCT(const Consensus::Params& consensusParams, CScript scriptPubKeyBCF, CAmount* dwarfFeePaid = nullptr, CScript* scriptPubKeyReward = nullptr) const;

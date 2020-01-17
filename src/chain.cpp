@@ -126,6 +126,7 @@ void CBlockIndex::BuildSkip()
 // Ring-fork: Hive: Grant hive-mined blocks bonus work value
 arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
+    bool verbose = false;//LogAcceptCategory(BCLog::HIVE);
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
     arith_uint256 bnTarget;
@@ -144,7 +145,7 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
     if (block.GetBlockHeader().IsHiveMined(consensusParams)) {
         assert(block.pprev);
 
-        // Set bnPreviousTarget from nBits in most recent pow block, not just assuming it's one back. Note this logic is still valid for Hive 1.0 so doesn't need to be gated.
+        // Set bnPreviousTarget from nBits in most recent pow block
         CBlockIndex* pindexTemp = block.pprev;
         while (pindexTemp->GetBlockHeader().IsHiveMined(consensusParams)) {
             assert(pindexTemp->pprev);
@@ -158,21 +159,26 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
         bnTargetScaled += (~bnPreviousTarget / (bnPreviousTarget + 1)) + 1;
 
         // Enable bonus chainwork for Hive blocks
-        //LogPrintf("**** HIVE-1.1: ENABLING BONUS CHAINWORK ON HIVE BLOCK %s\n", block.GetBlockHash().ToString());
-        //LogPrintf("**** Initial block chainwork = %s\n", bnTargetScaled.ToString());
+        if (verbose) {
+            LogPrintf("**** HIVE-1.1: ENABLING BONUS CHAINWORK ON HIVE BLOCK %s\n", block.GetBlockHash().ToString());
+            LogPrintf("**** Initial block chainwork = %s\n", bnTargetScaled.ToString());
+        }
         double hiveDiff = GetDifficulty(&block, true);                                  // Current hive diff
-        //LogPrintf("**** Hive diff = %.12f\n", hiveDiff);
+        if (verbose) LogPrintf("**** Hive diff = %.12f\n", hiveDiff);
         unsigned int k = floor(std::min(hiveDiff/consensusParams.maxHiveDiff, 1.0) * (consensusParams.maxK - consensusParams.minK) + consensusParams.minK);
 
         bnTargetScaled *= k;
 
-        //LogPrintf("**** k = %d\n", k);
-        //LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
-
-        LogPrintf("Hive chainwork scalar k = %d\n", k);
+        if (verbose) {
+            LogPrintf("**** k = %d\n", k);
+            LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
+            LogPrintf("**** Hive chainwork scalar k = %d\n", k);
+        }        
     } else {
-        //LogPrintf("**** HIVE-1.1: CHECKING FOR BONUS CHAINWORK ON POW BLOCK %s\n", block.GetBlockHash().ToString());
-        //LogPrintf("**** Initial block chainwork = %s\n", bnTargetScaled.ToString());
+        if (verbose) {
+            LogPrintf("**** HIVE-1.1: CHECKING FOR BONUS CHAINWORK ON POW/POP BLOCK %s\n", block.GetBlockHash().ToString());
+            LogPrintf("**** Initial block chainwork = %s\n", bnTargetScaled.ToString());
+        }
 
         // Find last hive block
         if (!block.pprev)
@@ -185,7 +191,7 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
         for (blocksSinceHive = 0; blocksSinceHive < consensusParams.maxKPow; blocksSinceHive++) {
             if (currBlock->GetBlockHeader().IsHiveMined(consensusParams)) {
                 lastHiveDifficulty = GetDifficulty(currBlock, true);
-                //LogPrintf("**** Got last Hive diff = %.12f, at %s\n", lastHiveDifficulty, currBlock->GetBlockHash().ToString());
+                if (verbose) LogPrintf("**** Got last Hive diff = %.12f, at %s\n", lastHiveDifficulty, currBlock->GetBlockHash().ToString());
                 break;
             }
 
@@ -195,7 +201,7 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
             currBlock = currBlock->pprev;
         }
 
-        //LogPrintf("**** Pow blocks since last Hive block = %d\n", blocksSinceHive);
+        if (verbose) LogPrintf("**** Pow/pop blocks since last Hive block = %d\n", blocksSinceHive);
 
         // Apply k scaling
         unsigned int k = consensusParams.maxKPow - blocksSinceHive;
@@ -209,10 +215,11 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
 
         bnTargetScaled *= k;
 
-        //LogPrintf("**** k = %d\n", k);
-        //LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
-
-        LogPrintf("PoW chainwork scalar k = %d\n", k);
+        if (verbose) {
+            LogPrintf("**** k = %d\n", k);
+            LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
+            LogPrintf("**** Pow/Pop chainwork scalar k = %d\n", k);  // Ring-fork: Pop: Label changed
+        }
     }
 
     return bnTargetScaled;
@@ -226,7 +233,10 @@ arith_uint256 GetNumHashes(const CBlockIndex& block)
     bool fOverflow;
 
     bnTarget.SetCompact(block.nBits, &fNegative, &fOverflow);
-    if (fNegative || fOverflow || bnTarget == 0 || block.GetBlockHeader().IsHiveMined(Params().GetConsensus()))
+    if (fNegative || fOverflow || bnTarget == 0 
+        || block.GetBlockHeader().IsHiveMined(Params().GetConsensus())
+        || block.GetBlockHeader().IsPopMined(Params().GetConsensus())  // Ring-fork: Pop
+    )
         return 0;
 
     // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256

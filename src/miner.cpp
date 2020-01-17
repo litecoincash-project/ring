@@ -103,7 +103,8 @@ Optional<int64_t> BlockAssembler::m_last_block_num_txs{nullopt};
 Optional<int64_t> BlockAssembler::m_last_block_weight{nullopt};
 
 // Ring-fork: Hive: If hiveProofScript is passed, create a Hive block instead of a PoW block
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, const CScript* hiveProofScript)
+// Ring-fork: Pop: If hiveProofScript is null and popProofScript is passed, create a Pop block
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, const CScript* hiveProofScript, const CScript* popProofScript)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -152,8 +153,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
 
-    // Ring-fork: Don't include DCTs in hivemined blocks
-    if (hiveProofScript)
+    // Ring-fork: Hive: Don't include DCTs in hivemined blocks
+    // Ring-fork: Pop: Don't include DCTs in pop blocks
+    if (hiveProofScript || popProofScript)
         fIncludeDCTs = false;
 
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
@@ -165,6 +167,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Create coinbase transaction.
     // Ring-fork: Hive: Create appropriate coinbase tx for pow or Hive block
+    // Ring-fork: Pop: Handle pop blocks too
     if (hiveProofScript) {
         CMutableTransaction coinbaseTx;
 
@@ -180,6 +183,30 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         // vout[1]: Reward :)
         coinbaseTx.vout[1].scriptPubKey = scriptPubKeyIn;
+        coinbaseTx.vout[1].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+
+        // vout[2]: Coinbase commitment
+        pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
+        pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
+        pblocktemplate->vTxFees[0] = -nFees;
+    } else if (popProofScript) {
+        CMutableTransaction coinbaseTx;
+
+        // 1 vin with empty prevout
+        coinbaseTx.vin.resize(1);
+        coinbaseTx.vin[0].prevout.SetNull();
+        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+
+        // vout[0]: Hive proof
+        coinbaseTx.vout.resize(2);
+        coinbaseTx.vout[0].scriptPubKey = *popProofScript;
+        coinbaseTx.vout[0].nValue = 0;
+
+        // vout[1]: Reward :)
+        coinbaseTx.vout[1].scriptPubKey = scriptPubKeyIn;
+        
+        // Ring-fork: Pop: TODO -- don't use a separate GetPopBlockSubsidy; just ..... DO ZE BIG SHIT ON IT
+        //coinbaseTx.vout[1].nValue = nFees + GetPopBlockSubsidy(nHeight, chainparams.GetConsensus());
         coinbaseTx.vout[1].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
 
         // vout[2]: Coinbase commitment
@@ -206,19 +233,27 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
     
     // Ring-fork: Hive: Choose correct nBits depending on whether a Hive block is requested
+    // Ring-fork: Pop: Handle pop blocks too
     if (hiveProofScript)
         pblock->nBits = GetNextHiveWorkRequired(pindexPrev, chainparams.GetConsensus());
+    else if (popProofScript)
+        pblock->nBits = UintToArith256(chainparams.GetConsensus().powLimit).GetCompact();
     else
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
 
     // Ring-fork: Hive: Set nonce marker for hivemined blocks
-    pblock->nNonce = hiveProofScript ? chainparams.GetConsensus().hiveNonceMarker : 0;
+    // Ring-fork: Pop: Handle pop blocks too
+    pblock->nNonce = hiveProofScript ? chainparams.GetConsensus().hiveNonceMarker : popProofScript ? chainparams.GetConsensus().popNonceMarker : 0;
 
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
-        throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
+        // Ring-fork: Pop: Don't throw here -- we may be in an event handler thread, and we can provide nicer messages anyway.
+        if (popProofScript)
+            return nullptr;
+        else
+            throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
     int64_t nTime2 = GetTimeMicros();
 
@@ -265,7 +300,7 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
             return false;
         // Ring-fork: Hive: Inhibit DCTs if required
         if (!fIncludeDCTs && it->GetTx().IsDCT(consensusParams, GetScriptForDestination(DecodeDestination(consensusParams.dwarfCreationAddress))))
-            return false;            
+            return false;
     }
     return true;
 }

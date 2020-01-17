@@ -948,7 +948,7 @@
         <translation>Nedávné transakce ještě nemusí být vidět, takže stav tvého účtu nemusí být platný. Jakmile se však tvá peněženka dosynchronizuje s ringovou sítí (viz informace níže), tak už bude stav správně.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>Utrácení ringů, které už utratily zatím nezobrazené transakce, nebude ringovou sítí umožněno.</translation>
     </message>
     <message>

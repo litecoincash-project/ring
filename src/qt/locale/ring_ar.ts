@@ -908,7 +908,7 @@
         <translation>قد لا تكون المعاملات الأخيرة مرئية بعد، وبالتالي قد يكون رصيد محفظتك غير صحيح. ستكون هذه المعلومات صحيحة بمجرد الانتهاء من محفظتك مع شبكة البيتكوين، كما هو مفصل أدناه.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>لن تقبل الشبكة محاولة إنفاق البتكوين المتأثرة بالمعاملات التي لم يتم عرضها بعد.</translation>
     </message>
     <message>

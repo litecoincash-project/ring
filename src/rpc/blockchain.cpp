@@ -74,7 +74,8 @@ double GetDifficulty(const CBlockIndex* blockindex, bool getHiveDifficulty)
             blockindex = blockindex->pprev;
         }        
     } else {
-        while (blockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
+        // Ring-fork: Pop: Step over pop blocks as well
+        while (blockindex->GetBlockHeader().IsHiveMined(consensusParams) || blockindex->GetBlockHeader().IsPopMined(consensusParams)) {
             assert (blockindex->pprev);
             blockindex = blockindex->pprev;
         }
@@ -109,15 +110,17 @@ static int ComputeNextBlockAndDepth(const CBlockIndex* tip, const CBlockIndex* b
 }
 
 // Ring-fork: Show pow hash in JSON
-// Ring-fork: Hive: Show block type in JSON
+// Ring-fork: Hive: Show block type and hive difficulty and hide nonce in JSON
+// Ring-fork: Pop: Show block type and hide nonce and nBits in JSON
 UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex)
 {
     UniValue result(UniValue::VOBJ);
     bool isHive = blockindex->GetBlockHeader().IsHiveMined(Params().GetConsensus());
+    bool isPop = blockindex->GetBlockHeader().IsPopMined(Params().GetConsensus());
 
     result.pushKV("hash", blockindex->GetBlockHash().GetHex());
-    result.pushKV("type", isHive ? "hive" : "pow");
-    if (!isHive) result.pushKV("powhash", blockindex->GetBlockPowHash().GetHex());
+    result.pushKV("type", isHive ? "hive" : isPop ? "pop" : "pow");
+    if (!isHive && !isPop) result.pushKV("powhash", blockindex->GetBlockPowHash().GetHex());
     const CBlockIndex* pnext;
     int confirmations = ComputeNextBlockAndDepth(tip, blockindex, pnext);
     result.pushKV("confirmations", confirmations);
@@ -127,9 +130,10 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
     result.pushKV("merkleroot", blockindex->hashMerkleRoot.GetHex());
     result.pushKV("time", (int64_t)blockindex->nTime);
     result.pushKV("mediantime", (int64_t)blockindex->GetMedianTimePast());
-    if (!isHive) result.pushKV("nonce", (uint64_t)blockindex->nNonce);
-    result.pushKV("bits", strprintf("%08x", blockindex->nBits));
+    if (!isHive && !isPop) result.pushKV("nonce", (uint64_t)blockindex->nNonce);
+    if (!isPop) result.pushKV("bits", strprintf("%08x", blockindex->nBits));
     result.pushKV("difficulty", GetDifficulty(blockindex));
+    result.pushKV("hivedifficulty", GetDifficulty(blockindex, true));
     result.pushKV("chainwork", blockindex->nChainWork.GetHex());
     result.pushKV("nTx", (uint64_t)blockindex->nTx);
 
@@ -141,15 +145,17 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
 }
 
 // Ring-fork: Show pow hash in JSON
-// Ring-fork: Hive: Show block type in JSON
+// Ring-fork: Hive: Show block type and hive difficulty and hide nonce in JSON
+// Ring-fork: Pop: Show block type and hide nonce and nBits in JSON
 UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIndex* blockindex, bool txDetails)
 {
     UniValue result(UniValue::VOBJ);
     bool isHive = blockindex->GetBlockHeader().IsHiveMined(Params().GetConsensus());
+    bool isPop = blockindex->GetBlockHeader().IsPopMined(Params().GetConsensus());    
 
     result.pushKV("hash", blockindex->GetBlockHash().GetHex());
-    result.pushKV("type", isHive ? "hive" : "pow");
-    if (!isHive) result.pushKV("powhash", blockindex->GetBlockPowHash().GetHex());
+    result.pushKV("type", isHive ? "hive" : isPop ? "pop" : "pow");
+    if (!isHive && !isPop) result.pushKV("powhash", blockindex->GetBlockPowHash().GetHex());
     const CBlockIndex* pnext;
     int confirmations = ComputeNextBlockAndDepth(tip, blockindex, pnext);
     result.pushKV("confirmations", confirmations);
@@ -175,9 +181,10 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIn
     result.pushKV("tx", txs);
     result.pushKV("time", block.GetBlockTime());
     result.pushKV("mediantime", (int64_t)blockindex->GetMedianTimePast());
-    if (!isHive) result.pushKV("nonce", (uint64_t)block.nNonce);
-    result.pushKV("bits", strprintf("%08x", block.nBits));
+    if (!isHive && !isPop) result.pushKV("nonce", (uint64_t)block.nNonce);
+    if (!isPop) result.pushKV("bits", strprintf("%08x", block.nBits));
     result.pushKV("difficulty", GetDifficulty(blockindex));
+    result.pushKV("hivedifficulty", GetDifficulty(blockindex, true));
     result.pushKV("chainwork", blockindex->nChainWork.GetHex());
     result.pushKV("nTx", (uint64_t)blockindex->nTx);
 

@@ -13,7 +13,8 @@
 #include <qt/optionsmodel.h>
 #include <qt/paymentserver.h>
 #include <qt/recentrequeststablemodel.h>
-#include <qt/hivetablemodel.h>      // Ring-fork: Hive
+#include <qt/hivetablemodel.h>                  // Ring-fork: Hive
+#include <qt/pop/availablegamestablemodel.h>    // Ring-fork: Pop
 #include <qt/sendcoinsdialog.h>
 #include <qt/transactiontablemodel.h>
 
@@ -39,7 +40,8 @@ WalletModel::WalletModel(std::unique_ptr<interfaces::Wallet> wallet, interfaces:
     QObject(parent), m_wallet(std::move(wallet)), m_node(node), optionsModel(_optionsModel), addressTableModel(nullptr),
     transactionTableModel(nullptr),
     recentRequestsTableModel(nullptr),
-    hiveTableModel(0),      // Ring-fork: Hive
+    hiveTableModel(0),           // Ring-fork: Hive
+    availableGamesTableModel(0), // Ring-fork: Pop
     cachedEncryptionStatus(Unencrypted),
     cachedNumBlocks(0)
 {
@@ -47,7 +49,8 @@ WalletModel::WalletModel(std::unique_ptr<interfaces::Wallet> wallet, interfaces:
     addressTableModel = new AddressTableModel(this);
     transactionTableModel = new TransactionTableModel(platformStyle, this);
     recentRequestsTableModel = new RecentRequestsTableModel(this);
-    hiveTableModel = new HiveTableModel(platformStyle, this);  // Ring-fork: Hive
+    hiveTableModel = new HiveTableModel(platformStyle, this);                       // Ring-fork: Hive
+    availableGamesTableModel = new AvailableGamesTableModel(platformStyle, this);   // Ring-fork: Pop
 
     // This timer will be fired repeatedly to update the balance
     pollTimer = new QTimer(this);
@@ -333,6 +336,17 @@ HiveTableModel *WalletModel::getHiveTableModel()
     return hiveTableModel;
 }
 
+// Ring-fork: Pop
+AvailableGamesTableModel *WalletModel::getAvailableGamesTableModel()
+{
+    return availableGamesTableModel;
+}
+
+// Ring-fork: Pop
+bool WalletModel::submitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) {
+    return m_wallet->submitSolution(game, gameType, solution, strFailReason);
+}
+
 WalletModel::EncryptionStatus WalletModel::getEncryptionStatus() const
 {
     if(!m_wallet->isCrypted())
@@ -526,7 +540,18 @@ void WalletModel::loadReceiveRequests(std::vector<std::string>& vReceiveRequests
 
 // Ring-fork: Hive
 void WalletModel::getDCTs(std::vector<CDwarfCreationTransactionInfo>& vDwarfCreationTransactions, bool includeDeadDwarves) {
-    vDwarfCreationTransactions = m_wallet->getDCTs(includeDeadDwarves, true, Params().GetConsensus(), 1);
+    {
+        //LOCK(m_wallet->get()->cs_wallet);
+        vDwarfCreationTransactions = m_wallet->getDCTs(includeDeadDwarves, true, Params().GetConsensus(), 1);
+    }
+}
+
+// Ring-fork: Pop
+void WalletModel::getAvailableGames(std::vector<CAvailableGame>& vGames) {
+    {
+        //LOCK(m_wallet->get()->cs_wallet);
+        vGames = m_wallet->getAvailableGames(Params().GetConsensus());
+    }
 }
 
 // Ring-fork: Hive

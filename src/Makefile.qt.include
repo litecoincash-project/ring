@@ -130,6 +130,7 @@ QT_TS = \
 
 # Ring-fork: Mining page
 # Ring-fork: Hive
+# Ring-fork: Pop
 QT_FORMS_UI = \
   qt/forms/addressbookpage.ui \
   qt/forms/askpassphrasedialog.ui \
@@ -143,6 +144,7 @@ QT_FORMS_UI = \
   qt/forms/overviewpage.ui \
   qt/forms/miningpage.ui \
   qt/forms/hivedialog.ui \
+  qt/forms/popdialog.ui \
   qt/forms/receivecoinsdialog.ui \
   qt/forms/receiverequestdialog.ui \
   qt/forms/debugwindow.ui \
@@ -153,6 +155,7 @@ QT_FORMS_UI = \
 
 # Ring-fork: Mining page
 # Ring-fork: Hive
+# Ring-fork: Pop
 QT_MOC_CPP = \
   qt/moc_addressbookpage.cpp \
   qt/moc_addresstablemodel.cpp \
@@ -199,12 +202,15 @@ QT_MOC_CPP = \
   qt/moc_transactiontablemodel.cpp \
   qt/moc_transactionview.cpp \
   qt/moc_hivedialog.cpp \
+  qt/moc_popdialog.cpp \
   qt/moc_utilitydialog.cpp \
   qt/moc_walletcontroller.cpp \
   qt/moc_walletframe.cpp \
   qt/moc_walletmodel.cpp \
   qt/moc_walletview.cpp \
-  qt/moc_qcustomplot.cpp
+  qt/moc_qcustomplot.cpp \
+  qt/pop/moc_availablegamestablemodel.cpp \
+  qt/pop/game0/moc_game0board.cpp
 
 RING_MM = \
   qt/macdockiconhandler.mm \
@@ -236,6 +242,7 @@ endif
 
 # Ring-fork: Mining page
 # Ring-fork: Hive
+# Ring-fork: Pop
 RING_QT_H = \
   qt/addressbookpage.h \
   qt/addresstablemodel.h \
@@ -265,6 +272,7 @@ RING_QT_H = \
   qt/optionsmodel.h \
   qt/overviewpage.h \
   qt/hivedialog.h \
+  qt/popdialog.h \
   qt/miningpage.h \
   qt/paymentrequestplus.h \
   qt/paymentserver.h \
@@ -296,10 +304,16 @@ RING_QT_H = \
   qt/walletview.h \
   qt/winshutdownmonitor.h \
   qt/qcustomplot.h \
-  qt/tinypie.h
+  qt/tinypie.h \
+  qt/pop/availablegamestablemodel.h \
+  qt/pop/miniaudio/miniaudio.h \
+  qt/pop/miniaudio/dr_wave.h \
+  qt/pop/soundplayer.h \
+  qt/pop/game0/game0board.h
 
 # Ring-fork: Mining page, form BG
 # Ring-fork: Hive
+# Ring-fork: Pop
 RES_ICONS = \
   qt/res/icons/add.png \
   qt/res/icons/address-book.png \
@@ -362,17 +376,20 @@ RES_ICONS = \
   qt/res/icons/tx_hive_dct.png \
   qt/res/icons/tx_hive_cf.png \
   qt/res/icons/tx_hive_reward.png \
+  qt/res/icons/tx_pop_reward.png \
   qt/res/icons/hivestatus_disabled.png \
   qt/res/icons/hivestatus_clear.png \
   qt/res/icons/hivestatus_red.png \
   qt/res/icons/hivestatus_orange.png \
   qt/res/icons/hivestatus_green.png \
   qt/res/icons/hive.png \
+  qt/res/icons/play.png \
   qt/res/icons/refresh.png \
   qt/res/icons/agentstatus_mature.png \
   qt/res/icons/agentstatus_immature.png \
   qt/res/icons/agentstatus_dead.png \
-  qt/res/icons/minotaur.png
+  qt/res/icons/minotaur.png \
+  qt/res/icons/pop/game0/*.png
 
 # Ring-fork: Hive
 RING_QT_BASE_CPP = \
@@ -406,6 +423,7 @@ RING_QT_WINDOWS_CPP = qt/winshutdownmonitor.cpp
 
 # Ring-fork: Mining page
 # Ring-fork: Hive
+# Ring-fork: Pop
 RING_QT_WALLET_CPP = \
   qt/addressbookpage.cpp \
   qt/addresstablemodel.cpp \
@@ -416,6 +434,7 @@ RING_QT_WALLET_CPP = \
   qt/openuridialog.cpp \
   qt/overviewpage.cpp \
   qt/hivedialog.cpp \
+  qt/popdialog.cpp \
   qt/miningpage.cpp \
   qt/paymentserver.cpp \
   qt/receivecoinsdialog.cpp \
@@ -435,7 +454,10 @@ RING_QT_WALLET_CPP = \
   qt/walletframe.cpp \
   qt/walletmodel.cpp \
   qt/walletmodeltransaction.cpp \
-  qt/walletview.cpp
+  qt/walletview.cpp \
+  qt/pop/soundplayer.cpp \
+  qt/pop/availablegamestablemodel.cpp \
+  qt/pop/game0/game0board.cpp
 
 RING_QT_WALLET_BIP70_CPP = \
   qt/paymentrequestplus.cpp

@@ -776,7 +776,7 @@
         <translation>சமீபத்திய பரிவர்த்தனைகள் இன்னும் காணப்படாமல் இருக்கலாம், எனவே உங்கள் பணப்பையின் சமநிலை தவறாக இருக்கலாம். கீழே விவரிக்கப்பட்டுள்ளபடி, உங்கள் பணப்பை பிட்ஃபோனை நெட்வொர்க்குடன் ஒத்திசைக்க முடிந்ததும் இந்த தகவல் சரியாக இருக்கும்.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>இதுவரை காட்டப்படாத பரிவர்த்தனைகளால் பாதிக்கப்படும் பிட்னிக்களை செலவிடுவதற்கு முயற்சி பிணையத்தால் ஏற்கப்படாது.</translation>
     </message>
     <message>

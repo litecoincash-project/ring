@@ -142,6 +142,9 @@ const char* GetOpName(opcodetype opcode)
     // Ring-fork: Hive
     case OP_DWARF                  : return "OP_DWARF";
 
+    // Ring-fork: Pop
+    case OP_GAME                   : return "OP_GAME";
+
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";
 
     default:

@@ -77,7 +77,9 @@ public Q_SLOTS:
     // Ring-fork: Mining page
     void gotoMiningPage();
     // Ring-fork: Hive: Switch to hive page
-    void gotoHivePage();    
+    void gotoHivePage();
+    // Ring-fork: Pop: Switch to pop page
+    void gotoPopPage();
     // Ring-fork: Key import helper
     void importPrivateKey();
 

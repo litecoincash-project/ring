@@ -1068,7 +1068,8 @@ static bool WriteBlockToDisk(const CBlock& block, CDiskBlockPos& pos, const CMes
     return true;
 }
 
-bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus::Params& consensusParams)
+// Ring-fork: Pop: Allow option to not revalidate blocks when deep digging, as all are validated at first load
+bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus::Params& consensusParams, bool fullValidation)
 {
     block.SetNull();
 
@@ -1085,10 +1086,18 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
         return error("%s: Deserialize or I/O error - %s at %s", __func__, e.what(), pos.ToString());
     }
 
+    // Ring-fork: Pop: Don't revalidate blocks when deep digging
+    if (!fullValidation)
+        return true;
+
     // Ring-fork: Hive: Check PoW or Hive work depending on blocktype
+    // Ring-fork: Pop: Check pop work too
     if (block.IsHiveMined(consensusParams)) {
         if (!CheckHiveProof(&block, consensusParams))
             return error("ReadBlockFromDisk: Errors in Hive block header at %s", pos.ToString());
+    } else if (block.IsPopMined(consensusParams)) {
+        if (!CheckPopProof(&block, consensusParams))
+            return error("ReadBlockFromDisk: Errors in Pop block header at %s", pos.ToString());
     } else {
         if (!CheckProofOfWork(block.GetPowHash(), block.nBits, consensusParams))
             return error("ReadBlockFromDisk: Errors in PoW block header at %s", pos.ToString());
@@ -1097,7 +1106,8 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
     return true;
 }
 
-bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus::Params& consensusParams)
+// Ring-fork: Pop: Allow option to not revalidate blocks when deep digging, as all are validated at first load
+bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus::Params& consensusParams, bool fullValidation)
 {
     CDiskBlockPos blockPos;
     {
@@ -1105,7 +1115,7 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
         blockPos = pindex->GetBlockPos();
     }
 
-    if (!ReadBlockFromDisk(block, blockPos, consensusParams))
+    if (!ReadBlockFromDisk(block, blockPos, consensusParams, fullValidation))
         return false;
     if (block.GetHash() != pindex->GetBlockHash())
         return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
@@ -1159,24 +1169,19 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex
     return ReadRawBlockFromDisk(block, block_pos, message_start);
 }
 
+// Ring-fork: Block subsidy. Checks for ID blocks, slow starts public blocks, no halvenings.
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    // Ring-fork: Allow any subsidy up to the last initial distribution block
+    // Allow any subsidy up to the last initial distribution block
     if (nHeight <= consensusParams.lastInitialDistributionHeight)
         return MAX_MONEY;
 
-    int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
-    // Force block reward to zero when right shift is undefined.
-    if (halvings >= 64)
-        return 0;
-
+    // Enable standard flat subsidy
     CAmount nSubsidy = 3 * COIN;
-    // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
-    nSubsidy >>= halvings;
 
     // Ring-fork: Slow-start the first n blocks to prevent early miners having an unfair advantage
     int64_t blocksSinceInitialDistribution = nHeight - consensusParams.lastInitialDistributionHeight;
-    if (blocksSinceInitialDistribution > 0 && blocksSinceInitialDistribution < consensusParams.slowStartBlocks) {
+    if (blocksSinceInitialDistribution < consensusParams.slowStartBlocks) {
         CAmount incrementPerBlock = nSubsidy / consensusParams.slowStartBlocks;
         nSubsidy = blocksSinceInitialDistribution * incrementPerBlock;
     }
@@ -3115,8 +3120,9 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
 
 static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
-    // Ring-fork: Hive: Check PoW or Hive work depending on blocktype
-    if (fCheckPOW && !block.IsHiveMined(consensusParams)) {
+    // Ring-fork: Hive: Only check pow header blocks
+    // Ring-fork: Pop: Still only check pow header blocks
+    if (fCheckPOW && !block.IsHiveMined(consensusParams) && !block.IsPopMined(consensusParams)) {
         if (!CheckProofOfWork(block.GetPowHash(), block.nBits, consensusParams))
             return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
     }
@@ -3137,9 +3143,14 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         return false;
 
     // Ring-fork: Hive: Check Hive proof
-    if (block.IsHiveMined(consensusParams))
+    // Ring-fork: Pop: Check pop proof
+    if (block.IsHiveMined(consensusParams)) {
         if (!CheckHiveProof(&block, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-hive-proof", false, "proof of hive failed");
+    } else if (block.IsPopMined(consensusParams)) {
+        if (!CheckPopProof(&block, consensusParams))
+            return state.DoS(100, false, REJECT_INVALID, "bad-pop-proof", false, "proof of play failed");
+    }
 
     // Check the merkle root.
     if (fCheckMerkleRoot) {
@@ -3238,7 +3249,7 @@ bool GetTxByHashAndHeight(const uint256 txHash, const int nHeight, CTransactionR
 
     if (fHavePruned && !(pindex->nStatus & BLOCK_HAVE_DATA) && pindex->nTx > 0)
         throw std::runtime_error(std::string(__func__) + ": Block not available (pruned data)");
-    if (!ReadBlockFromDisk(block, pindex, consensusParams))
+    if (!ReadBlockFromDisk(block, pindex, consensusParams, false))
         throw std::runtime_error(std::string(__func__) + ": Block not found on disk");
 
     CMerkleBlock merkleBlock(block, txids);
@@ -3333,11 +3344,12 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     const int nHeight = pindexPrev->nHeight + 1;
 
     // Ring-fork: Hive: Check appropriate Hive or PoW target
+    // Ring-fork: Pop: Any nBits is valid
     const Consensus::Params& consensusParams = params.GetConsensus();
     if (block.IsHiveMined(consensusParams)) {
         if (block.nBits != GetNextHiveWorkRequired(pindexPrev, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-hive-diffbits", false, "incorrect hive difficulty in block");
-    } else {
+    } else if (!block.IsPopMined(consensusParams)) {
         if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect pow difficulty in block");
     }

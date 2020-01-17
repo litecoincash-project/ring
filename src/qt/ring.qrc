@@ -62,9 +62,11 @@
         <file alias="hivestatus_orange">res/icons/hivestatus_orange.png</file>
         <file alias="hivestatus_green">res/icons/hivestatus_green.png</file>
         <file alias="hiveicon">res/icons/hive.png</file>
+        <file alias="playicon">res/icons/play.png</file>
         <file alias="tx_hive_dct">res/icons/tx_hive_dct.png</file>
         <file alias="tx_hive_cf">res/icons/tx_hive_cf.png</file>
         <file alias="tx_hive_reward">res/icons/tx_hive_reward.png</file>
+        <file alias="tx_pop_reward">res/icons/tx_pop_reward.png</file>
         <file alias="agentstatus_mature">res/icons/agentstatus_mature.png</file>
         <file alias="agentstatus_immature">res/icons/agentstatus_immature.png</file>
         <file alias="agentstatus_dead">res/icons/agentstatus_dead.png</file>
@@ -108,5 +110,31 @@
         <file alias="spinner-033">res/movies/spinner-033.png</file>
         <file alias="spinner-034">res/movies/spinner-034.png</file>
         <file alias="spinner-035">res/movies/spinner-035.png</file>
+    </qresource>
+    <qresource prefix="/game0">
+        <file alias="boardmouseoverok">res/icons/pop/game0/boardmouseoverok.png</file>
+        <file alias="boardmouseoverbad">res/icons/pop/game0/boardmouseoverbad.png</file>
+        <file alias="candle">res/icons/pop/game0/candle.png</file>
+        <file alias="boardtile0">res/icons/pop/game0/boardtile0.png</file>
+        <file alias="boardtile1">res/icons/pop/game0/boardtile1.png</file>
+        <file alias="boardtile2">res/icons/pop/game0/boardtile2.png</file>
+        <file alias="boardtile3">res/icons/pop/game0/boardtile3.png</file>
+        <file alias="boardtile4">res/icons/pop/game0/boardtile4.png</file>
+        <file alias="boardtile5">res/icons/pop/game0/boardtile5.png</file>
+        <file alias="boardtile6">res/icons/pop/game0/boardtile6.png</file>
+        <file alias="boardtile7">res/icons/pop/game0/boardtile7.png</file>
+        <file alias="boardtile8">res/icons/pop/game0/boardtile8.png</file>
+        <file alias="boardtile9">res/icons/pop/game0/boardtile9.png</file>
+        <file alias="boardtile10">res/icons/pop/game0/boardtile10.png</file>
+        <file alias="boardtile11">res/icons/pop/game0/boardtile11.png</file>
+        <file alias="boardtile12">res/icons/pop/game0/boardtile12.png</file>
+        <file alias="boardtile13">res/icons/pop/game0/boardtile13.png</file>
+        <file alias="boardtile14">res/icons/pop/game0/boardtile14.png</file>
+        <file alias="goodclick.wav">res/sounds/pop/game0/goodclick.wav</file>
+        <file alias="badclick.wav">res/sounds/pop/game0/badclick.wav</file>
+        <file alias="rotate.wav">res/sounds/pop/game0/rotate.wav</file>
+        <file alias="score.wav">res/sounds/pop/game0/score.wav</file>
+        <file alias="win.wav">res/sounds/pop/game0/win.wav</file>
+        <file alias="lose.wav">res/sounds/pop/game0/lose.wav</file>
     </qresource>
 </RCC>

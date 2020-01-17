@@ -29,11 +29,13 @@ enum class FeeReason;
 enum class OutputType;
 struct CRecipient;
 
-class CDwarfCreationTransactionInfo;                          // Ring-fork: Hive: Forward declarations
+class CDwarfCreationTransactionInfo;                            // Ring-fork: Hive: Forward declarations
 class CReserveKey;
 class CValidationState;
 class CConnman;
 typedef std::map<std::string, std::string> mapValue_t;
+                            
+class CAvailableGame;                                           // Ring-fork: Pop: Forward declarations
 
 namespace interfaces {
 
@@ -88,6 +90,10 @@ public:
     virtual bool commitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm, CReserveKey& reservekey, CConnman* connman, CValidationState& state) = 0;
     virtual bool createDwarfTransaction(int dwarfCount, CTransactionRef& tx, CReserveKey& reservekeyChange, CReserveKey& reservekeyReward, std::string rewardAddress, std::string changeAddress, bool communityContrib, std::string& strFailReason, const Consensus::Params& consensusParams) = 0;
     virtual CWallet* get() = 0;
+    
+    // Ring-fork: Pop: Passthroughs
+    virtual std::vector<CAvailableGame> getAvailableGames(const Consensus::Params& consensusParams) = 0;
+    virtual bool submitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) = 0;
 
     // Get key from pool.
     virtual bool getKeyFromPool(bool internal, CPubKey& pub_key) = 0;

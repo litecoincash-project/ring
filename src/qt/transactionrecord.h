@@ -83,9 +83,10 @@ public:
         RecvFromOther,
         SendToSelf,
         ForeignChainImport, // Ring-fork: A claim transaction from a supported foreign chain
-        HiveDwarfCreation,    // Ring-fork: Hive
-        HiveCommunityFund,  // Ring-fork: Hive
-        HiveReward           // Ring-fork: Hive        
+        HiveDwarfCreation,  // Ring-fork: Hive dwarf creation
+        HiveCommunityFund,  // Ring-fork: Hive community fund contribution
+        HiveReward,         // Ring-fork: Hive block reward
+        PopReward,          // Ring-fork: Pop block reward
     };
 
     /** Number of confirmation recommended for accepting a transaction */

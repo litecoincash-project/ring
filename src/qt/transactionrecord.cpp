@@ -69,10 +69,13 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 {
                     // Ring-fork: Show initial distribution claims separately to mined blocks in UI
                     // Ring-fork: Hive: Show hivemined blocks separately to mined blocks in UI
+                    // Ring-fork: Pop: Show hivemined blocks separately to mined blocks in UI
                     CScript scriptPubKeyMarker;
                     scriptPubKeyMarker << OP_RETURN << 0x49 << 0x44;
                     if (wtx.tx.get()->IsHiveCoinBase())
-                        sub.type = TransactionRecord::HiveReward;            // Hivemined
+                        sub.type = TransactionRecord::HiveReward;           // Hivemined
+                    else if (wtx.tx.get()->IsPopCoinBase())
+                        sub.type = TransactionRecord::PopReward;            // Popmined
                     else if (wtx.tx->vout[0].scriptPubKey == scriptPubKeyMarker && wtx.tx->vout[0].nValue == 0)
                         sub.type = TransactionRecord::ForeignChainImport;   // Claimed
                     else
@@ -204,7 +207,8 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, int 
     }
     // For generated transactions, determine maturity
     // Ring-fork: Hive: Do the same for hivemined transactions
-    else if(type == TransactionRecord::Generated || type == TransactionRecord::HiveReward)
+    // Ring-fork: Pop: And for popmined transactions!
+    else if(type == TransactionRecord::Generated || type == TransactionRecord::HiveReward || type == TransactionRecord::PopReward)
     {
         if (wtx.blocks_to_maturity > 0)
         {

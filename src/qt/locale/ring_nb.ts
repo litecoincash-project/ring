@@ -932,7 +932,7 @@
         <translation>Det kan hende nylige transaksjoner ikke vises enda, og at lommeboksaldoen dermed blir uriktig. Denne informasjonen vil rette seg når synkronisering av lommeboka mot ring-nettverket er fullført, som anvist nedenfor.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>Forsøk på å bruke ring som er påvirket av transaksjoner som ikke er vist enda godtas ikke av nettverket.</translation>
     </message>
     <message>

@@ -949,7 +949,7 @@ Försök igen.</translation>
         <translation>Nyligen gjorda transaktioner visas inte korrekt och därför kan din plånboks saldo visas felaktigt. Denna information kommer att visas korrekt så snart din plånbok har synkroniserats med Ring-nätverket enligt informationen nedan.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>Att försöka spendera ring som påverkas av transaktioner som ännu inte visas kommer inte accepteras av nätverket. </translation>
     </message>
     <message>

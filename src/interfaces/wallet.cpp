@@ -171,6 +171,13 @@ public:
     CWallet *get() override {
         return m_wallet.get();
     }
+    // Ring-fork: Pop: Interface pass-throughs
+    std::vector<CAvailableGame> getAvailableGames(const Consensus::Params& consensusParams) override {
+        return m_wallet->GetAvailableGames(consensusParams);
+    }
+    bool submitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) override {
+        return m_wallet->SubmitSolution(game, gameType, solution, strFailReason);
+    }
 
     bool getKeyFromPool(bool internal, CPubKey& pub_key) override
     {

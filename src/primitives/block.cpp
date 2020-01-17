@@ -30,11 +30,12 @@ uint256 CBlockHeader::GetPowHash() const
 
 // Ring-fork: Seperate block hash and pow hash: Include powHash in ToString()
 // Ring-fork: Hive: Include block type in ToString()
+// Ring-fork: Pop: Include block type in ToString()
 std::string CBlock::ToString() const
 {
     std::stringstream s;
     s << strprintf("CBlock(type=%s, hash=%s, powHash=%s, ver=0x%08x, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%u)\n",
-        IsHiveMined(Params().GetConsensus()) ? "hive" : "pow",
+        IsHiveMined(Params().GetConsensus()) ? "hive" : IsPopMined(Params().GetConsensus()) ? "pop" : "pow",
         GetHash().ToString(),
         GetPowHash().ToString(),
         nVersion,

@@ -190,6 +190,9 @@ enum opcodetype
     // Ring-fork: Hive
     OP_DWARF = 0xbe,
 
+    // Ring-fork: Pop
+    OP_GAME = 0xbf,
+
     OP_INVALIDOPCODE = 0xff,
 };
 

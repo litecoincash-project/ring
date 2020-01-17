@@ -54,6 +54,7 @@ namespace BCLog {
         QT          = (1 << 19),
         LEVELDB     = (1 << 20),
         HIVE        = (1 << 21),    // Ring-fork: Hive logging
+        POP         = (1 << 22),    // Ring-fork: Pop logging
         ALL         = ~(uint32_t)0,
     };
 

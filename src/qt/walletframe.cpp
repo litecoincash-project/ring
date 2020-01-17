@@ -148,6 +148,14 @@ void WalletFrame::gotoHivePage()
         i.value()->gotoHivePage();
 }
 
+// Ring-fork: Hive: Switch to pop page
+void WalletFrame::gotoPopPage()
+{
+    QMap<WalletModel*, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoPopPage();
+}
+
 // Ring-fork: Key import helper
 void WalletFrame::importPrivateKey()
 {

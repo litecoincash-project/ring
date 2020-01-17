@@ -92,9 +92,10 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     typeWidget->addItem(tr("To yourself"), TransactionFilterProxy::TYPE(TransactionRecord::SendToSelf));
     typeWidget->addItem(tr("Mined"), TransactionFilterProxy::TYPE(TransactionRecord::Generated));
     typeWidget->addItem(tr("Claimed"), TransactionFilterProxy::TYPE(TransactionRecord::ForeignChainImport));                // Ring-fork
-    typeWidget->addItem(tr("Hive dwarf creation"), TransactionFilterProxy::TYPE(TransactionRecord::HiveDwarfCreation));         // Ring-fork: Hive
+    typeWidget->addItem(tr("Hive dwarf creation"), TransactionFilterProxy::TYPE(TransactionRecord::HiveDwarfCreation));     // Ring-fork: Hive
     typeWidget->addItem(tr("Hive community fund"), TransactionFilterProxy::TYPE(TransactionRecord::HiveCommunityFund));     // Ring-fork: Hive
-    typeWidget->addItem(tr("Hivemined reward"), TransactionFilterProxy::TYPE(TransactionRecord::HiveReward));                 // Ring-fork: Hive    
+    typeWidget->addItem(tr("Hivemined reward"), TransactionFilterProxy::TYPE(TransactionRecord::HiveReward));               // Ring-fork: Hive    
+    typeWidget->addItem(tr("Popmined reward"), TransactionFilterProxy::TYPE(TransactionRecord::PopReward));                 // Ring-fork: Pop    
     typeWidget->addItem(tr("Other"), TransactionFilterProxy::TYPE(TransactionRecord::Other));
 
     hlayout->addWidget(typeWidget);

@@ -16,7 +16,7 @@ FORMS += \
     ../src/qt/forms/sendcoinsentry.ui \
     ../src/qt/forms/signverifymessagedialog.ui \
     ../src/qt/forms/transactiondescdialog.ui \
-    ../src/qt/forms/miningpage.ui \
+    ../src/qt/forms/miningpage.ui
 
 RESOURCES += \
     ../src/qt/ring.qrc

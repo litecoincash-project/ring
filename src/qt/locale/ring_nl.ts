@@ -948,7 +948,7 @@
         <translation>Recente transacties zijn mogelijk nog niet zichtbaar. De balans van de portemonnee is daarom mogelijk niet correct. Deze informatie is correct van zodra de synchronisatie met het Ring-netwerk werd voltooid, zoals onderaan beschreven.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>Poging om rings te besteden die door "nog niet weergegeven" transacties worden beïnvloed, worden niet door het netwerk geaccepteerd.</translation>
     </message>
     <message>

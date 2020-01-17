@@ -369,7 +369,7 @@ void RingGUI::createActions()
     tabGroup->addAction(historyAction);
 
     // Ring-fork: Mining page
-    miningAction = new QAction(platformStyle->SingleColorIcon(":/icons/mining"), tr("CPU &Mining"), this);
+    miningAction = new QAction(platformStyle->SingleColorIcon(":/icons/mining"), tr("PoW Mining"), this);
     miningAction->setStatusTip(tr("Show in-wallet CPU miner"));
     miningAction->setToolTip(miningAction->statusTip());
     miningAction->setCheckable(true);
@@ -384,6 +384,14 @@ void RingGUI::createActions()
     hiveAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
     tabGroup->addAction(hiveAction);
 
+    // Ring-fork: Pop: Pop page
+    popAction = new QAction(platformStyle->SingleColorIcon(":/icons/playicon"), tr("PoP Mining"), this);
+    popAction->setStatusTip(tr("Show Proof of Play Mining page"));
+    popAction->setToolTip(popAction->statusTip());
+    popAction->setCheckable(true);
+    popAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
+    tabGroup->addAction(popAction);
+
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
     // can be triggered from the tray menu, and need to show the GUI to be useful.
@@ -393,6 +401,8 @@ void RingGUI::createActions()
     connect(miningAction, &QAction::triggered, this, &RingGUI::gotoMiningPage);             // Ring-fork: Mining page: Connect actions
     connect(hiveAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });           // Ring-fork: Hive: Connect actions
     connect(hiveAction, &QAction::triggered, this, &RingGUI::gotoHivePage);                 // Ring-fork: Hive: Connect actions
+    connect(popAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });            // Ring-fork: Pop: Connect actions
+    connect(popAction, &QAction::triggered, this, &RingGUI::gotoPopPage);                   // Ring-fork: Pop: Connect actions
     connect(sendCoinsAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(sendCoinsAction, &QAction::triggered, [this]{ gotoSendCoinsPage(); });
     connect(sendCoinsMenuAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
@@ -660,6 +670,7 @@ void RingGUI::createToolBars()
         toolbar->addAction(historyAction);
         toolbar->addAction(miningAction);   // Ring-fork: Mining page
         toolbar->addAction(hiveAction);     // Ring-fork: Hive: Hive page
+        toolbar->addAction(popAction);      // Ring-fork: Pop: Pop page
         overviewAction->setChecked(true);
 
 #ifdef ENABLE_WALLET
@@ -849,6 +860,7 @@ void RingGUI::setWalletActionsEnabled(bool enabled)
     m_close_wallet_action->setEnabled(enabled);
     miningAction->setEnabled(enabled);              // Ring-fork: Mining page
     hiveAction->setEnabled(enabled);                // Ring-fork: Hive: Hive page
+    popAction->setEnabled(enabled);                 // Ring-fork: Pop: Pop page
     importPrivateKeyAction->setEnabled(enabled);    // Ring-fork: Key import helper
 }
 
@@ -979,6 +991,13 @@ void RingGUI::gotoHivePage()
 {
     hiveAction->setChecked(true);
     if (walletFrame) walletFrame->gotoHivePage();
+}
+
+// Ring-fork: Pop page
+void RingGUI::gotoPopPage()
+{
+    popAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoPopPage();
 }
 
 void RingGUI::gotoHistoryPage()

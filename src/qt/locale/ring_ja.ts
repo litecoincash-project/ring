@@ -948,7 +948,7 @@
         <translation>最近の取引がまだ表示されていない可能性があります。そのため、ウォレットの残高が正しく表示されていないかもしれません。この情報は、ウォレットが Ring ネットワークへの同期が完了すると正確なものとなります。詳細は下記を参照してください。</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>まだ表示されていない取引が関係する Ring を使用しようとすると、ネットワークから認証を受けられません。</translation>
     </message>
     <message>

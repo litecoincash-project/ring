@@ -888,7 +888,7 @@
         <translation>Nedávne transakcie ešte nemusia byť viditeľné takže zostatok vo vašej peňaženke môže byť nesprávny. Táto informácia sa opraví keď sa vaša peňaženka zosynchronizuje s Ring sieťou ako je popísané nižšie.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>Pokusy o minutie ringov ktoré sú ovplyvnené ešte nezobrazenými transakciami nebudú prijaté sieťou.</translation>
     </message>
     <message>

@@ -14,6 +14,7 @@
 #include <qt/overviewpage.h>
 #include <qt/miningpage.h>      // Ring-fork: Mining page
 #include <qt/hivedialog.h>      // Ring-fork: Hive: Hive page
+#include <qt/popdialog.h>       // Ring-fork: Pop: Pop page
 #include <qt/platformstyle.h>
 #include <qt/receivecoinsdialog.h>
 #include <qt/sendcoinsdialog.h>
@@ -52,6 +53,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
 
     miningPage = new MiningPage(platformStyle); // Ring-fork: Mining page
     hivePage = new HiveDialog(platformStyle);   // Ring-fork: Hive page
+    popPage = new PopDialog(platformStyle);     // Ring-fork: Pop page
 
     transactionsPage = new QWidget(this);
     QVBoxLayout *vbox = new QVBoxLayout();
@@ -80,6 +82,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     addWidget(sendCoinsPage);
     addWidget(miningPage);          // Ring-fork: Mining page
     addWidget(hivePage);            // Ring-fork: Hive page
+    addWidget(popPage);             // Ring-fork: Pop page
 
     // Clicking on a transaction on the overview pre-selects the transaction on the transaction history page
     connect(overviewPage, &OverviewPage::transactionClicked, transactionView, static_cast<void (TransactionView::*)(const QModelIndex&)>(&TransactionView::focusTransaction));
@@ -124,7 +127,11 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
         "#currentHiveView {color: " + SKIN_TEXT + "; background-color: " + SKIN_BG_PANEL + "; alternate-background-color: " + SKIN_BG_ROW_ALT + ";}"
         "#globalHiveSummaryErrorLabel {color: " + SKIN_TEXT + ";}"
     );
-    
+    // Ring-fork: Pop: Skinning the pop tab
+    popPage->setStyleSheet(
+        "#availableGamesLabel, #labelCurrentGameHash {color: " + SKIN_TEXT + ";}"
+        "#gameTable {color: " + SKIN_TEXT + "; background-color: " + SKIN_BG_PANEL + "; alternate-background-color: " + SKIN_BG_ROW_ALT + ";}"
+    );
 }
 
 WalletView::~WalletView()
@@ -171,6 +178,7 @@ void WalletView::setClientModel(ClientModel *_clientModel)
     sendCoinsPage->setClientModel(_clientModel);
     miningPage->setClientModel(_clientModel);   // Ring-fork: Mining page
     hivePage->setClientModel(_clientModel);     // Ring-fork: Hive page
+    popPage->setClientModel(_clientModel);      // Ring-fork: Pop page
 }
 
 void WalletView::setWalletModel(WalletModel *_walletModel)
@@ -184,7 +192,8 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
     sendCoinsPage->setModel(_walletModel);
     usedReceivingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
     usedSendingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
-    hivePage->setModel(_walletModel);         // Ring-fork: Hive page
+    hivePage->setModel(_walletModel);           // Ring-fork: Hive page
+    popPage->setModel(_walletModel);            // Ring-fork: Pop page
     
     if (_walletModel)
     {
@@ -246,8 +255,15 @@ void WalletView::gotoMiningPage()
 // Ring-fork: Hive page
 void WalletView::gotoHivePage()
 {
-    hivePage->updateData();
+    //hivePage->updateData();
     setCurrentWidget(hivePage);
+}
+
+// Ring-fork: Pop page
+void WalletView::gotoPopPage()
+{
+    //popPage->updateGamesAvailable();
+    setCurrentWidget(popPage);
 }
 
 void WalletView::gotoHistoryPage()

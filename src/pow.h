@@ -26,8 +26,9 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 /** Check whether a block hash satisfies the proof-of-work requirement specified by nBits */
 bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&);
 
-unsigned int GetNextHiveWorkRequired(const CBlockIndex* pindexLast, const Consensus::Params& params);                       // Ring-fork: Hive: Get the current Dwarf Hash Target
-bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& params);                                                 // Ring-fork: Hive: Check the hive proof for given block
+unsigned int GetNextHiveWorkRequired(const CBlockIndex* pindexLast, const Consensus::Params& params);           // Ring-fork: Hive: Get the current Dwarf Hash Target
+bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& params);                                     // Ring-fork: Hive: Check the hive proof for given block
+bool CheckPopProof(const CBlock* pblock, const Consensus::Params& params);                                      // Ring-fork: Pop: Check the pop proof for given block
 bool GetNetworkHiveInfo(int& immatureDwarves, int& immatureDCTs, int& matureDwarves, int& matureDCTs, CAmount& potentialLifespanRewards, const Consensus::Params& consensusParams, bool recalcGraph = false); // Ring-fork: Hive: Get count of all live and gestating DCTs on the network
 
 #endif // RING_POW_H

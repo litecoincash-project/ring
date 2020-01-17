@@ -453,6 +453,98 @@ static UniValue sendtoaddress(const JSONRPCRequest& request)
     return tx->GetHash().GetHex();
 }
 
+// Ring-fork: Pop: Get available games for this wallet
+UniValue getavailablegames(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 0) {
+        throw std::runtime_error(
+            "getavailablegames\n"
+            "\nList proof of play games currently available to be solved by this wallet.\n"
+            "\nResult:\n"
+            "{\n"
+            "    game_source_hash,         (string) The source hash for the game\n"
+            "    blocks_remaining,         (numeric) Number of blocks remaining on game validity\n"
+            "    is_private,               (bool) Whether this is a private game (more valuable)\n"
+            "},...\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getavailablegames", "")
+            + HelpExampleRpc("getavailablegames", "")
+        );
+    }
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    
+    std::vector<CAvailableGame> games = wallet->GetAvailableGames(Params().GetConsensus());
+    UniValue gameList(UniValue::VARR);
+
+    for (std::vector<CAvailableGame>::const_iterator it = games.begin(); it != games.end(); it++) {
+        CAvailableGame game = *it;        
+        UniValue entry(UniValue::VOBJ);
+        entry.pushKV("game_source_hash", game.gameSourceHash.ToString());
+        entry.pushKV("blocks_remaining", game.blocksRemaining);
+        entry.pushKV("is_private", game.isPrivate);
+        gameList.push_back(entry);
+    }
+
+    return gameList;
+}
+
+// Ring-fork: Pop: Submit a game solution
+UniValue submitsolution(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 3 || request.params.size() > 4)
+        throw std::runtime_error(
+            "submitsolution \"game_source_hash\", is_private, game_type, \"solution\" ( \"reward_address\" )\n"
+            "\nSubmit a game solution, create a pop block, and broadcast it to the network.\n"
+            "\nArguments:\n"
+            "1. \"game_source_hash\"     (string, required) The game source block hash.\n"
+            "2. is_private             (boolean, required) If true, we hivemined the game source block hash and must sign the solution.\n"
+            "3. game_Type              (int, required) The game type played to generate this solution.\n"
+            "4. \"solution\"             (string, required) The game solution data.\n"
+			"5. \"reward_address\"       (string, optional, default pool address) The RNG address to receive block rewards for this solution.\n"
+            "\nResult:\n"
+            "success                   (boolean) Boolean indicating success or failure.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("submitsolution", "\"ab3503c9c58ef4812baa0f670b5077a6bdc95dc6bdaeeab34e15b2\" true 0 \"b60cbfe0024e7d501fef67e1cef6e630f29eddfd9d7c9560a8409b\"")
+            + HelpExampleCli("submitsolution", "\"3c1e21bcfaecda53fa6b20072dfc57bee052e4288792b2141e3555\" false 0 \"2bab28675de33df57e71a8799033691ef8b7ebe22df8dab0809d48\" \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+            + HelpExampleRpc("submitsolution", "\"ab3503c9c58ef4812baa0f670b5077a6bdc95dc6bdaeeab34e15b2\" true 0 \"b60cbfe0024e7d501fef67e1cef6e630f29eddfd9d7c9560a8409b\"")
+            + HelpExampleRpc("submitsolution", "\"3c1e21bcfaecda53fa6b20072dfc57bee052e4288792b2141e3555\" false 0 \"2bab28675de33df57e71a8799033691ef8b7ebe22df8dab0809d48\" \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+        );
+
+    CAvailableGame game;
+
+    RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+    game.gameSourceHash = uint256S(request.params[0].get_str());
+
+    RPCTypeCheckArgument(request.params[1], UniValue::VBOOL);
+    game.isPrivate = request.params[1].get_bool();
+
+    RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
+    int gameType = request.params[2].get_int();
+
+    RPCTypeCheckArgument(request.params[3], UniValue::VSTR);
+    std::vector<unsigned char> solution = ParseHex(request.params[3].get_str());
+
+    std::string rewardAddress;
+    if (!request.params[4].isNull()) {
+        RPCTypeCheckArgument(request.params[4], UniValue::VSTR);
+        if (!request.params[4].get_str().empty())
+            rewardAddress = request.params[4].get_str();
+    }
+
+    std::string strFailReason;
+    if (!pwallet->SubmitSolution(&game, gameType, solution, strFailReason, rewardAddress))
+        throw JSONRPCError(RPC_WALLET_POP_FAIL, strFailReason);
+
+    return true;
+}
+
 // Ring-fork: Hive: Get current dwarf cost
 UniValue getdwarfcost(const JSONRPCRequest& request)
 {
@@ -499,9 +591,9 @@ UniValue createdwarves(const JSONRPCRequest& request)
             "\nCreate one or more dwarves in a single transaction, sign it, and broadcast it to the network.\n"
             + HelpRequiringPassphrase(pwallet) +
             "\nArguments:\n"
-            "1. dwarf_count              (numeric, required) The number of dwarves to create.\n"
+            "1. dwarf_count            (numeric, required) The number of dwarves to create.\n"
             "2. community_contrib      (boolean, optional, default=true) If true, a small percentage of dwarf creation cost will be paid to a community fund.\n"
-            "3. \"reward_address\"        (string, optional) The RNG address to receive rewards for blocks mined by dwarf(s) created in this transaction.\n"
+            "3. \"reward_address\"       (string, optional) The RNG address to receive rewards for blocks mined by dwarf(s) created in this transaction.\n"
 			"4. \"change_address\"       (string, optional, default pool address) The RNG address to receive the change.\n"
             "\nResult:\n"
             "\"txid\"                    (string) The transaction id.\n"
@@ -539,7 +631,6 @@ UniValue createdwarves(const JSONRPCRequest& request)
     LOCK2(cs_main, pwallet->cs_wallet);
 
     EnsureWalletIsUnlocked(pwallet);
-	
     
     std::string strError;
     CReserveKey reservekeyChange(pwallet);
@@ -628,9 +719,9 @@ UniValue getdwarfcreationtxid(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "getdwarfcreationtxid \"reward_txid\"\n"
-            "\nGives the DCT transaction id for a given reward transaction received by this wallet.\n"
+            "\nGives the DCT transaction id for a given hive reward transaction received by this wallet.\n"
             "\nArguments:\n"
-            "1. reward_txid          (string) Transaction ID of a reward transaction received by this wallet\n"
+            "1. reward_txid          (string) Transaction ID of a hive reward transaction received by this wallet\n"
             "\nResult:\n"
             "\"hex\"                  (string) Transaction ID of the DCT responsible for this reward\n"
             "\nExamples:\n"
@@ -652,7 +743,7 @@ UniValue getdwarfcreationtxid(const JSONRPCRequest& request)
 
     // Make sure it's really a reward tx
     if (!wtx.IsHiveCoinBase())
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a reward transaction");
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a hive reward transaction");
 
     // Grab the scriptPubKey
     const CTxOut& txout = wtx.tx->vout[0];
@@ -660,7 +751,7 @@ UniValue getdwarfcreationtxid(const JSONRPCRequest& request)
 
     // Grab the txid (bytes 14-78; byte 13 has val 64 as size marker)
     if (wtx.tx->vout[0].scriptPubKey.size() < 144)
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Malformed reward transaction!");  // Should never hit; could probably be an assert.
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Malformed hive reward transaction!");  // Should never hit; could probably be an assert.
     std::vector<unsigned char> dctTxId(&wtx.tx->vout[0].scriptPubKey[14], &wtx.tx->vout[0].scriptPubKey[14 + 64]);
     std::string dctTxIdStr = std::string(dctTxId.begin(), dctTxId.end());
     
@@ -1756,8 +1847,8 @@ static void ListTransactions(interfaces::Chain::Lock& locked_chain, CWallet* con
             }
             MaybePushAddress(entry, s.destination);
 
-            // Ring-fork: Hive: Sent transactions are never reward
-            entry.pushKV("isreward", false);
+            entry.pushKV("ishivereward", false);    // Ring-fork: Hive: Sent transactions are never hive reward
+            entry.pushKV("ispopreward", false);     // Ring-fork: Pop: Sent transactions are never pop reward
 
             entry.pushKV("category", "send");
             entry.pushKV("amount", ValueFromAmount(-s.amount));
@@ -1791,8 +1882,8 @@ static void ListTransactions(interfaces::Chain::Lock& locked_chain, CWallet* con
             }
             MaybePushAddress(entry, r.destination);
 
-            // Ring-fork: Hive: Indicate whether this is reward (hive block coinbase tx)
-            entry.pushKV("isreward", wtx.IsHiveCoinBase());
+            entry.pushKV("ishivereward", wtx.IsHiveCoinBase()); // Ring-fork: Hive: Indicate whether this is hive reward (hive block coinbase tx)
+            entry.pushKV("ispopreward", wtx.IsPopCoinBase());   // Ring-fork: Pop: Indicate whether this is pop reward (pop block coinbase tx)
 
             if (wtx.IsCoinBase())
             {
@@ -1828,7 +1919,8 @@ UniValue listtransactions(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    // Ring-fork: Hive: Include isreward in documentation
+    // Ring-fork: Hive: Include ishivereward in documentation
+    // Ring-fork: Pop: Include ispopreward in documentation
     if (request.fHelp || request.params.size() > 4)
         throw std::runtime_error(
             RPCHelpMan{"listtransactions",
@@ -1845,7 +1937,8 @@ UniValue listtransactions(const JSONRPCRequest& request)
             "[\n"
             "  {\n"
             "    \"address\":\"address\",    (string) The ring address of the transaction.\n"
-            "    \"isreward\": xxx,          (bool) Whether this transaction is reward (hive block coinbase transaction)\n"
+            "    \"ishivereward\": xxx,      (bool) Whether this transaction is hive reward (hive block coinbase transaction)\n"
+            "    \"ispopreward\": xxx,      (bool) Whether this transaction is pop reward (pop block coinbase transaction)\n"
             "    \"category\":               (string) The transaction category.\n"
             "                \"send\"                  Transactions sent.\n"
             "                \"receive\"               Non-coinbase transactions received.\n"
@@ -4665,12 +4758,14 @@ static const CRPCCommand commands[] =
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },
     { "hidden",             "resendwallettransactions",         &resendwallettransactions,      {} },
     { "rawtransactions",    "fundrawtransaction",               &fundrawtransaction,            {"hexstring","options","iswitness"} },
-    { "wallet",             "getdwarfcost",                     &getdwarfcost,                  {"height"} },                                           // Ring-fork: Hive: Get dwarf cost for given height (defaults to tipheight)
-    { "wallet",             "createdwarves",                    &createdwarves,                 {"dwarf_count","community_contrib","reward_address"} }, // Ring-fork: Hive: Create dwarf(s)
-    { "wallet",             "gethiveinfo",                      &gethiveinfo,                   {"include_dead","min_reward_confirms"} },               // Ring-fork: Hive: Get current hive info
-    { "wallet",             "getnetworkhiveinfo",               &getnetworkhiveinfo,            {"include_graph"} },                                    // Ring-fork: Hive: Get current dwarf populations across whole network
-    { "wallet",             "getdwarfcreationtxid",             &getdwarfcreationtxid,          {"reward_txid"} },                                      // Ring-fork: Hive: Return DCT tx id for a reward transaction in this wallet
-    { "wallet",             "getdctinfo",                       &getdctinfo,                    {"dct_txid","min_reward_confirms"} },                   // Ring-fork: Hive: Return hive info for a single DCT
+    { "wallet",             "getdwarfcost",                     &getdwarfcost,                  {"height"} },                                                       // Ring-fork: Hive: Get dwarf cost for given height (defaults to tipheight)
+    { "wallet",             "createdwarves",                    &createdwarves,                 {"dwarf_count","community_contrib","reward_address"} },             // Ring-fork: Hive: Create dwarf(s)
+    { "wallet",             "gethiveinfo",                      &gethiveinfo,                   {"include_dead","min_reward_confirms"} },                           // Ring-fork: Hive: Get current hive info
+    { "wallet",             "getnetworkhiveinfo",               &getnetworkhiveinfo,            {"include_graph"} },                                                // Ring-fork: Hive: Get current dwarf populations across whole network
+    { "wallet",             "getdwarfcreationtxid",             &getdwarfcreationtxid,          {"reward_txid"} },                                                  // Ring-fork: Hive: Return DCT tx id for a reward transaction in this wallet
+    { "wallet",             "getdctinfo",                       &getdctinfo,                    {"dct_txid","min_reward_confirms"} },                               // Ring-fork: Hive: Return hive info for a single DCT
+    { "wallet",             "getavailablegames",                &getavailablegames,             {} },                                                               // Ring-fork: Pop: List all available games
+    { "wallet",             "submitsolution",                   &submitsolution,                {"game_source_hash","is_private","game_type","solution","reward_address"} },    // Ring-fork: Pop: Submit game solution
     { "wallet",             "abandontransaction",               &abandontransaction,            {"txid"} },
     { "wallet",             "abortrescan",                      &abortrescan,                   {} },
     { "wallet",             "addmultisigaddress",               &addmultisigaddress,            {"nrequired","keys","label","address_type"} },

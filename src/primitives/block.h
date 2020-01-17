@@ -72,6 +72,11 @@ public:
     bool IsHiveMined(const Consensus::Params& consensusParams) const {
         return (nNonce == consensusParams.hiveNonceMarker);
     }
+
+    // Ring-fork: Pop: Check if this block is popmined
+    bool IsPopMined(const Consensus::Params& consensusParams) const {
+        return (nNonce == consensusParams.popNonceMarker);
+    }
 };
 
 

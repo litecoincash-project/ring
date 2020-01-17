@@ -224,16 +224,8 @@ template<typename T> inline uint256 Minotaur(const T begin, const T end) {
     // Send the initial hash through the torture garden
     hash = TraverseGarden(&garden, hash, &garden.nodes[0]);
 
-	// Finally, derive a key using Lyra2 with memory-hard params
-    uint256 final_hash;
-	LYRA2(static_cast<void*>(&final_hash), 32, static_cast<const void*>(&hash), 64, static_cast<const void*>(&hash), 64, 1, MINOTAUR_LYRA_ROWS, 256);
-
-#ifdef MINOTAUR_DEBUG
-    printf("*** Final hash:\t\t%s\n", uint256(final_hash).ToString().c_str());
-    fflush(0);
-#endif
-
-    return final_hash;
+    // Return truncated result
+    return uint256(hash);
 }
 
 #endif // RING_CRYPTO_POW_MINOTAUR_H

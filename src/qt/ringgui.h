@@ -131,6 +131,7 @@ private:
     QToolBar* appToolBar = nullptr;
     QAction* overviewAction = nullptr;
     QAction *hiveAction = nullptr;                  // Ring-fork: Hive page
+    QAction *popAction = nullptr;                   // Ring-fork: Pop page
     QAction* miningAction = nullptr;                // Ring-fork: Mining page
     QAction* importPrivateKeyAction = nullptr;      // Ring-fork: Key import helper
     QAction* historyAction = nullptr;
@@ -274,6 +275,8 @@ public Q_SLOTS:
     void gotoMiningPage();
     // Ring-fork: Hive page
     void gotoHivePage();    
+    // Ring-fork: Pop page
+    void gotoPopPage();    
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch to receive coins page */

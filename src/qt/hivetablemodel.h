@@ -4,8 +4,8 @@
 
 // Ring-fork: Hive
 
-#ifndef BITCOIN_QT_HIVETABLEMODEL_H
-#define BITCOIN_QT_HIVETABLEMODEL_H
+#ifndef RING_QT_HIVETABLEMODEL_H
+#define RING_QT_HIVETABLEMODEL_H
 
 #include <qt/walletmodel.h>
 #include <wallet/wallet.h>
@@ -73,4 +73,4 @@ private:
     CAmount cost, rewardsPaid, profit;
 };
 
-#endif // BITCOIN_QT_HIVETABLEMODEL_H
+#endif // RING_QT_HIVETABLEMODEL_H

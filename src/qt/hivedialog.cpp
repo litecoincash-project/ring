@@ -169,9 +169,11 @@ void HiveDialog::updateData(bool forceGlobalSummaryUpdate) {
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
     if(model && model->getHiveTableModel()) {
-        model->getHiveTableModel()->updateDCTs(ui->includeDeadDwarvesCheckbox->isChecked());
-        model->getHiveTableModel()->getSummaryValues(immature, mature, dead, blocksFound, cost, rewardsPaid, profit);
-        
+        {
+            model->getHiveTableModel()->updateDCTs(ui->includeDeadDwarvesCheckbox->isChecked());
+            model->getHiveTableModel()->getSummaryValues(immature, mature, dead, blocksFound, cost, rewardsPaid, profit);
+        }
+
         // Update labels
         setAmountField(ui->rewardsPaidLabel, rewardsPaid);
         setAmountField(ui->costLabel, cost);

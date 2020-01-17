@@ -4,8 +4,8 @@
 
 // Ring-fork: Hive
 
-#ifndef BITCOIN_QT_HIVEDIALOG_H
-#define BITCOIN_QT_HIVEDIALOG_H
+#ifndef RING_QT_HIVEDIALOG_H
+#define RING_QT_HIVEDIALOG_H
 
 #include <qt/guiutil.h>
 
@@ -117,4 +117,4 @@ private Q_SLOTS:
     void onMouseMove(QMouseEvent* event);
 };
 
-#endif // BITCOIN_QT_HIVEDIALOG_H
+#endif // RING_QT_HIVEDIALOG_H

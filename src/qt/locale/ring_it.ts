@@ -948,7 +948,7 @@
         <translation>Transazioni recenti potrebbero non essere visibili ancora, perciò il saldo del tuo portafoglio potrebbe non essere corretto. Questa informazione risulterà corretta quando il tuo portafoglio avrà terminato la sincronizzazione con la rete ring, come indicato in dettaglio più sotto.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>Il tentativo di spendere ring legati a transazioni non ancora visualizzate non verrà accettato dalla rete.</translation>
     </message>
     <message>

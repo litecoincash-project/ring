@@ -54,7 +54,7 @@ const int FOREIGN_COIN_COUNT = 4;   // Ring-fork: Foreign key count
 
 struct Params {
     uint256 hashGenesisBlock;
-    int nSubsidyHalvingInterval;
+    //int nSubsidyHalvingInterval;  // Ring-fork: No halving on chain
     /* Block hash that is excepted from BIP16 enforcement */
     uint256 BIP16Exception;
     /** Block height and hash at which BIP34 becomes active */
@@ -116,6 +116,12 @@ struct Params {
     double powSplit2;                   // Below this Hive difficulty threshold, PoW block chainwork bonus is halved again
     int maxConsecutiveHiveBlocks;       // Maximum hive blocks that can occur consecutively before a PoW block is required
     int hiveDifficultyWindow;           // How many blocks the SMA averages over in hive difficulty adjust
+
+    // Ring-fork: Pop-related consensus fields
+    uint32_t popNonceMarker;            // Nonce marker for popmined blocks
+    int popMinPrivateGameDepth;         // Private game source transactions must be at least this many blocks deep
+    int popMaxPrivateGameDepth;         // Private game source transactions must be at most this many blocks deep
+    int popMaxPublicGameDepth;          // Public game source transactions must be at most this many blocks deep
 };
 } // namespace Consensus
 

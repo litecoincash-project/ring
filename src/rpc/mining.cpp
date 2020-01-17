@@ -135,7 +135,7 @@ UniValue setgenerate(const JSONRPCRequest& request)
                 "Generation is limited to 'genproclimit' processors, -1 is unlimited.\n"
                 "See the getgenerate call for the current setting.\n",
                 {
-                    {"generate", RPCArg::Type::BOOL, /* default */ "false", "Set to true to turn on generation, off to turn off."},
+                    {"generate", RPCArg::Type::BOOL, /* default */ "false", "Set to true to turn on generation, false to turn off."},
                     {"genproclimit", RPCArg::Type::NUM, /* default */ "-1", "Set the processor limit for when generation is on. Can be -1 for unlimited."},
                 },
                 RPCResults{},

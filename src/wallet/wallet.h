@@ -23,7 +23,8 @@
 #include <wallet/walletdb.h>
 #include <wallet/walletutil.h>
 
-#include <consensus/params.h>   // Ring-fork: Hive
+#include <consensus/params.h>       // Ring-fork: Hive
+#include <crypto/pop/popgame.h>     // Ring-fork: Pop
 
 #include <algorithm>
 #include <atomic>
@@ -330,6 +331,7 @@ public:
     const uint256& GetHash() const { return tx->GetHash(); }
     bool IsCoinBase() const { return tx->IsCoinBase(); }
     bool IsHiveCoinBase() const { return tx->IsHiveCoinBase(); }    // Ring-fork: Hive
+    bool IsPopCoinBase() const { return tx->IsPopCoinBase(); }      // Ring-fork: Pop
     // Ring-fork: Hive: Check if this transaction is a Dwarf Creation Transaction
     bool IsDCT(const Consensus::Params& consensusParams, CScript scriptPubKeyBCF, CAmount* dwarfFeePaid = nullptr, CScript* scriptPubKeyReward = nullptr) const {
         return tx->IsDCT(consensusParams, scriptPubKeyBCF, dwarfFeePaid, scriptPubKeyReward);
@@ -990,6 +992,12 @@ public:
 
     // Ring-fork: Hive: Return all DCTs known by this wallet, optionally including dead dwarves and optionally scanning for blocks minted by dwarves from each DCT
     std::vector<CDwarfCreationTransactionInfo> GetDCTs(bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minRewardConfirmations = 1);
+
+    // Ring-fork: Pop: Return all games valid to be played by this wallet
+    std::vector<CAvailableGame> GetAvailableGames(const Consensus::Params& consensusParams);
+
+    // Ring-fork: Pop: Submit a game solution
+    bool SubmitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason, std::string rewardAddress = "");
 
     /**
      * Insert additional inputs into the transaction by

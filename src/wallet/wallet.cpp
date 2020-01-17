@@ -37,7 +37,10 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
-#include <script/ismine.h>  // Ring-fork: Hive
+#include <script/ismine.h>          // Ring-fork: Hive
+#include <consensus/merkle.h>       // Ring-fork: Pop
+#include <miner.h>                  // Ring-fork: Pop
+#include <crypto/pop/game0/game0.h> // Ring-fork: Pop
 
 static const size_t OUTPUT_GROUP_MAX_ENTRIES = 10;
 
@@ -2849,7 +2852,7 @@ CDwarfCreationTransactionInfo CWallet::GetDCT(const CWalletTx& wtx, bool include
         for (const std::pair<uint256, CWalletTx>& pairWtx2 : mapWallet) {
             const CWalletTx& wtx2 = pairWtx2.second;
 
-            // Skip non-CBTs
+            // Skip non-hive rewards
             if (!wtx2.IsHiveCoinBase())
                 continue;
 
@@ -2887,6 +2890,310 @@ CDwarfCreationTransactionInfo CWallet::GetDCT(const CWalletTx& wtx, bool include
     dct.profit = rewardsPaid - dwarfFeePaid;
 
     return dct;
+}
+
+// Ring-fork: Pop: Submit a game solution
+bool CWallet::SubmitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason, std::string rewardAddress) {
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+    bool verbose = LogAcceptCategory(BCLog::POP);
+    
+    LogPrintf("********************* Pop: Submitting solution *********************\n");
+
+    if (verbose) {
+        LogPrintf("SubmitSolution: gameSourceHash      = %s\n", game->gameSourceHash.ToString());
+        LogPrintf("SubmitSolution: isPrivate           = %s\n", game->isPrivate ? "true" : "false");
+        LogPrintf("SubmitSolution: solution            = %s\n", HexStr(&solution[0], &solution[solution.size()]));
+    }
+    
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    assert(pindexPrev != nullptr);
+
+    // Sanity checks
+    std::string verifyFailReason;
+    Game0 game0;
+    if(!game0.VerifyGameSolution(game->gameSourceHash, solution, verifyFailReason)) {
+        strFailReason = "SubmitSolution: Solution does not verify: " + verifyFailReason;
+        return false;
+    }
+
+    if(!g_connman) {
+        strFailReason = "SubmitSolution: Unable to submit: Peer-to-peer functionality missing or disabled";
+        return false;
+    }
+    if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0) {
+        strFailReason = "SubmitSolution: Unable to submit: Not connected";
+        return false;
+    }
+    if (IsInitialBlockDownload()) {
+        strFailReason = "SubmitSolution: Unable to submit: In initial block download";
+        return false;
+    }
+    
+    // Assemble the proof script
+    std::string gameSourceHashStr = game->gameSourceHash.ToString();
+    std::vector<unsigned char> gameSourceHashVec(game->gameSourceHash.begin(), game->gameSourceHash.end());
+    std::reverse(gameSourceHashVec.begin(), gameSourceHashVec.end());
+
+    opcodetype privateFlag = game->isPrivate ? OP_TRUE : OP_FALSE;
+    CScript popProofScript;
+    popProofScript << OP_RETURN << OP_GAME << gameType << gameSourceHashVec << privateFlag;
+
+    CBlockIndex* pindexSourceBlock = mapBlockIndex[game->gameSourceHash];
+    if (!pindexSourceBlock) {
+        strFailReason = "SubmitSolution: Couldn't find claimed source block\n";
+        return false;
+    }
+    if (!chainActive.Contains(pindexSourceBlock)) {
+        strFailReason = "SubmitSolution: Claimed source block is not in active chain\n";
+        return false;
+    }
+
+    CBlock sourceBlock;
+    if (!ReadBlockFromDisk(sourceBlock, pindexSourceBlock, consensusParams, false)) {
+        strFailReason = "SubmitSolution: Couldn't read source block";
+        return false;
+    }
+    
+    // Check it's hivemined
+    if (!sourceBlock.GetBlockHeader().IsHiveMined(consensusParams)) {
+        strFailReason = "SubmitSolution: Claimed source block isn't hivemined";
+        return false;
+    }
+
+    if (game->isPrivate) {
+        // Grab source block's reward destination
+        CTxDestination rewardDestination;
+        if (!ExtractDestination(sourceBlock.vtx[0]->vout[1].scriptPubKey, rewardDestination) || !IsValidDestination(rewardDestination)) {
+            strFailReason = "SubmitSolution: Couldn't extract source block reward destination";
+            return false;
+        }
+
+        // Check its ours
+        if (::IsMine((const CKeyStore&)*this, rewardDestination) != ISMINE_SPENDABLE) {
+            strFailReason = "SubmitSolution: Claimed source block isn't ours";
+            return false;
+        }
+
+        // Get the privkey
+        std::vector<unsigned char> messageProofVec;
+        const CKeyID *keyID = boost::get<CKeyID>(&rewardDestination);
+        if (!keyID) {
+            strFailReason = "SubmitSolution: Wallet doesn't have privkey for reward destination";
+            return false;
+        }
+        CKey key;
+        if (!GetKey(*keyID, key)) {
+            strFailReason = "SubmitSolution: Privkey unavailable";
+            return false;
+        }
+
+        // Generate the message proof
+        CHashWriter ss(SER_GETHASH, 0);
+        std::string deterministicRandString = GetDeterministicRandString(pindexPrev);
+        ss << deterministicRandString;
+        if (verbose)
+            LogPrintf("SubmitSolution: detRandString       = %s\n", deterministicRandString);
+        uint256 mhash = ss.GetHash();
+        if (!key.SignCompact(mhash, messageProofVec)) {
+            strFailReason = "SubmitSolution: Couldn't sign the claim proof!";
+            return false;
+        }
+        if (verbose)
+            LogPrintf("SubmitSolution: messageSig          = %s\n", HexStr(&messageProofVec[0], &messageProofVec[messageProofVec.size()]));        
+
+        popProofScript << messageProofVec;
+    }
+    
+    popProofScript << solution;
+
+    if (verbose)
+        LogPrintf("SubmitSolution: popProofScript          = %s\n", HexStr(popProofScript).c_str());
+
+    // Make sure this gameSourceHash hasn't been claimed before
+    CBlockIndex *pblockindex = pindexPrev;
+    while (pblockindex->nHeight > pindexSourceBlock->nHeight) {
+        if (pblockindex->GetBlockHeader().IsPopMined(consensusParams)) {
+            CBlock block;
+            if (ReadBlockFromDisk(block, pblockindex, consensusParams, false)) {
+                uint256 tempGameSourceHashBin;
+                tempGameSourceHashBin.SetHex(HexStr(&block.vtx[0]->vout[0].scriptPubKey[4], &block.vtx[0]->vout[0].scriptPubKey[4+32]));
+
+                if (game->gameSourceHash == tempGameSourceHashBin) {
+                    strFailReason = "SubmitSolution: Game is already claimed in block " + pblockindex->GetBlockHash().ToString() + " (height " + std::to_string(pblockindex->nHeight) + ")";
+                    return false;
+                }
+            }
+        }
+
+        assert(pblockindex->pprev);
+        pblockindex = pblockindex->pprev;
+    }
+
+    // Create a new reward address for game rewards if needed
+    CTxDestination destinationGameReward;
+    CReserveKey reservekeyReward(this);
+    if (rewardAddress.empty()) {
+        if (!IsLocked())
+            TopUpKeyPool();
+
+        CPubKey newKey;
+        if (!reservekeyReward.GetReservedKey(newKey, true)) {
+            strFailReason = "SubmitSolution: Couldn't create a new pubkey";
+            return false;
+        }
+
+        std::string strLabel = "Proof-of-play Reward";
+        OutputType output_type = OutputType::LEGACY;
+        LearnRelatedScripts(newKey, output_type);
+        destinationGameReward = GetDestinationForKey(newKey, output_type);
+        SetAddressBook(destinationGameReward, strLabel, "receive");
+    } else {
+        // If a reward address was passed in, make sure it decodes
+        destinationGameReward = DecodeDestination(rewardAddress);
+        if (!IsValidDestination(destinationGameReward)) {
+            strFailReason = "SubmitSolution: Invalid reward address specified";
+            return false;
+        }
+
+        // Make sure it's legacy format (TX_PUBKEYHASH)
+        std::vector<std::vector<unsigned char>> vSolutions;
+        if (Solver(GetScriptForDestination(destinationGameReward), vSolutions) != TX_PUBKEYHASH) {
+            strFailReason = "SubmitSolution: If specifying a reward address, it must be legacy format (TX_PUBKEYHASH)";
+            return false;
+        }
+
+        // Make sure it's a wallet address (otherwise dwarves won't be able to mint)
+        isminetype isMine = ::IsMine((const CKeyStore&)*this, (const CTxDestination&)destinationGameReward);
+        if (isMine != ISMINE_SPENDABLE) {
+            strFailReason = "SubmitSolution: Wallet doesn't contain the private key for the reward address specified";
+            return false;
+        }
+    }
+
+    // Create reward script from reward destination
+    CScript rewardScript = GetScriptForDestination(destinationGameReward);
+ 
+    // Create a Pop block
+    std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(rewardScript, nullptr, &popProofScript));
+    if (!pblocktemplate.get()) {
+        strFailReason = "SubmitSolution: Couldn't create block";
+        return false;
+    }
+    CBlock *pblock = &pblocktemplate->block;
+
+    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);  // Calc the merkle root
+
+    // Make sure the new block's not stale
+    {
+        LOCK(cs_main);
+        if (pblock->hashPrevBlock != chainActive.Tip()->GetBlockHash()) {
+            strFailReason = "SubmitSolution: Generated block is stale.";
+            return false;
+        }
+    }
+
+    if (verbose) {
+        LogPrintf("SubmitSolution: Block created:\n");
+        LogPrintf("%s",pblock->ToString());
+    }
+
+    // Keep the key    
+    if (rewardAddress.empty())
+        reservekeyReward.KeepKey();
+
+    // Commit and propagate the block
+    std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
+    if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
+        strFailReason = "SubmitSolution: Block wasn't accepted";
+        return false;
+    }
+
+    LogPrintf("SubmitSolution: ** Block mined\n");
+    return true;
+}
+
+// Ring-fork: Pop: Return all games valid to be played by this wallet
+std::vector<CAvailableGame> CWallet::GetAvailableGames(const Consensus::Params& consensusParams) {
+    std::vector<CAvailableGame> games;
+    
+    if (chainActive.Height() < consensusParams.popMaxPublicGameDepth)
+        return games;
+
+    // Grab potential private games
+    std::unordered_map<std::string, CAvailableGame> potentialGames;
+    int tipHeight = chainActive.Height();
+    int stopHeight = tipHeight - consensusParams.popMaxPrivateGameDepth;
+    CBlockIndex* pblockindex = chainActive[tipHeight - consensusParams.popMinPrivateGameDepth];
+    if (!pblockindex)
+        return games;
+
+    while (pblockindex->nHeight > stopHeight) {
+        // Skip if not hivemined
+        if (pblockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
+            CTxDestination rewardDestination;
+            CBlock block;
+            if (
+                ReadBlockFromDisk(block, pblockindex, consensusParams, false)                   // Grab block
+                && ExtractDestination(block.vtx[0]->vout[1].scriptPubKey, rewardDestination)    // Grab its reward destination
+                && IsValidDestination(rewardDestination)                                        // Check it's valid
+                && ::IsMine((const CKeyStore&)*this, rewardDestination) == ISMINE_SPENDABLE     // Check it's ours
+            ) {
+                CAvailableGame game;
+                game.gameSourceHash = pblockindex->GetBlockHash();
+                int depth = tipHeight - pblockindex->nHeight;
+                game.blocksRemaining = consensusParams.popMaxPrivateGameDepth - depth;
+                game.isPrivate = true;
+                potentialGames[game.gameSourceHash.ToString()] = game;
+            }
+        }
+
+        assert(pblockindex->pprev);
+        pblockindex = pblockindex->pprev;
+    }
+
+    // Grab potential public games
+    stopHeight = tipHeight - consensusParams.popMaxPublicGameDepth;
+    while (pblockindex->nHeight > stopHeight) {
+        if (pblockindex->GetBlockHeader().IsHiveMined(consensusParams)) {
+            CAvailableGame game;
+            game.gameSourceHash = pblockindex->GetBlockHash();
+            int depth = tipHeight - pblockindex->nHeight;
+            game.blocksRemaining = consensusParams.popMaxPublicGameDepth - depth;
+            game.isPrivate = false;
+            potentialGames[game.gameSourceHash.ToString()] = game;
+        }
+
+        assert(pblockindex->pprev);
+        pblockindex = pblockindex->pprev;
+    }
+
+    // Remove already solved ones
+    pblockindex = chainActive.Tip();
+    while (pblockindex->nHeight > stopHeight) { // (Stop height's already set)
+        if (pblockindex->GetBlockHeader().IsPopMined(consensusParams)) {
+            CBlock block;
+            if (ReadBlockFromDisk(block, pblockindex, consensusParams, false)) {
+                // Grab the source game blockhash
+                uint256 tempGameSourceHashBin;
+                tempGameSourceHashBin.SetHex(HexStr(&block.vtx[0]->vout[0].scriptPubKey[4], &block.vtx[0]->vout[0].scriptPubKey[4+32]));
+                std::string tempGameSourceHashStr = tempGameSourceHashBin.ToString();
+
+                // Remove from potential games if present
+                std::unordered_map<std::string, CAvailableGame>::const_iterator i = potentialGames.find(tempGameSourceHashStr);
+                if (i != potentialGames.end())
+                    potentialGames.erase(tempGameSourceHashStr);
+            }
+        }
+
+        assert(pblockindex->pprev);
+        pblockindex = pblockindex->pprev;
+    }
+
+    // Copy survivors to final output
+    for (auto it = potentialGames.begin(); it != potentialGames.end(); ++it)
+        games.push_back(it->second);
+
+    return games;
 }
 
 // Ring-fork: Hive: Return all DCTs known by this wallet, optionally including dead dwarves and optionally scanning for blocks minted by dwarves from each DCT

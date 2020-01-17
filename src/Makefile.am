@@ -332,6 +332,7 @@ libring_wallet_tool_a_SOURCES = \
 
 # crypto primitives library
 # Ring-fork: Added crypto/pow/
+# Ring-fork: Added crypto/pop/
 crypto_libring_crypto_base_a_CPPFLAGS = $(AM_CPPFLAGS)
 crypto_libring_crypto_base_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_libring_crypto_base_a_SOURCES = \
@@ -407,7 +408,8 @@ crypto_libring_crypto_base_a_SOURCES = \
   crypto/pow/skein.c \
   crypto/pow/Sponge.c \
   crypto/pow/sph_bmw.h \
-  crypto/pow/minotaur.h  
+  crypto/pow/minotaur.h \
+  crypto/pop/game0/game0.cpp
 
 if USE_ASM
 crypto_libring_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp

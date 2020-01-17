@@ -119,7 +119,7 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
     txnouttype whichType;
 
     const Consensus::Params& consensusParams = Params().GetConsensus();                                         // Ring-fork: Hive
-    CScript scriptPubKeyBCF = GetScriptForDestination(DecodeDestination(consensusParams.dwarfCreationAddress));   // Ring-fork: Hive
+    CScript scriptPubKeyBCF = GetScriptForDestination(DecodeDestination(consensusParams.dwarfCreationAddress)); // Ring-fork: Hive
 
     for (const CTxOut& txout : tx.vout) {
         if (CScript::IsDCTScript(txout.scriptPubKey, scriptPubKeyBCF))      // Ring-fork: Hive

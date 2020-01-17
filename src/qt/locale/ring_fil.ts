@@ -844,7 +844,7 @@
         <translation>Ang mga bagong transaksyon ay hindi pa makikita kaya ang balanse ng iyong walet ay maaaring hindi tama. Ang impormasyong ito ay maiitama pagkatapos ma-synchronize ng iyong walet sa ring network, ayon sa ibaba.</translation>
     </message>
     <message>
-        <source>Attempting to spend rings that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <source>Attempting to spend coins that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
         <translation>Ang pagtangkang gastusin ang mga ring na apektado ng mga transaksyon na hindi pa naipapakita ay hindi tatanggapin ng network.</translation>
     </message>
     <message>
