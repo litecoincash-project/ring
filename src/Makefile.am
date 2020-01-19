@@ -226,7 +226,9 @@ RING_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
-  zmq/zmqrpc.h
+  zmq/zmqrpc.h \
+  crypto/pop/game0/game0.h \
+  crypto/pop/popgame.h
 
 
 obj/build.h: FORCE

@@ -37,7 +37,8 @@ script: |
 
   WRAP_DIR=$HOME/wrapped
   HOSTS="x86_64-apple-darwin14"
-  CONFIGFLAGS="--enable-reduce-exports --disable-bench --disable-gui-tests GENISOIMAGE=$WRAP_DIR/genisoimage"
+  # Ring-fork: Disable unwanted binaries
+  CONFIGFLAGS="--enable-reduce-exports --disable-util-wallet --disable-util-tx --disable-bench --disable-tests --disable-gui-tests GENISOIMAGE=$WRAP_DIR/genisoimage"
   FAKETIME_HOST_PROGS=""
   FAKETIME_PROGS="ar ranlib date dmg genisoimage"
 

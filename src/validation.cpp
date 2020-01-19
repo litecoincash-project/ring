@@ -1177,7 +1177,7 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
         return MAX_MONEY;
 
     // Enable standard flat subsidy
-    CAmount nSubsidy = 3 * COIN;
+    CAmount nSubsidy = 1.337 * COIN;
 
     // Ring-fork: Slow-start the first n blocks to prevent early miners having an unfair advantage
     int64_t blocksSinceInitialDistribution = nHeight - consensusParams.lastInitialDistributionHeight;

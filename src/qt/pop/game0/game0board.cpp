@@ -224,7 +224,7 @@ void Game0Board::mousePressEvent(QMouseEvent* event) {
 
     if (event->button() == Qt::RightButton) {                   // Rotate on right-click
         rotateTile();
-        if (soundsEnabled) JustPlay(":/game0/rotate.wav");
+        if (soundsEnabled) JustPlay(":/game0/rotate");
     } else                                                    // Try to place tile on left-click
         placeTile();
 }
@@ -238,7 +238,7 @@ bool Game0Board::placeTile() {
     // Try and place the tile
     std::string strError;
     if (!game.PlaceTile(highlightedTileX, highlightedTileY, currentTileRotation, strError)) {
-        if (soundsEnabled) JustPlay(":/game0/badclick.wav");
+        if (soundsEnabled) JustPlay(":/game0/badclick");
         return false;
     }
 
@@ -257,7 +257,7 @@ bool Game0Board::placeTile() {
 
     // Check for win condition
     if (score >= GAME0_SCORE_TARGET) {
-        if (soundsEnabled) JustPlay(":/game0/win.wav");
+        if (soundsEnabled) JustPlay(":/game0/win");
     	done = true;
     	if (autoSubmit) Q_EMIT solutionReady(currentGame, 0, game.GetSolution());
         Q_EMIT showMessage(tr("<big><b>Game Won!</b></big>"));
@@ -268,14 +268,14 @@ bool Game0Board::placeTile() {
 
     // Check for lose condition (out of room)
     if (game.GetTilesPlaced() == GAME0_BOARD_SIZE * GAME0_BOARD_SIZE) {
-        if (soundsEnabled) JustPlay(":/game0/lose.wav");
+        if (soundsEnabled) JustPlay(":/game0/lose");
         done = true;
 	    Q_EMIT showMessage(tr("<big><b>Game Over; target not met.</b></big>"));
         return true;
     }
 
     if (soundsEnabled)
-        JustPlay(score > oldScore ? ":/game0/score.wav" : ":/game0/goodclick.wav");
+        JustPlay(score > oldScore ? ":/game0/score" : ":/game0/goodclick");
 
     return true;
 }

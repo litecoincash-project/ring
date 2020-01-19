@@ -27,7 +27,7 @@ public:
     std::string GetSolutionHexStr() { return HexStr(&solution[0], &solution[solution.size()]); }    // Get solution as a hex string
 
     uint256 GetSourceHash() { return gameSourceHash; }              // Get source hash
-    virtual bool VerifyGameSolution(uint256 gameSourceHash, std::vector<unsigned char> solution, std::string& strError){};    // Verify solution given a game source hash and a solution. OVERWRITES ALL INTERNAL STATE.
+    virtual bool VerifyGameSolution(uint256 gameSourceHash, std::vector<unsigned char> solution, std::string& strError){ return false; };    // Verify solution given a game source hash and a solution. OVERWRITES ALL INTERNAL STATE.
 
 protected:
     uint256 gameSourceHash;                                         // Source hash of the game

@@ -67,7 +67,7 @@ SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const Netw
 
     // draw the ring icon, expected size of PNG: 1024x1024
     // Ring-fork: Adjusted to show whole logo
-    QRect rectIcon(QPoint(20,20), QSize(256,256));
+    QRect rectIcon(QPoint(5,5), QSize(256,256));
     const QSize requiredSize(256,256);
 
     QPixmap icon(networkStyle->getAppIcon().pixmap(requiredSize));

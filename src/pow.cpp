@@ -271,15 +271,17 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
     if (verbose)
         LogPrintf("CheckHiveProof: nHeight             = %i\n", blockHeight);
 
-    // Check that there aren't too many consecutive Hive blocks
-    int hiveBlocksAtTip = 0;
+    // Check that there aren't too many Hive blocks since the last Pow block
+    int hiveBlocksSincePow = 0;
     CBlockIndex* pindexTemp = pindexPrev;
-    while (pindexTemp->GetBlockHeader().IsHiveMined(consensusParams)) {
+    while (pindexTemp->GetBlockHeader().IsPopMined(consensusParams) || pindexTemp->GetBlockHeader().IsHiveMined(consensusParams)) {
+        if (pindexTemp->GetBlockHeader().IsHiveMined(consensusParams))
+            hiveBlocksSincePow++;
+
         assert(pindexTemp->pprev);
         pindexTemp = pindexTemp->pprev;
-        hiveBlocksAtTip++;
     }
-    if (hiveBlocksAtTip >= consensusParams.maxConsecutiveHiveBlocks) {
+    if (hiveBlocksSincePow >= consensusParams.maxConsecutiveHiveBlocks) {
         LogPrintf("CheckHiveProof: Too many Hive blocks without a POW block.\n");
         return false;
     }

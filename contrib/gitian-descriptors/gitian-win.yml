@@ -30,8 +30,10 @@ script: |
   set -e -o pipefail
 
   WRAP_DIR=$HOME/wrapped
-  HOSTS="i686-w64-mingw32 x86_64-w64-mingw32"
-  CONFIGFLAGS="--enable-reduce-exports --disable-bench --disable-gui-tests"
+  # Ring-fork: Do 64 bit first
+  HOSTS="x86_64-w64-mingw32 i686-w64-mingw32"
+  # Ring-fork: Disable unwanted binaries
+  CONFIGFLAGS="--enable-reduce-exports --disable-util-wallet --disable-util-tx --disable-bench --disable-tests --disable-gui-tests"
   FAKETIME_HOST_PROGS="ar ranlib nm windres strip objcopy"
   FAKETIME_PROGS="date makensis zip"
   HOST_CFLAGS="-O2 -g"
@@ -154,7 +156,7 @@ script: |
     cp ../src/obj/build.h src/obj/
 
     # Ring-fork: Don't want bench or tests in releases
-    CONFIG_SITE=${BASEPREFIX}/${i}/share/config.site ./configure --prefix=/ --disable-tests --disable-bench --disable-ccache --disable-maintainer-mode --disable-dependency-tracking ${CONFIGFLAGS} CFLAGS="${HOST_CFLAGS}" CXXFLAGS="${HOST_CXXFLAGS}"
+    CONFIG_SITE=${BASEPREFIX}/${i}/share/config.site ./configure --prefix=/ --disable-ccache --disable-maintainer-mode --disable-dependency-tracking ${CONFIGFLAGS} CFLAGS="${HOST_CFLAGS}" CXXFLAGS="${HOST_CXXFLAGS}"
     make ${MAKEOPTS}
     make ${MAKEOPTS} -C src check-security
     make deploy

@@ -307,9 +307,10 @@ RING_QT_H = \
   qt/tinypie.h \
   qt/pop/availablegamestablemodel.h \
   qt/pop/miniaudio/miniaudio.h \
-  qt/pop/miniaudio/dr_wave.h \
+  qt/pop/miniaudio/dr_wav.h \
   qt/pop/soundplayer.h \
-  qt/pop/game0/game0board.h
+  qt/pop/game0/game0board.h \
+  qt/uicolours.h
 
 # Ring-fork: Mining page, form BG
 # Ring-fork: Hive
@@ -389,7 +390,8 @@ RES_ICONS = \
   qt/res/icons/agentstatus_immature.png \
   qt/res/icons/agentstatus_dead.png \
   qt/res/icons/minotaur.png \
-  qt/res/icons/pop/game0/*.png
+  qt/res/icons/pop/game0/*.png \
+  qt/res/sounds/pop/game0/*.wav
 
 # Ring-fork: Hive
 RING_QT_BASE_CPP = \

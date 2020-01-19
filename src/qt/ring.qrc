@@ -130,11 +130,11 @@
         <file alias="boardtile12">res/icons/pop/game0/boardtile12.png</file>
         <file alias="boardtile13">res/icons/pop/game0/boardtile13.png</file>
         <file alias="boardtile14">res/icons/pop/game0/boardtile14.png</file>
-        <file alias="goodclick.wav">res/sounds/pop/game0/goodclick.wav</file>
-        <file alias="badclick.wav">res/sounds/pop/game0/badclick.wav</file>
-        <file alias="rotate.wav">res/sounds/pop/game0/rotate.wav</file>
-        <file alias="score.wav">res/sounds/pop/game0/score.wav</file>
-        <file alias="win.wav">res/sounds/pop/game0/win.wav</file>
-        <file alias="lose.wav">res/sounds/pop/game0/lose.wav</file>
+        <file alias="goodclick">res/sounds/pop/game0/goodclick.wav</file>
+        <file alias="badclick">res/sounds/pop/game0/badclick.wav</file>
+        <file alias="rotate">res/sounds/pop/game0/rotate.wav</file>
+        <file alias="score">res/sounds/pop/game0/score.wav</file>
+        <file alias="win">res/sounds/pop/game0/win.wav</file>
+        <file alias="lose">res/sounds/pop/game0/lose.wav</file>
     </qresource>
 </RCC>
