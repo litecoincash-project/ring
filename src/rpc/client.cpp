@@ -100,7 +100,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "gethiveinfo", 0, "include_dead" },               // Ring-fork: Hive: Get hive info
     { "gethiveinfo", 1, "min_reward_confirms" },        // Ring-fork: Hive: Get hive info
     { "getdctinfo", 1, "min_reward_confirms" },         // Ring-fork: Hive: Get single DCT info
-    { "getnetworkhiveinfo", 0, "include_graph" },       // Ring-fork: Hive: Get network hive info    
+    { "getnetworkhiveinfo", 0, "include_graph" },       // Ring-fork: Hive: Get network hive info
+    { "sethiveparams", 0, "hivecheckdelay"},            // Ring-fork: Hive: Mining optimisations: Set hive mining params
+    { "sethiveparams", 1, "hivecheckthreads"},          // Ring-fork: Hive: Mining optimisations: Set hive mining params
+    { "sethiveparams", 2, "hiveearlyabort"},            // Ring-fork: Hive: Mining optimisations: Set hive mining params    
     { "submitsolution", 1, "is_private" },              // Ring-fork: Pop: Submit a solution
     { "submitsolution", 2, "game_type" },               // Ring-fork: Pop: Submit a solution
     { "decoderawtransaction", 1, "iswitness" },

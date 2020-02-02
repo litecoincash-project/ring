@@ -343,7 +343,7 @@ AvailableGamesTableModel *WalletModel::getAvailableGamesTableModel()
 }
 
 // Ring-fork: Pop
-bool WalletModel::submitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) {
+bool WalletModel::submitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) {
     return m_wallet->submitSolution(game, gameType, solution, strFailReason);
 }
 
@@ -540,18 +540,14 @@ void WalletModel::loadReceiveRequests(std::vector<std::string>& vReceiveRequests
 
 // Ring-fork: Hive
 void WalletModel::getDCTs(std::vector<CDwarfCreationTransactionInfo>& vDwarfCreationTransactions, bool includeDeadDwarves) {
-    {
-        //LOCK(m_wallet->get()->cs_wallet);
-        vDwarfCreationTransactions = m_wallet->getDCTs(includeDeadDwarves, true, Params().GetConsensus(), 1);
-    }
+    //LOCK(m_wallet->get()->cs_wallet);
+    vDwarfCreationTransactions = m_wallet->getDCTs(includeDeadDwarves, true, Params().GetConsensus(), 1);
 }
 
 // Ring-fork: Pop
 void WalletModel::getAvailableGames(std::vector<CAvailableGame>& vGames) {
-    {
-        //LOCK(m_wallet->get()->cs_wallet);
-        vGames = m_wallet->getAvailableGames(Params().GetConsensus());
-    }
+    LOCK(cs_main);
+    vGames = m_wallet->getAvailableGames(Params().GetConsensus());
 }
 
 // Ring-fork: Hive

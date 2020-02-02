@@ -16,6 +16,7 @@ class ClientModel;
 class OverviewPage;
 class MiningPage;           // Ring-fork: Mining page
 class HiveDialog;           // Ring-fork: Hive: Hive page
+class RialtoDialog;         // Ring-fork: Rialto: Rialto page
 class PopDialog;            // Ring-fork: Pop: Pop page
 class PlatformStyle;
 class ReceiveCoinsDialog;
@@ -69,6 +70,7 @@ private:
     OverviewPage *overviewPage;
     MiningPage *miningPage;     // Ring-fork: Mining page
     HiveDialog *hivePage;       // Ring-fork: Hive: Hive page
+    RialtoDialog *rialtoPage;   // Ring-fork: Hive: Rialto page
     PopDialog *popPage;         // Ring-fork: Pop: Pop page
     QWidget *transactionsPage;
     ReceiveCoinsDialog *receiveCoinsPage;
@@ -88,6 +90,8 @@ public Q_SLOTS:
     void gotoMiningPage();
     // Ring-fork: Hive: Hive page
     void gotoHivePage();
+    // Ring-fork: Rialto: Rialto page
+    void gotoRialtoPage();
     // Ring-fork: Pop: Pop page
     void gotoPopPage();
     /** Switch to history (transactions) page */

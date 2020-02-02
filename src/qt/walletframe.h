@@ -80,6 +80,8 @@ public Q_SLOTS:
     void gotoHivePage();
     // Ring-fork: Pop: Switch to pop page
     void gotoPopPage();
+    // Ring-fork: Rialto: Switch to Rialto page
+    void gotoRialtoPage();
     // Ring-fork: Key import helper
     void importPrivateKey();
 

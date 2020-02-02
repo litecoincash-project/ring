@@ -790,6 +790,9 @@ static UniValue getblockhash(const JSONRPCRequest& request)
     return pblockindex->GetBlockHash().GetHex();
 }
 
+// Ring-fork: Show pow hash in JSON
+// Ring-fork: Hive: Show block type and hive difficulty and hide nonce in JSON
+// Ring-fork: Pop: Show block type and hide nonce and nBits in JSON
 static UniValue getblockheader(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
@@ -805,6 +808,8 @@ static UniValue getblockheader(const JSONRPCRequest& request)
                     RPCResult{"for verbose = true",
             "{\n"
             "  \"hash\" : \"hash\",     (string) the block hash (same as provided)\n"
+            "  \"type\" : \"type\",     (string) the block type (pow, hive or pop)\n"                       // Ring-fork
+            "  \"powhash\" : \"hash\",  (string) the pow hash (shown for pow blocks only)\n"                // Ring-fork
             "  \"confirmations\" : n,   (numeric) The number of confirmations, or -1 if the block is not on the main chain\n"
             "  \"height\" : n,          (numeric) The block height or index\n"
             "  \"version\" : n,         (numeric) The block version\n"
@@ -812,8 +817,8 @@ static UniValue getblockheader(const JSONRPCRequest& request)
             "  \"merkleroot\" : \"xxxx\", (string) The merkle root\n"
             "  \"time\" : ttt,          (numeric) The block time in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"mediantime\" : ttt,    (numeric) The median block time in seconds since epoch (Jan 1 1970 GMT)\n"
-            "  \"nonce\" : n,           (numeric) The nonce\n"
-            "  \"bits\" : \"1d00ffff\", (string) The bits\n"
+            "  \"nonce\" : n,           (numeric) The nonce (shown for pow blocks only)\n"                  // Ring-fork
+            "  \"bits\" : \"1d00ffff\", (string) The bits (shown for pow blocks and hive blocks only)\n"    // Ring-fork
             "  \"difficulty\" : x.xxx,  (numeric) The difficulty\n"
             "  \"chainwork\" : \"0000...1f3\"     (string) Expected number of hashes required to produce the current chain (in hex)\n"
             "  \"nTx\" : n,             (numeric) The number of transactions in the block.\n"
@@ -879,6 +884,9 @@ static CBlock GetBlockChecked(const CBlockIndex* pblockindex)
     return block;
 }
 
+// Ring-fork: Show pow hash in JSON
+// Ring-fork: Hive: Show block type and hive difficulty and hide nonce in JSON
+// Ring-fork: Pop: Show block type and hide nonce and nBits in JSON
 static UniValue getblock(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
@@ -898,7 +906,8 @@ static UniValue getblock(const JSONRPCRequest& request)
                     RPCResult{"for verbosity = 1",
             "{\n"
             "  \"hash\" : \"hash\",     (string) the block hash (same as provided)\n"
-            "  \"powhash\" : \"xxxx\",  (string) The proof-of-work hash\n"  // Ring-fork: Include pow hash in output
+            "  \"type\" : \"type\",     (string) the block type (pow, hive or pop)\n"                       // Ring-fork
+            "  \"powhash\" : \"hash\",  (string) the pow hash (shown for pow blocks only)\n"                // Ring-fork
             "  \"confirmations\" : n,   (numeric) The number of confirmations, or -1 if the block is not on the main chain\n"
             "  \"size\" : n,            (numeric) The block size\n"
             "  \"strippedsize\" : n,    (numeric) The block size excluding witness data\n"
@@ -913,8 +922,8 @@ static UniValue getblock(const JSONRPCRequest& request)
             "  ],\n"
             "  \"time\" : ttt,          (numeric) The block time in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"mediantime\" : ttt,    (numeric) The median block time in seconds since epoch (Jan 1 1970 GMT)\n"
-            "  \"nonce\" : n,           (numeric) The nonce\n"
-            "  \"bits\" : \"1d00ffff\", (string) The bits\n"
+            "  \"nonce\" : n,           (numeric) The nonce (shown for pow blocks only)\n"                  // Ring-fork
+            "  \"bits\" : \"1d00ffff\", (string) The bits (shown for pow blocks and hive blocks only)\n"    // Ring-fork            
             "  \"difficulty\" : x.xxx,  (numeric) The difficulty\n"
             "  \"chainwork\" : \"xxxx\",  (string) Expected number of hashes required to produce the chain up to this block (in hex)\n"
             "  \"nTx\" : n,             (numeric) The number of transactions in the block.\n"
@@ -1840,6 +1849,7 @@ static inline bool SetHasKeys(const std::set<T>& set, const Tk& key, const Args&
 // outpoint (needed for the utxo index) + nHeight + fCoinBase
 static constexpr size_t PER_UTXO_OVERHEAD = sizeof(COutPoint) + sizeof(uint32_t) + sizeof(bool);
 
+// Ring-fork: Include block subsidies for each block type
 static UniValue getblockstats(const JSONRPCRequest& request)
 {
     const RPCHelpMan help{"getblockstats",
@@ -1880,7 +1890,10 @@ static UniValue getblockstats(const JSONRPCRequest& request)
             "  \"minfeerate\": xxxxx,      (numeric) Minimum feerate (in satoshis per virtual byte)\n"
             "  \"mintxsize\": xxxxx,       (numeric) Minimum transaction size\n"
             "  \"outs\": xxxxx,            (numeric) The number of outputs\n"
-            "  \"subsidy\": xxxxx,         (numeric) The block subsidy\n"
+            "  \"subsidy_pow\": xxxxx,     (numeric) Block subsidy (pow blocks)\n"              // Ring-fork
+            "  \"subsidy_hive\": xxxxx,    (numeric) Block subsidy (hive blocks)\n"             // Ring-fork
+            "  \"subsidy_pop_prv\": xxxxx, (numeric) Block subsidy (private pop blocks)\n"      // Ring-fork
+            "  \"subsidy_pop_pub\": xxxxx, (numeric) Block subsidy (public pop blocks)\n"       // Ring-fork
             "  \"swtotal_size\": xxxxx,    (numeric) Total size of all segwit transactions\n"
             "  \"swtotal_weight\": xxxxx,  (numeric) Total weight of all segwit transactions divided by segwit scale factor (4)\n"
             "  \"swtxs\": xxxxx,           (numeric) The number of segwit transactions\n"
@@ -2079,7 +2092,10 @@ static UniValue getblockstats(const JSONRPCRequest& request)
     ret_all.pushKV("minfeerate", (minfeerate == MAX_MONEY) ? 0 : minfeerate);
     ret_all.pushKV("mintxsize", mintxsize == MAX_BLOCK_SERIALIZED_SIZE ? 0 : mintxsize);
     ret_all.pushKV("outs", outputs);
-    ret_all.pushKV("subsidy", GetBlockSubsidy(pindex->nHeight, Params().GetConsensus()));
+    ret_all.pushKV("subsidy_pow", GetBlockSubsidyPow(pindex->nHeight, Params().GetConsensus()));
+    ret_all.pushKV("subsidy_hive", GetBlockSubsidyHive(Params().GetConsensus()));
+    ret_all.pushKV("subsidy_pop_prv", GetBlockSubsidyPopPrivate(Params().GetConsensus()));
+    ret_all.pushKV("subsidy_pop_pub", GetBlockSubsidyPopPublic(Params().GetConsensus()));
     ret_all.pushKV("swtotal_size", swtotal_size);
     ret_all.pushKV("swtotal_weight", swtotal_weight);
     ret_all.pushKV("swtxs", swtxs);

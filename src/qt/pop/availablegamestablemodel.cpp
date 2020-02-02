@@ -39,7 +39,7 @@ void AvailableGamesTableModel::updateGames(std::vector<CAvailableGame>& vGames) 
         // Load entries from wallet
         walletModel->getAvailableGames(vGames);
         beginInsertRows(QModelIndex(), 0, 0);
-        for (const CAvailableGame& game : vGames)
+        for (CAvailableGame& game : vGames)
             list.prepend(game);
         endInsertRows();
 
@@ -74,7 +74,7 @@ QVariant AvailableGamesTableModel::data(const QModelIndex &index, int role) cons
             case BlocksLeft:
                 return QString::number(rec->blocksRemaining);
             case EstimatedTime:
-                return secondsToString(rec->blocksRemaining * Params().GetConsensus().nPowTargetSpacing / 2);
+                return secondsToString(rec->blocksRemaining * Params().GetConsensus().nExpectedBlockSpacing);
         }
     } else if (role == Qt::TextAlignmentRole) {
         if (index.column() == BlocksLeft)

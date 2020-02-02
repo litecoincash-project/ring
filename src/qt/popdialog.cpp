@@ -63,9 +63,9 @@ void PopDialog::setModel(WalletModel *_model) {
         //connect(_model->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &PopDialog::updateDisplayUnit);
         //updateDisplayUnit();
         
-        //if (_model->getEncryptionStatus() != WalletModel::Locked)
-        //    ui->releaseSwarmButton->hide();
-        //connect(_model, SIGNAL(encryptionStatusChanged(int)), this, SLOT(setEncryptionStatus(int)));
+        if (_model->getEncryptionStatus() != WalletModel::Locked)
+            ui->releaseSwarmButton->hide();
+        connect(_model, SIGNAL(encryptionStatusChanged(int)), this, SLOT(setEncryptionStatus(int)));
 
         QTableView* tableView = ui->gameTable;
         tableView->verticalHeader()->hide();
@@ -99,23 +99,36 @@ void PopDialog::updateGamesAvailable() {
         std::vector<CAvailableGame> games;        
         model->getAvailableGamesTableModel()->updateGames(games);
 
-        // Update any current game
-        const CAvailableGame *currentGame = game0board->getCurrentGame();
+        CAvailableGame *currentGame = game0board->getCurrentGame();
         if (!currentGame)
             return;
 
-        bool currentStillValid = false;
-        for (auto game : games) {
+        for (CAvailableGame& game : games) {
             if (game.gameSourceHash == currentGame->gameSourceHash) {
-                currentStillValid = true;
                 game0board->updateTimeLeft(game.blocksRemaining);
-                break;
+                return;
             }
         }
-
-        if (!currentStillValid)
-            game0board->updateTimeLeft(-1);
+        LogPrintf("** Current game expired.\n");
+        game0board->updateTimeLeft(-1);
     }
+}
+
+void PopDialog::setEncryptionStatus(int status) {
+    switch(status) {
+        case WalletModel::Unencrypted:
+        case WalletModel::Unlocked:
+            ui->releaseSwarmButton->hide();
+            break;
+        case WalletModel::Locked:
+            ui->releaseSwarmButton->show();
+            break;
+    }
+}
+
+void PopDialog::on_releaseSwarmButton_clicked() {
+    if(model)
+        model->requestUnlock(true);
 }
 
 void PopDialog::on_playSelectedButton_clicked() {
@@ -128,13 +141,13 @@ void PopDialog::on_playSelectedButton_clicked() {
     QModelIndexList selection = ui->gameTable->selectionModel()->selectedRows();
     QModelIndex index = selection.at(0);
     const AvailableGamesTableModel *submodel = model->getAvailableGamesTableModel();
-    const CAvailableGame *game = &(submodel->entry(index.row()));
+    const CAvailableGame *game = &(submodel->entry(index.row()));   // !!!!!
     
     if (game)
         game0board->newGame(game);
 }
 
-void PopDialog::submitSolution(const CAvailableGame *g, uint8_t gameType, std::vector<unsigned char> solution) {
+void PopDialog::submitSolution(CAvailableGame *g, uint8_t gameType, std::vector<unsigned char> solution) {
     if (!model)
         return;
 

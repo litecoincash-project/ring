@@ -1,4 +1,4 @@
-// LitecoinCash: Hexagon pie :)
+// Ring-fork: Hexagon pie :)
 
 #include <qt/tinypie.h>
 #include <qt/uicolours.h>

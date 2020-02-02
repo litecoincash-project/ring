@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>RialtoDialog</class>
+ <widget class="QWidget" name="RialtoDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>611</width>
+    <height>450</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>0</width>
+    <height>450</height>
+   </size>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="label_2">
+     <property name="font">
+      <font>
+       <pointsize>11</pointsize>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">padding-bottom: 16px;</string>
+     </property>
+     <property name="text">
+      <string>Coming Soon: The Rialto</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Can you really trust the companies offering supposedly fully encrypted chat? They may &lt;span style=&quot; font-style:italic;&quot;&gt;say&lt;/span&gt; the encryption is end to end. They may &lt;span style=&quot; font-style:italic;&quot;&gt;say&lt;/span&gt; they have no mandated backdoor.&lt;/p&gt;&lt;p&gt;We believe people have a higher level of trust in the encryption protecting their cryptocurrencies than in the offerings from any of these companies.&lt;/p&gt;&lt;p&gt;In a future season, Ring will introduce The Rialto. Shakespeare's Rialto was a street in Venice where merchants would meet and discretely conduct their business. Ours is a completely decentralised chat platform with integrated low-friction payment system, all powered by the same encryption you trust every day to protect your coins.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../ring.qrc"/>
+  <include location="../ring.qrc"/>
+ </resources>
+ <connections/>
+</ui>

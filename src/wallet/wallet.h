@@ -661,6 +661,16 @@ struct CDwarfCreationTransactionInfo
     int blocksLeft;
 };
 
+// Ring-fork: Hive: Mining optimisations: Dwarf range structure
+struct CDwarfRange
+{
+    std::string txid;
+    std::string rewardAddress;
+    bool communityContrib;
+    int offset;
+    int count;
+};
+
 class WalletRescanReserver; //forward declarations for ScanForWalletTransactions/RescanFromTime
 /**
  * A CWallet is an extension of a keystore, which also maintains a set of transactions and balances,
@@ -997,7 +1007,7 @@ public:
     std::vector<CAvailableGame> GetAvailableGames(const Consensus::Params& consensusParams);
 
     // Ring-fork: Pop: Submit a game solution
-    bool SubmitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason, std::string rewardAddress = "");
+    bool SubmitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason, std::string rewardAddress = "");
 
     /**
      * Insert additional inputs into the transaction by

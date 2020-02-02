@@ -32,6 +32,7 @@
       <widget class="QLabel" name="createDwarvesTitleLabel">
        <property name="font">
         <font>
+         <pointsize>11</pointsize>
          <weight>75</weight>
          <bold>true</bold>
         </font>
@@ -55,6 +56,22 @@
       </spacer>
      </item>
      <item>
+      <widget class="QLabel" name="warningLabel2">
+       <property name="font">
+        <font>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>&lt;a href=&quot;https://hive.litecoinca.sh/guide/&quot;&gt;&lt;span style=&quot;text-decoration: underline; color:#f19015;&quot;&gt;Please learn about hive mining before creating dwarves&lt;/span&gt;&lt;/a&gt;</string>
+       </property>
+       <property name="openExternalLinks">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QLabel" name="warningLabel">
        <property name="maximumSize">
         <size>
@@ -75,22 +92,6 @@
         <pixmap resource="../ring.qrc">:/icons/warning</pixmap>
        </property>
        <property name="scaledContents">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="warningLabel2">
-       <property name="font">
-        <font>
-         <weight>75</weight>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>&lt;span style=&quot;color:#ff0000;&quot;&gt;Please &lt;a href=&quot;https://hive.litecoinca.sh/guide/&quot;&gt;&lt;span style=&quot;text-decoration: underline; color:#f19015;&quot;&gt;learn about hive mining&lt;/span&gt;&lt;/a&gt; before creating dwarves&lt;/span&gt;</string>
-       </property>
-       <property name="openExternalLinks">
         <bool>true</bool>
        </property>
       </widget>
@@ -305,10 +306,6 @@
           <property name="text">
            <string>Create dwarves</string>
           </property>
-          <property name="icon">
-           <iconset resource="../ring.qrc">
-            <normaloff>:/icons/hiveicon</normaloff>:/icons/hiveicon</iconset>
-          </property>
          </widget>
         </item>
         <item>
@@ -333,11 +330,17 @@ still fully unlock it to send funds.</string>
            <string notr="true">color:red;</string>
           </property>
           <property name="text">
-           <string>WALLET IS LOCKED: Unlock for hive mining</string>
+           <string>Unlock wallet for hive and pop</string>
           </property>
-          <property name="icon">
-           <iconset resource="../ring.qrc">
-            <normaloff>:/icons/lock_closed</normaloff>:/icons/lock_closed</iconset>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="showHiveOptionsButton">
+          <property name="toolTip">
+           <string>Open the Options dialog on the Hive Options tab</string>
+          </property>
+          <property name="text">
+           <string>Hive mining options</string>
           </property>
          </widget>
         </item>
@@ -510,6 +513,7 @@ still fully unlock it to send funds.</string>
          <widget class="QLabel" name="globalNetworkHiveTitleLabel">
           <property name="font">
            <font>
+            <pointsize>11</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>
@@ -815,7 +819,7 @@ to make back their cost. At values below 100, it is expected at all dwarves will
             <string>Global network hive stats are automatically refreshed every 10 blocks</string>
            </property>
            <property name="text">
-            <string> blocks) </string>
+            <string> blocks </string>
            </property>
            <property name="alignment">
             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -835,10 +839,6 @@ to make back their cost. At values below 100, it is expected at all dwarves will
            </property>
            <property name="text">
             <string>Refresh</string>
-           </property>
-           <property name="icon">
-            <iconset resource="../ring.qrc">
-             <normaloff>:/icons/refresh</normaloff>:/icons/refresh</iconset>
            </property>
           </widget>
          </item>
@@ -894,6 +894,7 @@ to make back their cost. At values below 100, it is expected at all dwarves will
          <widget class="QLabel" name="yourHiveStatsLabel">
           <property name="font">
            <font>
+            <pointsize>11</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>

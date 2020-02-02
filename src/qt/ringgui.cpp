@@ -157,7 +157,7 @@ RingGUI::RingGUI(interfaces::Node& node, const PlatformStyle *_platformStyle, co
     labelMiningStatusIcon->setPixmap(platformStyle->ForceSingleColorIcon(":/icons/tx_mined").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
     labelMiningStatusIcon->setToolTip("In-wallet CPU mining is enabled");    
     connect(labelMiningStatusIcon, &GUIUtil::ClickableLabel::clicked, [this] {
-        walletFrame->gotoMiningPage();
+        gotoMiningPage();
     });
     updateGenerateIcon();
 
@@ -166,7 +166,7 @@ RingGUI::RingGUI(interfaces::Node& node, const PlatformStyle *_platformStyle, co
     hiveStatusIcon->setPixmap(QIcon(":/icons/hivestatus_clear").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
     //hiveStatusIcon->setToolTip("In-wallet CPU mining is enabled");    
     connect(hiveStatusIcon, &GUIUtil::ClickableLabel::clicked, [this] {
-        walletFrame->gotoHivePage();
+        gotoHivePage();
     });
     updateGenerateIcon();
 
@@ -324,7 +324,19 @@ void RingGUI::skinIt()
         "}"
         // Styles we can inherit everywhere from here
         // TODO: SET DEFAULT FOR POPUPS HERE?
-        "QPushButton {background-color: " + SKIN_BG_BUTTON + ";}"
+        "QPushButton {"
+            "color: " + SKIN_TEXT_BUTTON + ";"
+            "background-color: " + SKIN_BG_BUTTON + ";"
+            "border-radius: 4px;"
+            "padding: 6px;"
+            //"font-size: 12px;"
+            "font-weight: bold;"
+        "}"
+    );
+
+    // Modal overlay
+    modalOverlay->setStyleSheet(
+        "#warningIcon {background-color: #00000000};"
     );
 }
 
@@ -392,6 +404,14 @@ void RingGUI::createActions()
     popAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
     tabGroup->addAction(popAction);
 
+    // Ring-fork: Rialto: Rialto page
+    rialtoAction = new QAction(platformStyle->SingleColorIcon(":/icons/rialtoicon"), tr("The Rialto"), this);
+    rialtoAction->setStatusTip(tr("Show the Rialto page"));
+    rialtoAction->setToolTip(rialtoAction->statusTip());
+    rialtoAction->setCheckable(true);
+    rialtoAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_8));
+    tabGroup->addAction(rialtoAction);
+
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
     // can be triggered from the tray menu, and need to show the GUI to be useful.
@@ -403,6 +423,8 @@ void RingGUI::createActions()
     connect(hiveAction, &QAction::triggered, this, &RingGUI::gotoHivePage);                 // Ring-fork: Hive: Connect actions
     connect(popAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });            // Ring-fork: Pop: Connect actions
     connect(popAction, &QAction::triggered, this, &RingGUI::gotoPopPage);                   // Ring-fork: Pop: Connect actions
+    connect(rialtoAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });         // Ring-fork: Rialto: Connect actions
+    connect(rialtoAction, &QAction::triggered, this, &RingGUI::gotoRialtoPage);             // Ring-fork: Rialto: Connect actions
     connect(sendCoinsAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(sendCoinsAction, &QAction::triggered, [this]{ gotoSendCoinsPage(); });
     connect(sendCoinsMenuAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
@@ -671,6 +693,7 @@ void RingGUI::createToolBars()
         toolbar->addAction(miningAction);   // Ring-fork: Mining page
         toolbar->addAction(hiveAction);     // Ring-fork: Hive: Hive page
         toolbar->addAction(popAction);      // Ring-fork: Pop: Pop page
+        toolbar->addAction(rialtoAction);   // Ring-fork: Rialto: Rialto page
         overviewAction->setChecked(true);
 
 #ifdef ENABLE_WALLET
@@ -991,6 +1014,13 @@ void RingGUI::gotoHivePage()
 {
     hiveAction->setChecked(true);
     if (walletFrame) walletFrame->gotoHivePage();
+}
+
+// Ring-fork: Rialto page
+void RingGUI::gotoRialtoPage()
+{
+    rialtoAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoRialtoPage();
 }
 
 // Ring-fork: Pop page

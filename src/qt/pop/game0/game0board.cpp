@@ -27,7 +27,7 @@
 Game0Board::Game0Board(QWidget* parent)
 :	QWidget(parent),
 	done(true),
-    soundsEnabled(true),
+    soundsEnabled(false),
     autoSubmit(true)
 {
 	setMinimumSize(200, 200);
@@ -61,7 +61,7 @@ Game0Board::Game0Board(QWidget* parent)
 
 	// Create sound toggle
 	soundToggle = new QCheckBox("Enable sounds");
-    soundToggle->setChecked(true);
+    soundToggle->setChecked(soundsEnabled);
     soundToggle->setStyleSheet("color: " + SKIN_TEXT + ";");
     connect(soundToggle, &QCheckBox::clicked, this, &Game0Board::on_soundToggle_clicked);
 
@@ -74,13 +74,14 @@ Game0Board::Game0Board(QWidget* parent)
 	// Create restart button
 	restartButton = new QPushButton("Restart");
     restartButton->setEnabled(false);
-    restartButton->setIcon(QIcon(":/icons/refresh"));
+    //restartButton->setIcon(QIcon(":/icons/refresh"));
+    restartButton->setStyleSheet("background-color: " + SKIN_ICON + ";");
     connect(restartButton, &QPushButton::clicked, this, &Game0Board::on_restartButton_clicked);
-
+    
 	// Create submit button
 	submitButton = new QPushButton("Submit");
     submitButton->setEnabled(false);
-    submitButton->setIcon(QIcon(":/icons/send"));
+    //submitButton->setIcon(QIcon(":/icons/send"));
     connect(submitButton, &QPushButton::clicked, this, &Game0Board::on_submitButton_clicked);
 
 	// Create overlay message
@@ -109,7 +110,7 @@ Game0Board::Game0Board(QWidget* parent)
     gameHashLabel->setAlignment(Qt::AlignCenter);
     gameHashLabel->setStyleSheet("color: " + SKIN_TEXT + ";");
 
-    QLabel *timeLeftCaptionLabel = new QLabel("Time left");
+    timeLeftCaptionLabel = new QLabel("Time left");
     timeLeftCaptionLabel->setAlignment(Qt::AlignCenter);
     timeLeftCaptionLabel->setStyleSheet("color: " + SKIN_TEXT + ";");
     timeLeftLabel = new QLabel("N / A");
@@ -182,7 +183,7 @@ bool Game0Board::endGame() {
     return false;
 }
 
-bool Game0Board::newGame(const CAvailableGame *newGame) {
+bool Game0Board::newGame(const CAvailableGame *newGame, bool updateTime, bool restart) {
     // Confirm abandoning game if in progress
     if (!endGame())
 		return false;
@@ -198,11 +199,22 @@ bool Game0Board::newGame(const CAvailableGame *newGame) {
     submitButton->setEnabled(false);
 
     // Init the game and get first two tiles
-    currentGame = newGame;
+    if(!restart) {
+        if (currentGame)
+            delete currentGame;
+
+        currentGame = new CAvailableGame();
+        currentGame->gameSourceHash = newGame->gameSourceHash;
+        currentGame->blocksRemaining = newGame->blocksRemaining;
+        currentGame->isPrivate = newGame->isPrivate;
+    }
+    
+
     game.InitGame(currentGame->gameSourceHash);
     gameHashLabel->setText(QString::fromStdString(currentGame->gameSourceHash.ToString().substr(0,8) + "..."));
     preview->setPixmap(tileImageThumbs[game.GetNextTileType()]);
-
+    if (updateTime)
+        updateTimeLeft(currentGame->blocksRemaining, false);
     return true;
 }
 
@@ -225,7 +237,7 @@ void Game0Board::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::RightButton) {                   // Rotate on right-click
         rotateTile();
         if (soundsEnabled) JustPlay(":/game0/rotate");
-    } else                                                    // Try to place tile on left-click
+    } else                                                      // Try to place tile on left-click
         placeTile();
 }
 
@@ -259,10 +271,11 @@ bool Game0Board::placeTile() {
     if (score >= GAME0_SCORE_TARGET) {
         if (soundsEnabled) JustPlay(":/game0/win");
     	done = true;
-    	if (autoSubmit) Q_EMIT solutionReady(currentGame, 0, game.GetSolution());
+        restartButton->setEnabled(false);
+    	if (autoSubmit)
+            Q_EMIT solutionReady(currentGame, 0, game.GetSolution());
         Q_EMIT showMessage(tr("<big><b>Game Won!</b></big>"));
-       	restartButton->setEnabled(false);
-        submitButton->setEnabled(true);
+       	submitButton->setEnabled(true);
         return true;
     }
 
@@ -283,7 +296,7 @@ bool Game0Board::placeTile() {
 void Game0Board::paintEvent(QPaintEvent*) {
 	QPainter painter(this);
 	painter.setRenderHint(QPainter::Antialiasing, true);
-	painter.fillRect(background, QColor(SKIN_BG_TAB));
+	painter.fillRect(background, QColor(SKIN_BG_PANEL));
 
 	// Draw board
     std::vector<std::pair<int,int>> candles = game.GetCandles();
@@ -326,18 +339,35 @@ void Game0Board::resizeEvent(QResizeEvent* event) {
     }
 }
 
-void Game0Board::updateTimeLeft(int blocks) {
-    if (!timeLeftLabel)
+void Game0Board::updateTimeLeft(int blocks, bool playTimeWarn) {
+    if (done || !timeLeftLabel)
         return;
 
-    if (blocks < 0)
+    if (blocks <= 0) {
+        timeLeftLabel->setStyleSheet("color: red;");
+        timeLeftCaptionLabel->setStyleSheet("color: red;");        
         timeLeftLabel->setText("EXPIRED!");
-    else
-        timeLeftLabel->setText(QString::number(blocks) + " blocks (" + AvailableGamesTableModel::secondsToString(blocks * Params().GetConsensus().nPowTargetSpacing / 2) + ")");
+        if (soundsEnabled) JustPlay(":/game0/lose");
+        done = true;
+        restartButton->setEnabled(false);
+	    Q_EMIT showMessage(tr("<big><b>Game Expired!</b></big>"));        
+        return;
+    } else
+        timeLeftLabel->setText(QString::number(blocks) + " blocks<br>(" + AvailableGamesTableModel::secondsToString(blocks * Params().GetConsensus().nExpectedBlockSpacing) + ")");
+
+    if (blocks <= 10) {
+        timeLeftLabel->setStyleSheet("color: red;");
+        timeLeftCaptionLabel->setStyleSheet("color: red;");
+        if (soundsEnabled && playTimeWarn)
+            JustPlay(":/game0/timewarn");
+    } else {
+        timeLeftLabel->setStyleSheet("color: " + SKIN_TEXT + ";");
+        timeLeftCaptionLabel->setStyleSheet("color: " + SKIN_TEXT + ";");
+    }
 }
 
 void Game0Board::on_restartButton_clicked() {
-    newGame(currentGame);
+    newGame(currentGame, false, true);
 }
 
 void Game0Board::on_submitButton_clicked() {

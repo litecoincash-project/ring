@@ -46,6 +46,9 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     ui->pruneSize->setEnabled(false);
     connect(ui->prune, &QPushButton::toggled, ui->pruneSize, &QWidget::setEnabled);
 
+    // Ring-fork: Hive: Mining optimisations
+    ui->hiveCheckThreads->setMaximum(GetNumCores());
+
     /* Network elements init */
 #ifndef USE_UPNP
     ui->mapPortUpnp->setEnabled(false);
@@ -211,6 +214,11 @@ void OptionsDialog::setMapper()
     /* Wallet */
     mapper->addMapping(ui->spendZeroConfChange, OptionsModel::SpendZeroConfChange);
     mapper->addMapping(ui->coinControlFeatures, OptionsModel::CoinControlFeatures);
+
+    // Ring-fork: Hive: Mining optimisations (int)
+    mapper->addMapping(ui->hiveCheckThreads, OptionsModel::HiveCheckThreads);
+    mapper->addMapping(ui->hiveCheckDelay, OptionsModel::HiveCheckDelay);
+    mapper->addMapping(ui->hiveCheckEarlyOut, OptionsModel::HiveCheckEarlyOut);
 
     /* Network */
     mapper->addMapping(ui->mapPortUpnp, OptionsModel::MapPortUPnP);

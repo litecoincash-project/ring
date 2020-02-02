@@ -473,7 +473,6 @@ UniValue getavailablegames(const JSONRPCRequest& request)
     }
 
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CWallet* const pwallet = wallet.get();
     
     std::vector<CAvailableGame> games = wallet->GetAvailableGames(Params().GetConsensus());
     UniValue gameList(UniValue::VARR);
@@ -599,9 +598,9 @@ UniValue createdwarves(const JSONRPCRequest& request)
             "\"txid\"                    (string) The transaction id.\n"
             "\nExamples:\n"
             + HelpExampleCli("createdwarves", "1")
-            + HelpExampleCli("createdwarves", "5 true \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+            + HelpExampleCli("createdwarves", "5 true \"RYQQuhMcsPvw36Hk8CvuXsQjxu14qTVuvS\" \"RYZHDjaDqpxCYtaCkwFHmW8eZi5qhCnYyb\"")
             + HelpExampleRpc("createdwarves", "12")
-            + HelpExampleRpc("createdwarves", "34 false \"Cfkv9pniUJ2UoWvaukgD5Ksqx5EsVLzsCk\"")
+            + HelpExampleRpc("createdwarves", "34 false \"RYQQuhMcsPvw36Hk8CvuXsQjxu14qTVuvS\"")
         );
 
     RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
@@ -1937,8 +1936,8 @@ UniValue listtransactions(const JSONRPCRequest& request)
             "[\n"
             "  {\n"
             "    \"address\":\"address\",    (string) The ring address of the transaction.\n"
-            "    \"ishivereward\": xxx,      (bool) Whether this transaction is hive reward (hive block coinbase transaction)\n"
-            "    \"ispopreward\": xxx,      (bool) Whether this transaction is pop reward (pop block coinbase transaction)\n"
+            "    \"ishivereward\": xxx,      (bool) Whether this transaction is hive reward (hive block coinbase transaction)\n"    // Ring-fork
+            "    \"ispopreward\": xxx,      (bool) Whether this transaction is pop reward (pop block coinbase transaction)\n"       // Ring-fork
             "    \"category\":               (string) The transaction category.\n"
             "                \"send\"                  Transactions sent.\n"
             "                \"receive\"               Non-coinbase transactions received.\n"

@@ -48,6 +48,7 @@ public:
     void setModel(WalletModel *model);
 
 public Q_SLOTS:
+    void setEncryptionStatus(int status);
     void updateGamesAvailable();
 
 Q_SIGNALS:
@@ -62,7 +63,8 @@ private:
 	Game0Board* game0board;
 
 private Q_SLOTS:
-	void submitSolution(const CAvailableGame *g, uint8_t gameType, std::vector<unsigned char> solution);
+	void submitSolution(CAvailableGame *g, uint8_t gameType, std::vector<unsigned char> solution);
+    void on_releaseSwarmButton_clicked();
     void on_playSelectedButton_clicked();
 };
 

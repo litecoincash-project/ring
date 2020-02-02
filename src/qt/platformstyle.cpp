@@ -20,10 +20,11 @@ static const struct {
     /** Extra padding/spacing in transactionview */
     const bool useExtraSpacing;
 } platform_styles[] = {
-    {"macosx", true, false, true},
-    {"windows", true, false, false},
+    // Ring-fork: No images on icons
+    {"macosx", false, false, true},
+    {"windows", false, false, false},
     /* Other: linux, unix, ... */
-    {"other", true, false, false}   // Ring-fork: Fix linux icons
+    {"other", false, false, false}   // Ring-fork: Fix linux icons
 };
 static const unsigned platform_styles_count = sizeof(platform_styles)/sizeof(*platform_styles);
 

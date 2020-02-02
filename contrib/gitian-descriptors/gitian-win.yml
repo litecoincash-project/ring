@@ -23,8 +23,8 @@ packages:
 - "python"
 - "rename"
 remotes:
-- "url": "https://github.com/litecoincash-project/ring.git"
-  "dir": "ring"
+- "url": "https://github.com/litecoincash-project/ring-dev.git"
+  "dir": "ring-dev"
 files: []
 script: |
   set -e -o pipefail
@@ -33,7 +33,7 @@ script: |
   # Ring-fork: Do 64 bit first
   HOSTS="x86_64-w64-mingw32 i686-w64-mingw32"
   # Ring-fork: Disable unwanted binaries
-  CONFIGFLAGS="--enable-reduce-exports --disable-util-wallet --disable-bench --disable-tests --disable-gui-tests"
+  CONFIGFLAGS="--enable-reduce-exports --disable-util-wallet --disable-util-tx --disable-bench --disable-tests --disable-gui-tests"
   FAKETIME_HOST_PROGS="ar ranlib nm windres strip objcopy"
   FAKETIME_PROGS="date makensis zip"
   HOST_CFLAGS="-O2 -g"
@@ -107,7 +107,7 @@ script: |
   create_per-host_linker_wrapper "2000-01-01 12:00:00"
   export PATH=${WRAP_DIR}:${PATH}
 
-  cd ring
+  cd ring-dev
   BASEPREFIX=`pwd`/depends
   # Build dependencies for each host
   for i in $HOSTS; do

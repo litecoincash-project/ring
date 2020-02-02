@@ -72,6 +72,7 @@
         <file alias="agentstatus_dead">res/icons/agentstatus_dead.png</file>
         <file alias="refresh">res/icons/refresh.png</file>
         <file alias="minotaur">res/icons/minotaur.png</file>
+        <file alias="rialtoicon">res/icons/rialto.png</file>
     </qresource>
     <qresource prefix="/movies">
         <file alias="spinner-000">res/movies/spinner-000.png</file>
@@ -130,6 +131,7 @@
         <file alias="boardtile12">res/icons/pop/game0/boardtile12.png</file>
         <file alias="boardtile13">res/icons/pop/game0/boardtile13.png</file>
         <file alias="boardtile14">res/icons/pop/game0/boardtile14.png</file>
+        <file alias="timewarn">res/sounds/pop/game0/timewarn.wav</file>
         <file alias="goodclick">res/sounds/pop/game0/goodclick.wav</file>
         <file alias="badclick">res/sounds/pop/game0/badclick.wav</file>
         <file alias="rotate">res/sounds/pop/game0/rotate.wav</file>

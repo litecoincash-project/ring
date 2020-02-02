@@ -1169,15 +1169,15 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex
     return ReadRawBlockFromDisk(block, block_pos, message_start);
 }
 
-// Ring-fork: Block subsidy. Checks for ID blocks, slow starts public blocks, no halvenings.
-CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
+// Ring-fork: Pow block subsidy. Checks for ID blocks, slow starts public blocks, no halvenings.
+CAmount GetBlockSubsidyPow(int nHeight, const Consensus::Params& consensusParams)
 {
     // Allow any subsidy up to the last initial distribution block
     if (nHeight <= consensusParams.lastInitialDistributionHeight)
         return MAX_MONEY;
 
     // Enable standard flat subsidy
-    CAmount nSubsidy = 1.337 * COIN;
+    CAmount nSubsidy = consensusParams.blockSubsidyPow;
 
     // Ring-fork: Slow-start the first n blocks to prevent early miners having an unfair advantage
     int64_t blocksSinceInitialDistribution = nHeight - consensusParams.lastInitialDistributionHeight;
@@ -1189,12 +1189,28 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     return nSubsidy;
 }
 
+// Ring-fork: Hive block subsidy.
+CAmount GetBlockSubsidyHive(const Consensus::Params& consensusParams)
+{
+    return consensusParams.blockSubsidyHive;
+}
+
+// Ring-fork: Private pop block subsidy.
+CAmount GetBlockSubsidyPopPrivate(const Consensus::Params& consensusParams)
+{
+    return consensusParams.blockSubsidyPopPrivate;
+}
+
+// Ring-fork: Public pop block subsidy.
+CAmount GetBlockSubsidyPopPublic(const Consensus::Params& consensusParams)
+{
+    return consensusParams.blockSubsidyPopPublic;
+}
+
 // Ring-fork: Hive: Return the current cost for a single worker dwarf
 CAmount GetDwarfCost(int nHeight, const Consensus::Params& consensusParams)
 {
-    CAmount blockReward = GetBlockSubsidy(nHeight, consensusParams);
-    CAmount dwarfCost = blockReward / consensusParams.dwarfCostFactor;
-    return dwarfCost <= consensusParams.minDwarfCost ? consensusParams.minDwarfCost : dwarfCost;
+    return consensusParams.dwarfCost;
 }
 
 bool IsInitialBlockDownload()
@@ -2073,12 +2089,22 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
-    CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
+    // Ring-fork: Check correct subsidy based on block type.
+    CAmount subsidy;
+    auto consensusParams = chainparams.GetConsensus();
+    if (block.IsHiveMined(consensusParams))
+        subsidy = GetBlockSubsidyHive(consensusParams);
+    else if (block.IsPopMined(consensusParams)) {
+        bool isPrivate = block.vtx[0]->vout[0].scriptPubKey[36] == OP_TRUE;
+        subsidy = isPrivate ? GetBlockSubsidyPopPrivate(consensusParams) : GetBlockSubsidyPopPublic(consensusParams);
+    } else
+        subsidy = GetBlockSubsidyPow(pindex->nHeight, consensusParams);
+
+    CAmount blockReward = nFees + subsidy;
     if (block.vtx[0]->GetValueOut() > blockReward)
-        return state.DoS(100,
-                         error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
-                               block.vtx[0]->GetValueOut(), blockReward),
-                               REJECT_INVALID, "bad-cb-amount");
+        return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
+                            block.vtx[0]->GetValueOut(), blockReward),
+                            REJECT_INVALID, "bad-cb-amount");
 
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");

@@ -101,7 +101,9 @@ unsigned int GetNextHiveWorkRequired(const CBlockIndex* pindexLast, const Consen
             dwarfHashTarget += arith_uint256().SetCompact(pindexLast->nBits);
             hiveBlockCount++;
         }
-        totalBlockCount++;
+        if (!pindexLast->GetBlockHeader().IsPopMined(params))
+            totalBlockCount++;
+
         pindexLast = pindexLast->pprev;
     }
 
@@ -151,7 +153,7 @@ bool GetNetworkHiveInfo(int& immatureDwarves, int& immatureDCTs, int& matureDwar
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
     int tipHeight = pindexPrev->nHeight;
-    potentialLifespanRewards = (consensusParams.dwarfLifespanBlocks * GetBlockSubsidy(pindexPrev->nHeight, consensusParams)) / consensusParams.hiveBlockSpacingTargetTypical;
+    potentialLifespanRewards = (consensusParams.dwarfLifespanBlocks * GetBlockSubsidyHive(consensusParams)) / (consensusParams.hiveBlockSpacingTargetTypical + consensusParams.popBlocksPerHive);
 
     if (recalcGraph) {
         for (int i = 0; i < totalDwarfLifespan; i++) {
@@ -270,6 +272,12 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
     }
     if (verbose)
         LogPrintf("CheckHiveProof: nHeight             = %i\n", blockHeight);
+
+    // Check we're past the pow-only slowstart
+    if (blockHeight < consensusParams.lastInitialDistributionHeight + consensusParams.slowStartBlocks) {
+        LogPrintf("CheckHiveProof: No hive blocks accepted by network until after slowstart!\n");
+        return false;
+    }
 
     // Check that there aren't too many Hive blocks since the last Pow block
     int hiveBlocksSincePow = 0;
@@ -508,19 +516,13 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
     }
 
     // Find dwarf count
-    CAmount dwarfCost = GetDwarfCost(dctFoundHeight, consensusParams);
-    if (dctValue < consensusParams.minDwarfCost) {
-        LogPrintf("CheckHiveProof: DCT fee is less than the minimum possible dwarf cost\n");
-        return false;
-    }
-    if (dctValue < dwarfCost) {
+    if (dctValue < consensusParams.dwarfCost) {
         LogPrintf("CheckHiveProof: DCT fee is less than the cost for a single dwarf\n");
         return false;
     }
-    unsigned int dwarfCount = dctValue / dwarfCost;
+    unsigned int dwarfCount = dctValue / consensusParams.dwarfCost;
     if (verbose) {
         LogPrintf("CheckHiveProof: dctValue            = %i\n", dctValue);
-        LogPrintf("CheckHiveProof: dwarfCost           = %i\n", dwarfCost);
         LogPrintf("CheckHiveProof: dwarfCount          = %i\n", dwarfCount);
     }
     

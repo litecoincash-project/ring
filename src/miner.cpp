@@ -31,6 +31,13 @@
 #include <ui_interface.h>           // Ring-fork: In-wallet miner
 #include <sync.h>                   // Ring-fork: Hive
 #include <key_io.h>                 // Ring-fork: Hive
+#include <boost/thread.hpp>         // Ring-fork: Hive: Mining optimisations
+
+static CCriticalSection cs_solution_vars;
+std::atomic<bool> solutionFound;    // Ring-fork: Hive: Mining optimisations: Thread-safe atomic flag to signal solution found (saves a slow mutex)
+std::atomic<bool> earlyAbort;       // Ring-fork: Hive: Mining optimisations: Thread-safe atomic flag to signal early abort needed
+CDwarfRange solvingRange;           // Ring-fork: Hive: Mining optimisations: The solving range (protected by mutex)
+uint32_t solvingDwarf;              // Ring-fork: Hive: Mining optimisations: The solving dwarf (protected by mutex)
 
 #include <algorithm>
 #include <queue>
@@ -183,7 +190,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         // vout[1]: Reward :)
         coinbaseTx.vout[1].scriptPubKey = scriptPubKeyIn;
-        coinbaseTx.vout[1].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+        coinbaseTx.vout[1].nValue = nFees + GetBlockSubsidyHive(chainparams.GetConsensus());
 
         // vout[2]: Coinbase commitment
         pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
@@ -205,9 +212,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         // vout[1]: Reward :)
         coinbaseTx.vout[1].scriptPubKey = scriptPubKeyIn;
         
-        // Ring-fork: Pop: TODO -- don't use a separate GetPopBlockSubsidy; just ..... DO ZE BIG SHIT ON IT
-        //coinbaseTx.vout[1].nValue = nFees + GetPopBlockSubsidy(nHeight, chainparams.GetConsensus());
-        coinbaseTx.vout[1].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+        // Ring-fork: Pop
+        bool isPrivate = coinbaseTx.vout[0].scriptPubKey[36] == OP_TRUE;
+        CAmount subsidy = isPrivate ? GetBlockSubsidyPopPrivate(chainparams.GetConsensus()) : GetBlockSubsidyPopPublic(chainparams.GetConsensus());
+        coinbaseTx.vout[1].nValue = nFees + subsidy;
 
         // vout[2]: Coinbase commitment
         pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
@@ -219,7 +227,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vin[0].prevout.SetNull();
         coinbaseTx.vout.resize(1);
         coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-        coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+        coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidyPow(nHeight, chainparams.GetConsensus());
         coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
         pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
         pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
@@ -759,7 +767,9 @@ void DwarfMaster(const CChainParams& chainparams) {
 
     try {
         while (true) {
-            MilliSleep(1000);
+            // Ring-fork: Hive: Mining optimisations: Parameterised sleep time
+            int sleepTime = std::max((int64_t) 1, gArgs.GetArg("-hivecheckdelay", DEFAULT_HIVE_CHECK_DELAY));
+            MilliSleep(sleepTime);
             int newHeight;
             {
                 LOCK(cs_main);
@@ -769,7 +779,7 @@ void DwarfMaster(const CChainParams& chainparams) {
                 // Height changed; release the dwarves!
                 height = newHeight;
                 try {
-                    BusyDwarves(consensusParams);
+                    BusyDwarves(consensusParams, height);
                 } catch (const std::runtime_error &e) {
                     LogPrintf("! DwarfMaster: Error: %s\n", e.what());
                 }
@@ -781,8 +791,68 @@ void DwarfMaster(const CChainParams& chainparams) {
     }
 }
 
+// Ring-fork: Hive: Mining optimisations: Thread to signal abort on new block
+void AbortWatchThread(int height) {
+    // Loop until any exit condition
+    while (true) {
+        // Yield to OS
+        MilliSleep(1);
+
+        // Check pre-existing abort conditions
+        if (solutionFound.load() || earlyAbort.load())
+            return;
+
+        // Get tip height, keeping lock scope as short as possible
+        int newHeight;
+        {
+            LOCK(cs_main);
+            newHeight = chainActive.Tip()->nHeight;
+        }
+
+        // Check for abort from tip height change
+        if (newHeight != height) {
+            //LogPrintf("*** ABORT FIRE\n");
+            earlyAbort.store(true);
+            return;
+        }
+    }
+}
+
+// Ring-fork: Hive: Mining optimisations: Thread to check a single bin
+void CheckBin(int threadID, std::vector<CDwarfRange> bin, std::string deterministicRandString, arith_uint256 dwarfHashTarget) {
+    // Iterate over ranges in this bin
+    int checkCount = 0;
+    for (std::vector<CDwarfRange>::const_iterator it = bin.begin(); it != bin.end(); it++) {
+        CDwarfRange dwarfRange = *it;
+        //LogPrintf("THREAD #%i: Checking %i-%i in %s\n", threadID, dwarfRange.offset, dwarfRange.offset + dwarfRange.count - 1, dwarfRange.txid);
+        // Iterate over dwarves in this range
+        for (int i = dwarfRange.offset; i < dwarfRange.offset + dwarfRange.count; i++) {
+            // Check abort conditions (Only every N dwarves. The atomic load is expensive, but much cheaper than a mutex - esp on Windows, see https://www.arangodb.com/2015/02/comparing-atomic-mutex-rwlocks/)
+            if(checkCount++ % 1000 == 0) {
+                if (solutionFound.load() || earlyAbort.load()) {
+                    //LogPrintf("THREAD #%i: Solution found elsewhere or early abort requested, ending early\n", threadID);
+                    return;
+                }
+            }
+            // Hash the dwarf
+            std::string hashHex = (CHashWriter(SER_GETHASH, 0) << deterministicRandString << dwarfRange.txid << i).GetHash().GetHex();
+            arith_uint256 dwarfHash = arith_uint256(hashHex);
+            // Compare to target and write out result if successful
+            if (dwarfHash < dwarfHashTarget) {
+                //LogPrintf("THREAD #%i: Solution found, returning\n", threadID);
+                LOCK(cs_solution_vars);                                 // Expensive mutex only happens at write-out
+                solutionFound.store(true);
+                solvingRange = dwarfRange;
+                solvingDwarf = i;
+                return;
+            }
+        }
+    }
+    //LogPrintf("THREAD #%i: Out of tasks\n", threadID);
+}
+
 // Ring-fork: Hive: Attempt to mint the next block
-bool BusyDwarves(const Consensus::Params& consensusParams) {
+bool BusyDwarves(const Consensus::Params& consensusParams, int height) {
     bool verbose = LogAcceptCategory(BCLog::HIVE);
 
     CBlockIndex* pindexPrev = chainActive.Tip();
@@ -801,16 +871,22 @@ bool BusyDwarves(const Consensus::Params& consensusParams) {
         LogPrint(BCLog::HIVE, "BusyDwarves: Skipping hive check (in initial block download)\n");
         return false;
     }
+    if (height < consensusParams.lastInitialDistributionHeight + consensusParams.slowStartBlocks) {
+        LogPrint(BCLog::HIVE, "BusyDwarves: Skipping hive check (slow start has not finished)\n");
+        return false;
+    }
 
-    // Ring-fork: Hive: Check that there aren't too many consecutive Hive blocks
-    int hiveBlocksAtTip = 0;
+    // Check that there aren't too many Hive blocks since the last Pow block
+    int hiveBlocksSincePow = 0;
     CBlockIndex* pindexTemp = pindexPrev;
-    while (pindexTemp->GetBlockHeader().IsHiveMined(consensusParams)) {
+    while (pindexTemp->GetBlockHeader().IsPopMined(consensusParams) || pindexTemp->GetBlockHeader().IsHiveMined(consensusParams)) {
+        if (pindexTemp->GetBlockHeader().IsHiveMined(consensusParams))
+            hiveBlocksSincePow++;
+
         assert(pindexTemp->pprev);
         pindexTemp = pindexTemp->pprev;
-        hiveBlocksAtTip++;
     }
-    if (hiveBlocksAtTip >= consensusParams.maxConsecutiveHiveBlocks) {
+    if (hiveBlocksSincePow >= consensusParams.maxConsecutiveHiveBlocks) {
         LogPrintf("BusyDwarves: Skipping hive check (max Hive blocks without a POW block reached)\n");
         return false;
     }
@@ -840,69 +916,142 @@ bool BusyDwarves(const Consensus::Params& consensusParams) {
     dwarfHashTarget.SetCompact(GetNextHiveWorkRequired(pindexPrev, consensusParams));
     if (verbose) LogPrintf("BusyDwarves: dwarfHashTarget             = %s\n", dwarfHashTarget.ToString());
 
-    // Iterate all our active DCTs, letting their dwarves try and solve
-    LogPrint(BCLog::HIVE, "BusyDwarves: Checking dwarf hashes....\n");
+    // Find bin size
     std::vector<CDwarfCreationTransactionInfo> dcts = pwallet->GetDCTs(false, false, consensusParams);
-    arith_uint256 bestHash = arith_uint256("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-    CDwarfCreationTransactionInfo bestBct;
-    int dwarvesChecked = 0;
-    uint32_t bestHashDwarf;
-    bool solutionFound = false;
+    int totalDwarves = 0;
     for (std::vector<CDwarfCreationTransactionInfo>::const_iterator it = dcts.begin(); it != dcts.end(); it++) {
         CDwarfCreationTransactionInfo dct = *it;
-        // Skip immature and dead dwarves
         if (dct.dwarfStatus != "mature")
             continue;
+        totalDwarves += dct.dwarfCount;
+    }
 
-        // Iterate all dwarves in this DCT, keeping only the best hash found so far across all dwarves
-        for (uint32_t dwarf = 0; dwarf < (uint32_t)dct.dwarfCount; dwarf++) {
-            std::string hashHex = (CHashWriter(SER_GETHASH, 0) << deterministicRandString << dct.txid << dwarf).GetHash().GetHex();
-            //LogPrintf("Dwarf %i gives hash %s\n", dwarf, hashHex);
-            dwarvesChecked++;
-            arith_uint256 dwarfHash = arith_uint256(hashHex);
-            if (dwarfHash < dwarfHashTarget) {
-                bestHash = dwarfHash;
-                bestHashDwarf = dwarf;
-                bestBct = dct;
-                solutionFound = true;
+    if (totalDwarves == 0) {
+        LogPrint(BCLog::HIVE, "BusyDwarves: No mature dwarves found\n");
+        return false;
+    }
+
+    int coreCount = GetNumCores();
+    int threadCount = gArgs.GetArg("-hivecheckthreads", DEFAULT_HIVE_THREADS);
+    if (threadCount == -2)
+        threadCount = std::max(1, coreCount - 1);
+    else if (threadCount < 0 || threadCount > coreCount)
+        threadCount = coreCount;
+    else if (threadCount == 0)
+        threadCount = 1;
+
+    int dwarvesPerBin = ceil(totalDwarves / (float)threadCount);  // We want to check this many dwarves per thread
+
+    // Bin the dwarves according to desired thead count
+    if (verbose) LogPrint(BCLog::HIVE, "BusyDwarves: Binning %i dwarves in %i bins (%i dwarves per bin)\n", totalDwarves, threadCount, dwarvesPerBin);
+    std::vector<CDwarfCreationTransactionInfo>::const_iterator dctIterator = dcts.begin();
+    CDwarfCreationTransactionInfo dct = *dctIterator;
+    std::vector<std::vector<CDwarfRange>> dwarfBins;
+    int dwarfOffset = 0;                                    // Track offset in current DCT
+    while(dctIterator != dcts.end()) {                      // Until we're out of DCTs
+        std::vector<CDwarfRange> currentBin;                // Create a new bin
+        int dwarvesInBin = 0;
+        while (dctIterator != dcts.end()) {                 // Keep filling it until full
+            int spaceLeft = dwarvesPerBin - dwarvesInBin;
+            if (dct.dwarfCount - dwarfOffset <= spaceLeft) {  // If there's room, add all the dwarves from this DCT...
+                CDwarfRange range = {dct.txid, dct.rewardAddress, dct.communityContrib, dwarfOffset, dct.dwarfCount - dwarfOffset};
+                currentBin.push_back(range);
+
+                dwarvesInBin += dct.dwarfCount - dwarfOffset;
+                dwarfOffset = 0;
+
+                do {                                        // ... and iterate to next DCT
+                    dctIterator++;
+                    if (dctIterator == dcts.end())
+                        break;
+                    dct = *dctIterator;
+                } while (dct.dwarfStatus != "mature");
+            } else {                                        // Can't fit the whole thing to current bin; add what we can fit and let the rest go in next bin
+                CDwarfRange range = {dct.txid, dct.rewardAddress, dct.communityContrib, dwarfOffset, spaceLeft};
+                currentBin.push_back(range);
+                dwarfOffset += spaceLeft;
                 break;
             }
         }
-
-        if(solutionFound)
-            break;
+        dwarfBins.push_back(currentBin);
     }
 
-    if (dwarvesChecked == 0) {
-        LogPrintf("BusyDwarves: No dwarves currently mature.\n");
+    // Create a worker thread for each bin
+    if (verbose) LogPrintf("BusyDwarves: Running bins\n");
+    solutionFound.store(false);
+    earlyAbort.store(false);
+    std::vector<std::vector<CDwarfRange>>::const_iterator dwarfBinIterator = dwarfBins.begin();
+    std::vector<boost::thread> binThreads;
+    int64_t checkTime = GetTimeMillis();
+    int binID = 0;
+    while (dwarfBinIterator != dwarfBins.end()) {
+        std::vector<CDwarfRange> dwarfBin = *dwarfBinIterator;
+
+        if (verbose) {
+            LogPrintf("BusyDwarves: Bin #%i\n", binID);
+            std::vector<CDwarfRange>::const_iterator dwarfRangeIterator = dwarfBin.begin();
+            while (dwarfRangeIterator != dwarfBin.end()) {
+                CDwarfRange dwarfRange = *dwarfRangeIterator;
+                LogPrintf("offset = %i, count = %i, txid = %s\n", dwarfRange.offset, dwarfRange.count, dwarfRange.txid);
+                dwarfRangeIterator++;
+            }
+        }
+        binThreads.push_back(boost::thread(CheckBin, binID++, dwarfBin, deterministicRandString, dwarfHashTarget));   // Spawn the thread
+
+        dwarfBinIterator++;
+    }
+
+    // Add an extra thread to watch external abort conditions (eg new incoming block)
+    bool useEarlyAbortThread = gArgs.GetBoolArg("-hiveearlyout", DEFAULT_HIVE_EARLY_OUT);
+    if (verbose && useEarlyAbortThread)
+        LogPrintf("BusyDwarves: Will use early-abort thread\n");
+
+    boost::thread* earlyAbortThread;
+    if (useEarlyAbortThread)
+        earlyAbortThread = new boost::thread(AbortWatchThread, height);
+
+    // Wait for bin worker threads to find a solution or abort (in which case the others will all stop), or to run out of dwarves
+    for(auto& t:binThreads)
+        t.join();
+
+    checkTime = GetTimeMillis() - checkTime;
+
+    // Handle early aborts
+    if (useEarlyAbortThread) {
+        if (earlyAbort.load()) {
+            LogPrintf("BusyDwarves: Chain state changed (check aborted after %ims)\n", checkTime);
+            return false;
+        } else {
+            // We didn't abort; stop abort thread now
+            earlyAbort.store(true);
+            earlyAbortThread->join();
+        }
+    }
+
+    // Check if a solution was found
+    if (!solutionFound.load()) {
+        LogPrintf("BusyDwarves: No dwarf meets hash target (%i dwarves checked with %i threads in %ims)\n", totalDwarves, threadCount, checkTime);
         return false;
     }
-
-    // Check if our best dwarf hash meets the target
-    if (bestHash >= dwarfHashTarget) {
-        LogPrintf("BusyDwarves: Checked %i dwarves; none strong enough to mint.\n", dwarvesChecked);
-        return false;
-    }
-
-    if (verbose) LogPrintf("BusyDwarves: DWARF MEETS HASH TARGET. Checked %i dwarves; solution with dwarf #%i from DCT %s with hash %s. Reward address is %s.\n", dwarvesChecked, bestHashDwarf, bestBct.txid, bestHash.ToString(), bestBct.rewardAddress);
+    LogPrintf("BusyDwarves: Dwarf meets hash target (check aborted after %ims). Solution with dwarf #%i from BCT %s. Honey address is %s.\n", checkTime, solvingDwarf, solvingRange.txid, solvingRange.rewardAddress);
 
     // Assemble the Hive proof script
     std::vector<unsigned char> messageProofVec;
-    std::vector<unsigned char> txidVec(bestBct.txid.begin(), bestBct.txid.end());
+    std::vector<unsigned char> txidVec(solvingRange.txid.begin(), solvingRange.txid.end());
     CScript hiveProofScript;
     uint32_t dctHeight;
     {   // Don't lock longer than needed
         LOCK2(cs_main, pwallet->cs_wallet);
 
-        CTxDestination dest = DecodeDestination(bestBct.rewardAddress);
+        CTxDestination dest = DecodeDestination(solvingRange.rewardAddress);
         if (!IsValidDestination(dest)) {
-            LogPrintf("BusyDwarves: Reward destination invalid\n");
+            LogPrintf("BusyDwarves: Honey destination invalid\n");
             return false;
         }
 
         const CKeyID *keyID = boost::get<CKeyID>(&dest);
         if (!keyID) {
-            LogPrintf("BusyDwarves: Wallet doesn't have privkey for reward destination\n");
+            LogPrintf("BusyDwarves: Wallet doesn't have privkey for honey destination\n");
             return false;
         }
 
@@ -921,28 +1070,28 @@ bool BusyDwarves(const Consensus::Params& consensusParams) {
         }
         if (verbose) LogPrintf("BusyDwarves: messageSig                = %s\n", HexStr(&messageProofVec[0], &messageProofVec[messageProofVec.size()]));
 
-        COutPoint out(uint256S(bestBct.txid), 0);
+        COutPoint out(uint256S(solvingRange.txid), 0);
         Coin coin;
         if (!pcoinsTip || !pcoinsTip->GetCoin(out, coin)) {
-            LogPrintf("BusyDwarves: Couldn't get the dct utxo!\n");
+            LogPrintf("BusyDwarves: Couldn't get the bct utxo!\n");
             return false;
         }
         dctHeight = coin.nHeight;
     }
 
     unsigned char dwarfNonceEncoded[4];
-    WriteLE32(dwarfNonceEncoded, bestHashDwarf);
+    WriteLE32(dwarfNonceEncoded, solvingDwarf);
     std::vector<unsigned char> dwarfNonceVec(dwarfNonceEncoded, dwarfNonceEncoded + 4);
 
     unsigned char dctHeightEncoded[4];
     WriteLE32(dctHeightEncoded, dctHeight);
     std::vector<unsigned char> dctHeightVec(dctHeightEncoded, dctHeightEncoded + 4);
 
-    opcodetype communityContribFlag = bestBct.communityContrib ? OP_TRUE : OP_FALSE;
+    opcodetype communityContribFlag = solvingRange.communityContrib ? OP_TRUE : OP_FALSE;
     hiveProofScript << OP_RETURN << OP_DWARF << dwarfNonceVec << dctHeightVec << communityContribFlag << txidVec << messageProofVec;
 
-    // Create reward script from reward address
-    CScript rewardScript = GetScriptForDestination(DecodeDestination(bestBct.rewardAddress));
+    // Create honey script from honey address
+    CScript rewardScript = GetScriptForDestination(DecodeDestination(solvingRange.rewardAddress));
 
     // Create a Hive block
     std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(rewardScript, &hiveProofScript));

@@ -20,6 +20,8 @@ static const unsigned int DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN = 100;
 /** Default for BIP61 (sending reject messages) */
 static constexpr bool DEFAULT_ENABLE_BIP61{true};
 
+static const bool DEFAULT_PEERBLOOMFILTERS = false; // Ring-fork: Disable peer bloom filtering by default (see https://github.com/bitcoin/bitcoin/commit/59ce537a4994a8f49a9dbdf2b3cec0b08041260b)
+
 class PeerLogicValidation final : public CValidationInterface, public NetEventsInterface {
 private:
     CConnman* const connman;

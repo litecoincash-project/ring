@@ -106,6 +106,7 @@ private:
     void setAmountField(QLabel *field, CAmount value);
 
 private Q_SLOTS:
+    void on_showHiveOptionsButton_clicked(); // Ring-fork: Hive: Mining optimisations: Shortcut to Hive mining options
     void on_createDwarvesButton_clicked();
     void on_dwarfCountSpinner_valueChanged(int i);
     void on_includeDeadDwarvesCheckbox_stateChanged();
