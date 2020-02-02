@@ -42,10 +42,10 @@ MiningPage::MiningPage(const PlatformStyle *platformStyle, QWidget *parent) :
     connect(displayUpdateTimer, SIGNAL(timeout()), this, SLOT(updateHashRateDisplay()));
 
     ui->threadCountSpinner->setMaximum(GetNumCores());
-    updateDisplayedOptions();
-
+    
     makeMinotaurs();
     drawMinotaurs(0);
+    updateDisplayedOptions();
 }
 
 MiningPage::~MiningPage()
@@ -97,7 +97,7 @@ void MiningPage::on_toggleMiningButton_clicked() {
 }
 
 void MiningPage::updateHashRateDisplay() {
-    ui->hashRateDisplayLabel->setText(QString::number(std::floor(dHashesPerSec)));
+    ui->hashRateDisplayLabel->setText(QString::number(std::floor(dHashesPerSec/1000)));
 
     double timeToSolve = (this->clientModel) ? this->clientModel->getTimeToSolve() : 0;
 

@@ -22,12 +22,20 @@ class CBlockIndex;
 class CChainParams;
 class CScript;
 
+class arith_uint256;    // Ring-fork: Hive: Mining optimisations
+struct CDwarfRange;     // Ring-fork: Hive: Mining optimisations
+
 namespace Consensus { struct Params; };
 
 static const bool DEFAULT_GENERATE = false;     // Ring-fork: In-wallet miner
 static const int DEFAULT_GENERATE_THREADS = 1;  // Ring-fork: In-wallet miner
 
 static const bool DEFAULT_PRINTPRIORITY = false;
+
+// Ring-fork: Hive: Mining optimisations: Defaults for new hive check parameters
+static const int DEFAULT_HIVE_CHECK_DELAY = 1;
+static const int DEFAULT_HIVE_THREADS = -2;
+static const bool DEFAULT_HIVE_EARLY_OUT = true;
 
 struct CBlockTemplate
 {
@@ -166,7 +174,7 @@ public:
     /** Construct a new block template with coinbase to scriptPubKeyIn */
     // Ring-fork: Hive: If hiveProofScript is passed, create a Hive block instead of a PoW block
     // Ring-fork: Pop: If popProofScript is passed, create a pop block
-    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, const CScript* hiveProofScript=nullptr, const CScript* popProofScript=nullptr);
+    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, const CScript* hiveProofScript = nullptr, const CScript* popProofScript = nullptr);
 
     static Optional<int64_t> m_last_block_num_txs;
     static Optional<int64_t> m_last_block_weight;
@@ -213,10 +221,9 @@ void MineCoins(bool fGenerate, int nThreads, const CChainParams& chainparams);  
 extern double dHashesPerSec;                                                    // Ring-fork: In-wallet miner: Measure hashrate
 extern int64_t nHPSTimerStart;                                                  // Ring-fork: In-wallet miner: Measure hashrate
 
-// Ring-fork: Hive: Dwarf management thread
-void DwarfMaster(const CChainParams& chainparams);
-
-// Ring-fork: Hive: Attempt to mint the next block
-bool BusyDwarves(const Consensus::Params& consensusParams);
+void DwarfMaster(const CChainParams& chainparams);                              // Ring-fork: Hive: Bee management thread
+bool BusyDwarves(const Consensus::Params& consensusParams, int height);         // Ring-fork: Hive: Attempt to mint the next block
+void CheckBin(int threadID, std::vector<CDwarfRange> bin, std::string deterministicRandString, arith_uint256 dwarfHashTarget); // Ring-fork: Hive: Mining optimisations: Thread to process a bin of beeranges
+void AbortWatchThread(int height);                                              // Ring-fork: Hive: Mining optimisations: Thread to watch for abort conditions
 
 #endif // RING_MINER_H

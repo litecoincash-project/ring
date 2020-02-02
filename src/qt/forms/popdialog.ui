@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>718</width>
+    <width>745</width>
     <height>450</height>
    </rect>
   </property>
@@ -74,6 +74,7 @@
             <widget class="QLabel" name="availableGamesLabel">
              <property name="font">
               <font>
+               <pointsize>11</pointsize>
                <weight>75</weight>
                <bold>true</bold>
               </font>
@@ -95,6 +96,22 @@
               </size>
              </property>
             </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_2">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>&lt;span style=&quot;color:#ff0000;&quot;&gt;&lt;a href=&quot;XXXXXXXXXX&quot;&gt;&lt;span style=&quot;text-decoration: underline; color:#f19015;&quot;&gt;Learn how to play&lt;/span&gt;&lt;/a&gt;&lt;/span&gt;</string>
+             </property>
+             <property name="openExternalLinks">
+              <bool>true</bool>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QLabel" name="label">
@@ -124,26 +141,7 @@
              </property>
             </widget>
            </item>
-           <item>
-            <widget class="QLabel" name="label_2">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>&lt;span style=&quot;color:#ff0000;&quot;&gt;&lt;a href=&quot;XXXXXXXXXX&quot;&gt;&lt;span style=&quot;text-decoration: underline; color:#f19015;&quot;&gt;Learn how to play&lt;/span&gt;&lt;/a&gt;&lt;/span&gt;</string>
-             </property>
-             <property name="openExternalLinks">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
           </layout>
-         </item>
-         <item>
-          <widget class="QTableView" name="gameTable"/>
          </item>
          <item>
           <widget class="QFrame" name="playSelectedFrame">
@@ -171,9 +169,31 @@
               <property name="text">
                <string>Play selected</string>
               </property>
-              <property name="icon">
-               <iconset resource="../ring.qrc">
-                <normaloff>:/icons/playicon</normaloff>:/icons/playicon</iconset>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="releaseSwarmButton">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="toolTip">
+               <string>Click to unlock your wallet so that your dwarves can work. Note this only unlocks the wallet for hivemining; you must
+still fully unlock it to send funds.</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color:red;</string>
+              </property>
+              <property name="text">
+               <string>Unlock wallet for hive and pop</string>
               </property>
              </widget>
             </item>
@@ -184,7 +204,7 @@
               </property>
               <property name="sizeHint" stdset="0">
                <size>
-                <width>40</width>
+                <width>5</width>
                 <height>20</height>
                </size>
               </property>
@@ -192,6 +212,9 @@
             </item>
            </layout>
           </widget>
+         </item>
+         <item>
+          <widget class="QTableView" name="gameTable"/>
          </item>
         </layout>
        </widget>

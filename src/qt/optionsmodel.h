@@ -55,6 +55,9 @@ public:
         DatabaseCache,          // int
         SpendZeroConfChange,    // bool
         Listen,                 // bool
+        HiveCheckDelay,         // Ring-fork: Hive: Mining optimisations (int)
+        HiveCheckThreads,       // Ring-fork: Hive: Mining optimisations (int)
+        HiveCheckEarlyOut,      // Ring-fork: Hive: Mining optimisations (bool)        
         OptionIDRowCount,
     };
 

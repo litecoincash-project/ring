@@ -23,6 +23,8 @@
 #include <qt/tinypie.h>
 #include <qt/qcustomplot.h>
 
+#include <qt/optionsdialog.h> // Ring-fork: Hive: Mining optimisations
+
 #include <QAction>
 #include <QCursor>
 #include <QMessageBox>
@@ -40,11 +42,6 @@ HiveDialog::HiveDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
     platformStyle(_platformStyle)
 {
     ui->setupUi(this);
-
-    if (!_platformStyle->getImagesOnButtons())
-        ui->createDwarvesButton->setIcon(QIcon());
-    else
-        ui->createDwarvesButton->setIcon(_platformStyle->SingleColorIcon(":/icons/hiveicon"));
 
     dwarfCost = totalCost = rewardsPaid = cost = profit = 0;
     immature = mature = dead = blocksFound = 0;
@@ -124,6 +121,7 @@ HiveDialog::~HiveDialog() {
 void HiveDialog::setBalance(const interfaces::WalletBalances& balances)
 {
     currentBalance = balances.balance;
+    setAmountField(ui->currentBalance, currentBalance);
 }
 
 void HiveDialog::setEncryptionStatus(int status) {
@@ -321,7 +319,20 @@ void HiveDialog::on_releaseSwarmButton_clicked() {
 }
 
 void HiveDialog::on_createDwarvesButton_clicked() {
-    if (model) {
+    if (model && clientModel) {
+        const Consensus::Params& consensusParams = Params().GetConsensus();
+
+        int chainHeight = clientModel->getHeaderTipHeight();
+        if (chainHeight < (consensusParams.lastInitialDistributionHeight + consensusParams.slowStartBlocks) - consensusParams.dwarfGestationBlocks) {
+            QString questionString = tr("Are you sure you want to create dwarves?<br /><br /><span style='color:#aa0000;'><b>WARNING:</b> The pow-only slowstart phase is currently running. We do not recommend creating dwarves yet, as some of their lifespan will be wasted.</span><br />");
+            SendConfirmationDialog confirmationDialog(tr("Confirm dwarf creation"), questionString);
+            confirmationDialog.exec();
+            QMessageBox::StandardButton retval = (QMessageBox::StandardButton)confirmationDialog.result();
+
+            if (retval != QMessageBox::Yes)
+                return;
+        }
+
         interfaces::WalletBalances balances = model->wallet().getBalances();
         if (totalCost > balances.balance) {
             QMessageBox::critical(this, tr("Error"), tr("Insufficient balance to create dwarves."));
@@ -332,6 +343,16 @@ void HiveDialog::on_createDwarvesButton_clicked() {
 			return;     // Unlock wallet was cancelled
         model->createDwarves(ui->dwarfCountSpinner->value(), ui->donateCommunityFundCheckbox->isChecked(), this, dwarfPopIndex);
     }
+}
+
+// Ring-fork: Hive: Mining optimisations: Shortcut to Hive mining options
+void HiveDialog::on_showHiveOptionsButton_clicked() {
+    if(!clientModel || !clientModel->getOptionsModel())
+        return;
+
+    OptionsDialog dlg(this, model->isWalletEnabled());
+    dlg.setModel(clientModel->getOptionsModel());
+    dlg.exec();
 }
 
 void HiveDialog::initGraph() {
@@ -391,7 +412,7 @@ void HiveDialog::updateGraph() {
     QVector<QCPGraphData> dataMature(totalLifespan);
     QVector<QCPGraphData> dataImmature(totalLifespan);
     for (int i = 0; i < totalLifespan; i++) {
-        dataImmature[i].key = now + consensusParams.nPowTargetSpacing / 2 * i;
+        dataImmature[i].key = now + consensusParams.nExpectedBlockSpacing * i;
         dataImmature[i].value = (double)dwarfPopGraph[i].immaturePop;
 
         dataMature[i].key = dataImmature[i].key;
@@ -402,7 +423,7 @@ void HiveDialog::updateGraph() {
 
     double global100 = (double)potentialRewards / dwarfCost;
     globalMarkerLine->start->setCoords(now, global100);
-    globalMarkerLine->end->setCoords(now + consensusParams.nPowTargetSpacing / 2 * totalLifespan, global100);
+    globalMarkerLine->end->setCoords(now + consensusParams.nExpectedBlockSpacing * totalLifespan, global100);
     giTicker->global100 = global100;
     ui->dwarfPopGraph->rescaleAxes();
     ui->dwarfPopGraph->replot();

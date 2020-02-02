@@ -132,8 +132,6 @@ static const unsigned int MAX_BLOCKS_TO_ANNOUNCE = 8;
 /** Maximum number of unconnecting headers announcements before DoS score */
 static const int MAX_UNCONNECTING_HEADERS = 10;
 
-static const bool DEFAULT_PEERBLOOMFILTERS = true;
-
 /** Default for -stopatheight */
 static const int DEFAULT_STOPATHEIGHT = 0;
 
@@ -275,7 +273,12 @@ bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::P
  * validationinterface callback.
  */
 bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>());
-CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
+
+// Ring-fork: Block subsidies for each block type
+CAmount GetBlockSubsidyPow(int nHeight, const Consensus::Params& consensusParams);
+CAmount GetBlockSubsidyHive(const Consensus::Params& consensusParams);
+CAmount GetBlockSubsidyPopPublic(const Consensus::Params& consensusParams);
+CAmount GetBlockSubsidyPopPrivate(const Consensus::Params& consensusParams);
 
 // Ring-fork: Hive: Get the cost of a dwarf at given height
 CAmount GetDwarfCost(int nHeight, const Consensus::Params& consensusParams);

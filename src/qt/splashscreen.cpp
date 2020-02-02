@@ -60,14 +60,14 @@ SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const Netw
 
     // draw a slightly radial gradient
     QRadialGradient gradient(QPoint(0,0), splashSize.width()/devicePixelRatio);
-    gradient.setColorAt(0, QColor(SKIN_BG_ROW_ALT)); // Ring-fork: Skinning
-    gradient.setColorAt(1, QColor(SKIN_BG_PANEL)); // Ring-fork: Skinning
+    gradient.setColorAt(0, QColor(QString("#23272860"))); // Ring-fork: Skinning
+    gradient.setColorAt(1, QColor(QString("#36395060"))); // Ring-fork: Skinning
     QRect rGradient(QPoint(0,0), splashSize);
     pixPaint.fillRect(rGradient, gradient);
 
     // draw the ring icon, expected size of PNG: 1024x1024
     // Ring-fork: Adjusted to show whole logo
-    QRect rectIcon(QPoint(5,5), QSize(256,256));
+    QRect rectIcon(QPoint(10,20), QSize(256,256));
     const QSize requiredSize(256,256);
 
     QPixmap icon(networkStyle->getAppIcon().pixmap(requiredSize));

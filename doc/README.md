@@ -5,7 +5,7 @@ Setup
 ---------------------
 Ring Core is the original Ring client and it builds the backbone of the network. It downloads and, by default, stores the entire history of Ring transactions, which requires a few hundred gigabytes of disk space. Depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
 
-To download Ring Core, visit [ringcore.org](https://ringcore.org/en/download/).
+To download Ring Core, visit [our GitHub releases page](https://github.com/litecoincash-project/ring/releases).
 
 Running
 ---------------------

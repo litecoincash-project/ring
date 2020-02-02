@@ -132,6 +132,7 @@ private:
     QAction* overviewAction = nullptr;
     QAction *hiveAction = nullptr;                  // Ring-fork: Hive page
     QAction *popAction = nullptr;                   // Ring-fork: Pop page
+    QAction *rialtoAction = nullptr;                // Ring-fork: Rialto page
     QAction* miningAction = nullptr;                // Ring-fork: Mining page
     QAction* importPrivateKeyAction = nullptr;      // Ring-fork: Key import helper
     QAction* historyAction = nullptr;
@@ -274,7 +275,9 @@ public Q_SLOTS:
     // Ring-fork: Mining page
     void gotoMiningPage();
     // Ring-fork: Hive page
-    void gotoHivePage();    
+    void gotoHivePage();
+    // Ring-fork: Rialto page
+    void gotoRialtoPage();
     // Ring-fork: Pop page
     void gotoPopPage();    
     /** Switch to history (transactions) page */

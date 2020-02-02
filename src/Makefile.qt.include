@@ -131,6 +131,7 @@ QT_TS = \
 # Ring-fork: Mining page
 # Ring-fork: Hive
 # Ring-fork: Pop
+# Ring-fork: Rialto
 QT_FORMS_UI = \
   qt/forms/addressbookpage.ui \
   qt/forms/askpassphrasedialog.ui \
@@ -144,6 +145,7 @@ QT_FORMS_UI = \
   qt/forms/overviewpage.ui \
   qt/forms/miningpage.ui \
   qt/forms/hivedialog.ui \
+  qt/forms/rialtodialog.ui \
   qt/forms/popdialog.ui \
   qt/forms/receivecoinsdialog.ui \
   qt/forms/receiverequestdialog.ui \
@@ -156,6 +158,7 @@ QT_FORMS_UI = \
 # Ring-fork: Mining page
 # Ring-fork: Hive
 # Ring-fork: Pop
+# Ring-fork: Rialto
 QT_MOC_CPP = \
   qt/moc_addressbookpage.cpp \
   qt/moc_addresstablemodel.cpp \
@@ -202,6 +205,7 @@ QT_MOC_CPP = \
   qt/moc_transactiontablemodel.cpp \
   qt/moc_transactionview.cpp \
   qt/moc_hivedialog.cpp \
+  qt/moc_rialtodialog.cpp \
   qt/moc_popdialog.cpp \
   qt/moc_utilitydialog.cpp \
   qt/moc_walletcontroller.cpp \
@@ -243,6 +247,7 @@ endif
 # Ring-fork: Mining page
 # Ring-fork: Hive
 # Ring-fork: Pop
+# Ring-fork: Rialto
 RING_QT_H = \
   qt/addressbookpage.h \
   qt/addresstablemodel.h \
@@ -272,6 +277,7 @@ RING_QT_H = \
   qt/optionsmodel.h \
   qt/overviewpage.h \
   qt/hivedialog.h \
+  qt/rialtodialog.h \
   qt/popdialog.h \
   qt/miningpage.h \
   qt/paymentrequestplus.h \
@@ -315,6 +321,7 @@ RING_QT_H = \
 # Ring-fork: Mining page, form BG
 # Ring-fork: Hive
 # Ring-fork: Pop
+# Ring-fork: Rialto
 RES_ICONS = \
   qt/res/icons/add.png \
   qt/res/icons/address-book.png \
@@ -390,6 +397,7 @@ RES_ICONS = \
   qt/res/icons/agentstatus_immature.png \
   qt/res/icons/agentstatus_dead.png \
   qt/res/icons/minotaur.png \
+  qt/res/icons/rialto.png \
   qt/res/icons/pop/game0/*.png \
   qt/res/sounds/pop/game0/*.wav
 
@@ -426,6 +434,7 @@ RING_QT_WINDOWS_CPP = qt/winshutdownmonitor.cpp
 # Ring-fork: Mining page
 # Ring-fork: Hive
 # Ring-fork: Pop
+# Ring-fork: Rialto
 RING_QT_WALLET_CPP = \
   qt/addressbookpage.cpp \
   qt/addresstablemodel.cpp \
@@ -436,6 +445,7 @@ RING_QT_WALLET_CPP = \
   qt/openuridialog.cpp \
   qt/overviewpage.cpp \
   qt/hivedialog.cpp \
+  qt/rialtodialog.cpp \
   qt/popdialog.cpp \
   qt/miningpage.cpp \
   qt/paymentserver.cpp \

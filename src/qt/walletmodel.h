@@ -220,7 +220,7 @@ public:
     void getDCTs(std::vector<CDwarfCreationTransactionInfo>& vDwarfCreationTransactions, bool includeDeadDwarves);                      // Ring-fork: Hive
     bool createDwarves(int dwarfCount, bool communityContrib, QWidget *parent, double dwarfPopIndex);                                   // Ring-fork: Hive
     void getAvailableGames(std::vector<CAvailableGame>& vGames);                                                                        // Ring-fork: Pop
-    bool submitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason); // Ring-fork: Pop
+    bool submitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason);       // Ring-fork: Pop
     
     bool bumpFee(uint256 hash, uint256& new_hash);
 

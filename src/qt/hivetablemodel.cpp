@@ -115,9 +115,9 @@ QVariant HiveTableModel::data(const QModelIndex &index, int role) const {
                     QString status = "";
                     if (rec->dwarfStatus == "immature") {
                         int blocksTillMature = rec->blocksLeft - Params().GetConsensus().dwarfLifespanBlocks;
-                        status = "Matures in " + QString::number(blocksTillMature) + " blocks (" + secondsToString(blocksTillMature * Params().GetConsensus().nPowTargetSpacing / 2) + ")";
+                        status = "Matures in " + QString::number(blocksTillMature) + " blocks (" + secondsToString(blocksTillMature * Params().GetConsensus().nExpectedBlockSpacing) + ")";
                     } else if (rec->dwarfStatus == "mature")
-                        status = "Expires in " + QString::number(rec->blocksLeft) + " blocks (" + secondsToString(rec->blocksLeft * Params().GetConsensus().nPowTargetSpacing / 2) + ")";
+                        status = "Expires in " + QString::number(rec->blocksLeft) + " blocks (" + secondsToString(rec->blocksLeft * Params().GetConsensus().nExpectedBlockSpacing) + ")";
                     return status;
                 }
             case Cost:

@@ -148,6 +148,14 @@ void WalletFrame::gotoHivePage()
         i.value()->gotoHivePage();
 }
 
+// Ring-fork: Rialto: Switch to Rialto page
+void WalletFrame::gotoRialtoPage()
+{
+    QMap<WalletModel*, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoRialtoPage();
+}
+
 // Ring-fork: Hive: Switch to pop page
 void WalletFrame::gotoPopPage()
 {

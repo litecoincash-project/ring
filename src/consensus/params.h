@@ -77,6 +77,7 @@ struct Params {
     bool fPowAllowMinDifficultyBlocks;
     bool fPowNoRetargeting;
     int64_t nPowTargetSpacing;
+    int64_t nExpectedBlockSpacing;          // Ring-fork: Anticipated actual spacing, used in time estimations
     //int64_t nPowTargetTimespan;           // Ring-fork: Removed
     int64_t DifficultyAdjustmentInterval() const { return 1; }  // Ring-fork: Difficulty adjustment happens every block
     uint256 nMinimumChainWork;
@@ -94,10 +95,13 @@ struct Params {
     int lastInitialDistributionHeight;      // Height of last block containing initial distribution payouts to foreign coins
     uint256 powLimitInitialDistribution;    // Lower-than-powLimit difficulty for initial distribution blocks only
     int slowStartBlocks;                    // Scale initial block reward up over this many blocks    
+    CAmount blockSubsidyPow;                // Miner rewards for each block type
+    CAmount blockSubsidyHive;
+    CAmount blockSubsidyPopPrivate;
+    CAmount blockSubsidyPopPublic;
 
     // Ring-fork: Hive-related consensus params
-    CAmount minDwarfCost;               // Minimum cost of a dwarf, used when no more block rewards
-    int dwarfCostFactor;                // Dwarf cost is block_reward/dwarfCostFactor
+    CAmount dwarfCost;                  // Cost of a dwarf
     std::string dwarfCreationAddress;   // Unspendable address for dwarf creation
     std::string hiveCommunityAddress;   // Community fund address
     int communityContribFactor;         // Optionally, donate dct_value/maxCommunityContribFactor to community fund
@@ -118,6 +122,7 @@ struct Params {
     int hiveDifficultyWindow;           // How many blocks the SMA averages over in hive difficulty adjust
 
     // Ring-fork: Pop-related consensus fields
+    int popBlocksPerHive;               // Expected number of pop blocks per Hive block. Note that increasing this here is not enough to spawn additional games, etc; this is used for time estimations.
     uint32_t popNonceMarker;            // Nonce marker for popmined blocks
     int popMinPrivateGameDepth;         // Private game source transactions must be at least this many blocks deep
     int popMaxPrivateGameDepth;         // Private game source transactions must be at most this many blocks deep

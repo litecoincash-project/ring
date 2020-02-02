@@ -1,4 +1,4 @@
-// LitecoinCash: Hexagon pie :)
+// Ring-fork: Hexagon pie :)
 
 #ifndef RING_QT_TINYPIE_H
 #define RING_QT_TINYPIE_H

@@ -2893,7 +2893,7 @@ CDwarfCreationTransactionInfo CWallet::GetDCT(const CWalletTx& wtx, bool include
 }
 
 // Ring-fork: Pop: Submit a game solution
-bool CWallet::SubmitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason, std::string rewardAddress) {
+bool CWallet::SubmitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason, std::string rewardAddress) {
     const Consensus::Params& consensusParams = Params().GetConsensus();
     bool verbose = LogAcceptCategory(BCLog::POP);
     
@@ -2961,6 +2961,12 @@ bool CWallet::SubmitSolution(const CAvailableGame *game, uint8_t gameType, std::
     }
 
     if (game->isPrivate) {
+        // Check the wallet is unlocked
+        if(IsLocked()) {
+            strFailReason = "SubmitSolution: Cannot sign for private game, wallet is locked";
+            return false;
+        }
+
         // Grab source block's reward destination
         CTxDestination rewardDestination;
         if (!ExtractDestination(sourceBlock.vtx[0]->vout[1].scriptPubKey, rewardDestination) || !IsValidDestination(rewardDestination)) {
@@ -3116,16 +3122,20 @@ bool CWallet::SubmitSolution(const CAvailableGame *game, uint8_t gameType, std::
 std::vector<CAvailableGame> CWallet::GetAvailableGames(const Consensus::Params& consensusParams) {
     std::vector<CAvailableGame> games;
     
-    if (chainActive.Height() < consensusParams.popMaxPublicGameDepth)
+    if (chainActive.Height() < consensusParams.popMaxPublicGameDepth) {
+        LogPrintf("CWallet::GetAvailableGames: Chain height is below popMaxPublicGameDepth\n");
         return games;
+    }
 
     // Grab potential private games
     std::unordered_map<std::string, CAvailableGame> potentialGames;
     int tipHeight = chainActive.Height();
     int stopHeight = tipHeight - consensusParams.popMaxPrivateGameDepth;
     CBlockIndex* pblockindex = chainActive[tipHeight - consensusParams.popMinPrivateGameDepth];
-    if (!pblockindex)
+    if (!pblockindex) {
+        LogPrintf("CWallet::GetAvailableGames: Couldn't find block at popMinPrivateGameDepth\n");
         return games;
+    }
 
     while (pblockindex->nHeight > stopHeight) {
         // Skip if not hivemined
@@ -3252,7 +3262,7 @@ bool CWallet::CreateDwarfTransaction(int dwarfCount, CTransactionRef& tx, CReser
     }
 
     // Don't spend more than potential rewards in a single DCT
-    CAmount totalPotentialReward = (consensusParams.dwarfLifespanBlocks * GetBlockSubsidy(pindexPrev->nHeight, consensusParams)) / consensusParams.hiveBlockSpacingTargetTypical;
+    CAmount totalPotentialReward = (consensusParams.dwarfLifespanBlocks * GetBlockSubsidyHive(consensusParams)) / (consensusParams.hiveBlockSpacingTargetTypical + consensusParams.popBlocksPerHive);
     if (totalPotentialReward < dwarfCost) {
         strFailReason = "Error: Dwarf creation would cost more than possible rewards";
         return false;

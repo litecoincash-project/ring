@@ -93,7 +93,7 @@ public:
     
     // Ring-fork: Pop: Passthroughs
     virtual std::vector<CAvailableGame> getAvailableGames(const Consensus::Params& consensusParams) = 0;
-    virtual bool submitSolution(const CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) = 0;
+    virtual bool submitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) = 0;
 
     // Get key from pool.
     virtual bool getKeyFromPool(bool internal, CPubKey& pub_key) = 0;

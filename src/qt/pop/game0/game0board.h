@@ -22,12 +22,12 @@ class Game0Board : public QWidget
 	Q_OBJECT
 public:
 	Game0Board(QWidget* parent = 0);
-    bool newGame(const CAvailableGame *newGame);
-    const CAvailableGame *getCurrentGame() { return currentGame; }
-    void updateTimeLeft(int blocks);
+    bool newGame(const CAvailableGame *newGame, bool updateTime = true, bool restart = false);
+    CAvailableGame *getCurrentGame() { return currentGame; }
+    void updateTimeLeft(int blocks, bool playTimeWarn = true);
 
 Q_SIGNALS:
-	void solutionReady(const CAvailableGame *g, uint8_t gameType, std::vector<unsigned char> solution);
+	void solutionReady(CAvailableGame *g, uint8_t gameType, std::vector<unsigned char> solution);
 
 protected:
     virtual void mouseMoveEvent(QMouseEvent* event);
@@ -41,13 +41,14 @@ private:
     void rotateTile();
 	bool endGame();
 
-    const CAvailableGame *currentGame = NULL;
+    CAvailableGame *currentGame = NULL;
 
     QLabel *preview;
 	QLabel *scoreLabel;
     QLabel *scoreMessage;
     QLabel *gameHashLabel;
     QLabel *timeLeftLabel = NULL;
+    QLabel *timeLeftCaptionLabel;
     QPushButton *restartButton;
     QPushButton *submitButton;
 

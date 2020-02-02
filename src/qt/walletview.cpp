@@ -14,6 +14,7 @@
 #include <qt/overviewpage.h>
 #include <qt/miningpage.h>      // Ring-fork: Mining page
 #include <qt/hivedialog.h>      // Ring-fork: Hive: Hive page
+#include <qt/rialtodialog.h>    // Ring-fork: Rialto: Rialto page
 #include <qt/popdialog.h>       // Ring-fork: Pop: Pop page
 #include <qt/platformstyle.h>
 #include <qt/receivecoinsdialog.h>
@@ -51,9 +52,10 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     // Create tabs
     overviewPage = new OverviewPage(platformStyle);
 
-    miningPage = new MiningPage(platformStyle); // Ring-fork: Mining page
-    hivePage = new HiveDialog(platformStyle);   // Ring-fork: Hive page
-    popPage = new PopDialog(platformStyle);     // Ring-fork: Pop page
+    miningPage = new MiningPage(platformStyle);     // Ring-fork: Mining page
+    hivePage = new HiveDialog(platformStyle);       // Ring-fork: Hive page
+    rialtoPage = new RialtoDialog(platformStyle);   // Ring-fork: Rialto page
+    popPage = new PopDialog(platformStyle);         // Ring-fork: Pop page
 
     transactionsPage = new QWidget(this);
     QVBoxLayout *vbox = new QVBoxLayout();
@@ -83,6 +85,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     addWidget(miningPage);          // Ring-fork: Mining page
     addWidget(hivePage);            // Ring-fork: Hive page
     addWidget(popPage);             // Ring-fork: Pop page
+    addWidget(rialtoPage);          // Ring-fork: Rialto page
 
     // Clicking on a transaction on the overview pre-selects the transaction on the transaction history page
     connect(overviewPage, &OverviewPage::transactionClicked, transactionView, static_cast<void (TransactionView::*)(const QModelIndex&)>(&TransactionView::focusTransaction));
@@ -102,7 +105,8 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
 
     // Ring-fork: Skinning the tabs
     overviewPage->setStyleSheet(
-        "QLabel, QListView {color: " + SKIN_TEXT + "};"
+        "QLabel, QListView {color: " + SKIN_TEXT + ";}"
+        "#labelWalletStatus, #labelTransactionsStatus, #hiveButton {background-color: #00000000;}"
     );
     miningPage->setStyleSheet("QLabel, QCheckBox {color: " + SKIN_TEXT + ";} #miningForm {background-color: " + SKIN_BG_PANEL + ";}");
     receiveCoinsPage->setStyleSheet(
@@ -131,6 +135,10 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     popPage->setStyleSheet(
         "#availableGamesLabel, #labelCurrentGameHash {color: " + SKIN_TEXT + ";}"
         "#gameTable {color: " + SKIN_TEXT + "; background-color: " + SKIN_BG_PANEL + "; alternate-background-color: " + SKIN_BG_ROW_ALT + ";}"
+    );
+    // Ring-fork: Rialto: Skinning
+    rialtoPage->setStyleSheet(
+        "QLabel {color: " + SKIN_TEXT + "};"
     );
 }
 
@@ -264,6 +272,12 @@ void WalletView::gotoPopPage()
 {
     //popPage->updateGamesAvailable();
     setCurrentWidget(popPage);
+}
+
+// Ring-fork: Rialto page
+void WalletView::gotoRialtoPage()
+{
+    setCurrentWidget(rialtoPage);
 }
 
 void WalletView::gotoHistoryPage()

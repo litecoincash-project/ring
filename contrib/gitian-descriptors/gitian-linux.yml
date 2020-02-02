@@ -32,16 +32,17 @@ packages:
 - "ca-certificates"
 - "python"
 remotes:
-- "url": "https://github.com/litecoincash-project/ring.git"
-  "dir": "ring"
+- "url": "https://github.com/litecoincash-project/ring-dev.git"
+  "dir": "ring-dev"
 files: []
 script: |
   set -e -o pipefail
 
   WRAP_DIR=$HOME/wrapped
-  # Ring-fork: Only building the platforms we release binaries for
-  HOSTS="x86_64-linux-gnu"
-  CONFIGFLAGS="--enable-glibc-back-compat --enable-reduce-exports --disable-bench --disable-util-wallet --disable-util-tx --disable-gui-tests"
+  # Ring-fork: Only building the platforms we release binaries for, and do 64 bit first
+  HOSTS="x86_64-linux-gnu i686-pc-linux-gnu"
+  # Ring-fork: Disable unwanted binaries
+  CONFIGFLAGS="--enable-glibc-back-compat --enable-reduce-exports --disable-util-wallet --disable-util-tx --disable-bench --disable-tests --disable-gui-tests"
   FAKETIME_HOST_PROGS="gcc g++"
   FAKETIME_PROGS="date ar ranlib nm"
   HOST_CFLAGS="-O2 -g"
@@ -123,7 +124,7 @@ script: |
   chmod +x ${WRAP_DIR}/${prog}
   done
 
-  cd ring
+  cd ring-dev
   BASEPREFIX=`pwd`/depends
   # Build dependencies for each host
   for i in $HOSTS; do

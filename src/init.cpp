@@ -425,6 +425,7 @@ void SetupServerArgs()
     gArgs.AddArg("-listen", "Accept connections from outside (default: 1 if no -proxy or -connect)", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-listenonion", strprintf("Automatically create Tor hidden service (default: %d)", DEFAULT_LISTEN_ONION), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-maxconnections=<n>", strprintf("Maintain at most <n> connections to peers (default: %u)", DEFAULT_MAX_PEER_CONNECTIONS), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxoutboundconnections=<n>", strprintf("Maximum number of automatic outgoing connections (default: %u)", DEFAULT_MAX_OUTBOUND_CONNECTIONS), false, OptionsCategory::CONNECTION);   // Ring-fork: Parameterisation of max outbound connections    
     gArgs.AddArg("-maxreceivebuffer=<n>", strprintf("Maximum per-connection receive buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXRECEIVEBUFFER), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-maxsendbuffer=<n>", strprintf("Maximum per-connection send buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXSENDBUFFER), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-maxtimeadjustment", strprintf("Maximum allowed median peer time offset adjustment. Local perspective of time may be influenced by peers forward or backward by this amount. (default: %u seconds)", DEFAULT_MAX_TIME_ADJUSTMENT), false, OptionsCategory::CONNECTION);
@@ -550,6 +551,11 @@ void SetupServerArgs()
     gArgs.AddArg("-gen", strprintf("Generate coins (default: %u)", DEFAULT_GENERATE), false, OptionsCategory::WALLET);
     gArgs.AddArg("-genproclimit=<n>", strprintf("Set the number of threads for coin generation if enabled (-1 = all cores, default: %d)", DEFAULT_GENERATE_THREADS), false, OptionsCategory::WALLET);
 
+    // Ring-fork: Hive: Mining optimisations
+    gArgs.AddArg("-hivecheckdelay=<ms>", strprintf("Time between Hive checks in ms. This should be left at default unless performance degradation is observed (default: %u)", DEFAULT_HIVE_CHECK_DELAY), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-hivecheckthreads=<threads>", strprintf("Number of threads to use when checking bees, -1 for all available cores, or -2 for one less than all available cores (default: %u)", DEFAULT_HIVE_THREADS), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-hiveearlyabort", strprintf("Abort Hive checking as quickly as possible when a new block comes in. This should be left enabled unless performance degradation is observed. (default: %u)", DEFAULT_HIVE_EARLY_OUT), false, OptionsCategory::WALLET);
+
 #if HAVE_DECL_DAEMON
     gArgs.AddArg("-daemon", "Run in the background as a daemon and accept commands", false, OptionsCategory::OPTIONS);
 #else
@@ -563,7 +569,7 @@ void SetupServerArgs()
 std::string LicenseInfo()
 {
     const std::string URL_SOURCE_CODE = "<https://github.com/litecoincash-project/ring>";
-    const std::string URL_WEBSITE = "<https://ringcore.org>";
+    const std::string URL_WEBSITE = "<https://ringcoin.tech>";
 
     return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
            "\n" +
@@ -1754,7 +1760,7 @@ bool AppInitMain(InitInterfaces& interfaces)
     CConnman::Options connOptions;
     connOptions.nLocalServices = nLocalServices;
     connOptions.nMaxConnections = nMaxConnections;
-    connOptions.nMaxOutbound = std::min(MAX_OUTBOUND_CONNECTIONS, connOptions.nMaxConnections);
+    connOptions.nMaxOutbound = std::min((int)gArgs.GetArg("-maxoutboundconnections", DEFAULT_MAX_OUTBOUND_CONNECTIONS), connOptions.nMaxConnections);    // Ring-fork: Parameterisation of max outbound connections
     connOptions.nMaxAddnode = MAX_ADDNODE_CONNECTIONS;
     connOptions.nMaxFeeler = 1;
     connOptions.nBestHeight = chain_active_height;
