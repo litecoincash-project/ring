@@ -33,7 +33,7 @@ script: |
   # Ring-fork: Do 64 bit first
   HOSTS="x86_64-w64-mingw32 i686-w64-mingw32"
   # Ring-fork: Disable unwanted binaries
-  CONFIGFLAGS="--enable-reduce-exports --disable-util-wallet --disable-util-tx --disable-bench --disable-tests --disable-gui-tests"
+  CONFIGFLAGS="--enable-reduce-exports --disable-util-wallet --disable-bench --disable-tests --disable-gui-tests"
   FAKETIME_HOST_PROGS="ar ranlib nm windres strip objcopy"
   FAKETIME_PROGS="date makensis zip"
   HOST_CFLAGS="-O2 -g"
