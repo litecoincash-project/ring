@@ -33,6 +33,7 @@ protected:
     virtual void mouseMoveEvent(QMouseEvent* event);
 	virtual void mousePressEvent(QMouseEvent* event);
 	virtual void paintEvent(QPaintEvent*);
+	virtual void keyPressEvent(QKeyEvent* event);
 	virtual void resizeEvent(QResizeEvent* event);
 
 private:
@@ -40,6 +41,7 @@ private:
     bool placeTile();
     void rotateTile();
 	bool endGame();
+    void clampHighlightedTileAndRedraw();   // Helper for keypress handler
 
     CAvailableGame *currentGame = NULL;
 
@@ -59,8 +61,8 @@ private:
     int highlightedTileX, highlightedTileY;
     int score;
 	bool done;
-    QCheckBox *autoSubmitToggle, *soundToggle;
-    bool autoSubmit, soundsEnabled;
+    QCheckBox *autoSubmitToggle, *soundToggle, *keysToggle;
+    bool autoSubmit, soundsEnabled, keysEnabled;
     QPixmap tileImages[GAME0_NUM_TILES * 4];
     QPixmap tileImageThumbs[GAME0_NUM_TILES];
     QPixmap mouseOverImageOK, mouseOverImageBad, candleImage;
@@ -69,6 +71,7 @@ private Q_SLOTS:
     void on_restartButton_clicked();
     void on_submitButton_clicked();
     void on_soundToggle_clicked();
+    void on_keysToggle_clicked();
     void on_autoSubmitToggle_clicked();
 
 Q_SIGNALS:

@@ -16,6 +16,7 @@
 #include <qt/walletmodel.h>
 #include <qt/hivetablemodel.h>  // Ring-fork: Hive
 #include <qt/hivedialog.h>      // Ring-fork: Hive: For formatLargeNoLocale()
+#include <miner.h>              // Ring-fork: The Village: For DEFAULT_GENERATE
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
@@ -117,6 +118,11 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     ui(new Ui::OverviewPage),
     clientModel(nullptr),
     walletModel(nullptr),
+    showBuilding1(false),   // Ring-fork: The village
+    showBuilding2(false),
+    showBuilding3(false),
+    dayNightTimer(NULL),
+    scene(new QGraphicsScene(this)),
     txdelegate(new TxViewDelegate(platformStyle, this))
 {
     ui->setupUi(this);
@@ -143,7 +149,12 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     connect(ui->labelTransactionsStatus, &QPushButton::clicked, this, &OverviewPage::handleOutOfSyncWarningClicks);
 
     // Ring-fork: Hive
-    cost = rewardsPaid = profit = 0;    
+    cost = rewardsPaid = profit = 0;
+    
+    // Ring-fork: The Village
+    ui->graphicsView->setScene(scene);
+    drawVillage();
+    setDayNightTimer();
 }
 
 void OverviewPage::handleTransactionClicked(const QModelIndex &index)
@@ -214,6 +225,9 @@ void OverviewPage::setClientModel(ClientModel *model)
         // Show warning if this is a prerelease version
         connect(model, &ClientModel::alertsChanged, this, &OverviewPage::updateAlerts);
         updateAlerts(model->getStatusBarWarnings());
+
+        // Ring-fork: The Village
+        connect(model, &ClientModel::generateChanged, this, &OverviewPage::checkVillageGenerate);
     }
 }
 
@@ -249,6 +263,9 @@ void OverviewPage::setWalletModel(WalletModel *model)
 
         // Ring-fork: Hive: Connect summary updater
         connect(model, SIGNAL(newHiveSummaryAvailable()), this, SLOT(updateHiveSummary()));
+
+        // Ring-fork: The Village: Set village name
+        setVillageName();
     }
 
     // update the display unit, to not use the default ("RNG")
@@ -288,8 +305,17 @@ void OverviewPage::updateHiveSummary() {
         } else {
             ui->deadLabel->setVisible(false);
             ui->deadPreLabel->setVisible(false);
-            ui->deadPostLabel->setVisible(false);         
+            ui->deadPostLabel->setVisible(false);
         }
+
+        // Ring-fork: The Village: Show building 2 when bees are mature
+        if (mature > 0 && !showBuilding2) {
+            showBuilding2 = true;
+            drawVillage();
+        } else if (mature == 0 && showBuilding2) {
+            showBuilding2 = false;
+            drawVillage();
+        }      
     }
 }
 
@@ -340,4 +366,133 @@ void OverviewPage::showOutOfSyncWarning(bool fShow)
 // Ring-fork: Hive: Handle dwarf button click
 void OverviewPage::on_hiveButton_clicked() {
     Q_EMIT hiveButtonClicked();
+}
+
+// Ring-fork: The village
+void OverviewPage::drawVillage() {    
+    scene->clear();
+    
+    int hour = QDateTime::currentDateTime().time().hour();
+    bool isNight = (hour >= 20 || hour < 9);
+    QString prefix = isNight ? "night_" : "day_";
+
+    if (showBuilding1 && showBuilding2 && showBuilding3) {  // Everything's on!
+        scene->addPixmap(QPixmap::fromImage(QImage(":/icons/" + prefix + "village_on")));
+    } else {
+        scene->addPixmap(QPixmap::fromImage(QImage(":/icons/" + prefix + "village_off")));
+
+        if (showBuilding1) {    // Pow mining is on
+            QGraphicsPixmapItem *item = scene->addPixmap(QPixmap::fromImage(QImage(":/icons/" + prefix + "b1_on")));
+            if (isNight)
+                item->setOffset(331, 10);
+            else
+                item->setOffset(306, 135);
+        }
+        if (showBuilding2) {    // Hive dwarves are mature
+            QGraphicsPixmapItem *item = scene->addPixmap(QPixmap::fromImage(QImage(":/icons/" + prefix + "b2_on")));
+            if (isNight) 
+                item->setOffset(516, 377);
+            else
+                item->setOffset(525, 332);
+        }
+        if (showBuilding3) {    // A pop block has been found this session
+            QGraphicsPixmapItem *item = scene->addPixmap(QPixmap::fromImage(QImage(":/icons/" + prefix + "b3_on")));
+            if (isNight) 
+                item->setOffset(741, 231);
+            else
+                item->setOffset(739, 204);
+        }
+    }
+
+    ui->graphicsView->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
+}
+
+// Ring-fork: The Village: Show building 1 when pow mining
+void OverviewPage::checkVillageGenerate() {
+    if (gArgs.GetBoolArg("-gen", DEFAULT_GENERATE) && !showBuilding1) {
+        showBuilding1 = true;
+        drawVillage();
+    } else if (!gArgs.GetBoolArg("-gen", DEFAULT_GENERATE) && showBuilding1) {
+        showBuilding1 = false;
+        drawVillage();
+    }
+}
+
+// Ring-fork: The Village: Enable pop building
+void OverviewPage::enableVillagePop() {
+    if (!showBuilding3) {
+        showBuilding3 = true;
+        drawVillage();
+    }
+}
+
+// Ring-fork: The Village: Handle resize
+void OverviewPage::resizeEvent(QResizeEvent* event) {
+    ui->graphicsView->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
+}
+
+// Ring-fork: The Village: Set the village name
+void OverviewPage::setVillageName() {
+    CKeyID seed = walletModel->getHDChainSeed();
+    if (seed.IsNull())
+        return;
+
+    QString digraphs[] = {
+         "la",	"ve",	"ta",	"re",	"or",	"za",	"us",	"ac",
+         "te",	"ce",	"at",	"a",	"e",	"o",	"le",	"fa",
+         "he",	"na",	"ar",	"to",	"oi",	"ne",	"no",	"ba",
+         "bo",	"ha",	"ve",	"va",	"ax",	"is",	"or",	"in",
+         "mo",	"on",	"cra",	"ud",	"sa",	"tu",	"ju",	"pi",
+         "mi",	"gu",	"it",	"ob",	"os",	"ut",	"ne",	"as",
+         "en",	"ky",	"tha",	"um",	"ka",	"qt",	"zi",	"ou",
+         "ga",	"dro",	"dre",	"pha",	"phi",	"sha",	"she",	"fo",
+         "cre",	"tri",	"ro",	"sta",	"stu",	"de",	"gi",	"pe",
+         "the",	"thi",	"thy",	"lo",	"ol",	"clu",	"cla",	"le",
+         "di",	"so",	"ti",	"es",	"ed",	"bi",	"po",	"ni",
+         "ex",	"ad",	"un",	"pho",	"ci",	"ge",	"se",	"co",
+         "ja",	"vu",	"ta",	"re",	"or",	"za",	"us",	"ac",
+         "te",	"ce",	"at",	"a",	"e",	"o",	"le",	"fa",
+         "he",	"na",	"ar",	"to",	"oi",	"ne",	"no",	"ba",
+         "bo",	"ha",	"vo",	"va",	"ax",	"is",	"or",	"in"
+    };
+
+    QString name;
+    unsigned int digraphCount = (seed.ByteAt(0) & 3) + 1;
+    for (unsigned int i = 0; i < digraphCount; i++)
+        name += digraphs[seed.ByteAt(i+1) & 127];
+        
+    name[0] = name[0].toUpper();
+
+    ui->villageNameLabel->setText("(\"" + name + "\")");
+}
+
+// Ring-fork: The Village: Set the day/night cycle timer
+void OverviewPage::setDayNightTimer() {
+    QDateTime t = QDateTime::currentDateTime();
+    int hour = t.time().hour();
+
+    if (hour < 8)
+        t.setTime(QTime::fromString("08:00", "hh:mm"));
+    else if (hour < 20)
+        t.setTime(QTime::fromString("20:00", "hh:mm"));
+    else {
+        t = t.addDays(1);
+        t.setTime(QTime::fromString("08:00", "hh:mm"));
+    }
+
+    qint64 delay = QDateTime::currentDateTime().msecsTo(t);
+    delay += 10 * 1000; // Add a small delay
+    if (dayNightTimer) {
+        dayNightTimer->stop();
+        delete dayNightTimer;
+    }
+    dayNightTimer = new QTimer();
+    connect(dayNightTimer, SIGNAL(timeout()), this, SLOT(tickDayNightCycle()));
+    dayNightTimer->start(delay);
+}
+
+// Ring-fork: The Village: Redraw village (day/night just changed) and reset the timer
+void OverviewPage::tickDayNightCycle() {
+    drawVillage();
+    setDayNightTimer();
 }

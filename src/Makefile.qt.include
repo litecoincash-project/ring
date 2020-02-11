@@ -322,6 +322,7 @@ RING_QT_H = \
 # Ring-fork: Hive
 # Ring-fork: Pop
 # Ring-fork: Rialto
+# Ring-fork: The Village
 RES_ICONS = \
   qt/res/icons/add.png \
   qt/res/icons/address-book.png \
@@ -398,6 +399,17 @@ RES_ICONS = \
   qt/res/icons/agentstatus_dead.png \
   qt/res/icons/minotaur.png \
   qt/res/icons/rialto.png \
+  qt/res/icons/rialto-pin-clouds.png \
+  qt/res/icons/night-village-off.png \
+  qt/res/icons/night-village-on.png \
+  qt/res/icons/night-b1-on.png \
+  qt/res/icons/night-b2-on.png \
+  qt/res/icons/night-b3-on.png \
+  qt/res/icons/day-village-off.png \
+  qt/res/icons/day-village-on.png \
+  qt/res/icons/day-b1-on.png \
+  qt/res/icons/day-b2-on.png \
+  qt/res/icons/day-b3-on.png \
   qt/res/icons/pop/game0/*.png \
   qt/res/sounds/pop/game0/*.wav
 

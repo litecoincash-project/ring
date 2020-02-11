@@ -16,10 +16,12 @@
 #include <streams.h>
 #include <chainparams.h>
 
+#include <validation.h> // For block subs
+
 AvailableGamesTableModel::AvailableGamesTableModel(const PlatformStyle *_platformStyle, WalletModel *parent) : platformStyle(_platformStyle), QAbstractTableModel(parent), walletModel(parent)
 {
     // Set column headings
-    columns << tr("Game type") << tr("Source hash") << tr("Blocks left") << tr("Estimated time left");
+    columns << tr("Game type") << tr("Reward") << tr("Blocks left") << tr("Source hash");
 
     sortOrder = Qt::DescendingOrder;
     sortColumn = 0;
@@ -69,12 +71,12 @@ QVariant AvailableGamesTableModel::data(const QModelIndex &index, int role) cons
         switch(index.column()) {
             case GameType:
                 return rec->isPrivate ? "Private" : "Public";
+            case Reward:
+                return RingUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->isPrivate ? GetBlockSubsidyPopPrivate(Params().GetConsensus()) : GetBlockSubsidyPopPublic(Params().GetConsensus())) + " " + RingUnits::shortName(this->walletModel->getOptionsModel()->getDisplayUnit());
+            case BlocksLeft:
+                return QString::number(rec->blocksRemaining) + " (" + secondsToString(rec->blocksRemaining * Params().GetConsensus().nExpectedBlockSpacing) + ")";
             case Hash:
                 return QString::fromStdString(rec->gameSourceHash.ToString().substr(0,8) + "...");
-            case BlocksLeft:
-                return QString::number(rec->blocksRemaining);
-            case EstimatedTime:
-                return secondsToString(rec->blocksRemaining * Params().GetConsensus().nExpectedBlockSpacing);
         }
     } else if (role == Qt::TextAlignmentRole) {
         if (index.column() == BlocksLeft)
@@ -82,10 +84,15 @@ QVariant AvailableGamesTableModel::data(const QModelIndex &index, int role) cons
         else
             return (int)(Qt::AlignCenter|Qt::AlignVCenter);
     } else if (role == Qt::ForegroundRole) {
-        if (rec->isPrivate)
+        if (index.column() == BlocksLeft && rec->blocksRemaining <= 10)
+            return QColor(255, 0, 0);
+        else if (rec->isPrivate)
             return QColor(27, 170, 45);
         else
             return SKIN_TEXT;
+    } else if (role == Qt::DecorationRole) {
+        if (index.column() == BlocksLeft && rec->blocksRemaining <= 10)
+            return platformStyle->SingleColorIcon(":/icons/warning");
     }
     return QVariant();
 }
@@ -119,10 +126,9 @@ bool CAvailableGameLessThan::operator()(CAvailableGame &left, CAvailableGame &ri
         case AvailableGamesTableModel::Hash:
             return pLeft->gameSourceHash < pRight->gameSourceHash;
         case AvailableGamesTableModel::BlocksLeft:
-        case AvailableGamesTableModel::EstimatedTime:
             return pLeft->blocksRemaining < pRight->blocksRemaining;        
+
         default:
-        case AvailableGamesTableModel::GameType:
             return pLeft->isPrivate < pRight->isPrivate;            
     }
 }
@@ -134,6 +140,9 @@ QString AvailableGamesTableModel::secondsToString(qint64 seconds) {
     qint64 hours = t.hour();
     qint64 mins = t.minute();
 
+    if (days == 0 && hours == 0 && mins == 0)
+        return QString("< 1 min!");
+
     QString s;
     if (days == 1)
         s += "1 day ";
@@ -142,15 +151,17 @@ QString AvailableGamesTableModel::secondsToString(qint64 seconds) {
     
     if (hours != 0 || days > 0) {
         if (hours == 1)
-            s += "1 hr ";
+            s += mins > 0 ? "1 hr" : "1 hour";
         else
-            s += QString("%1 hrs ").arg(hours);
+            s += mins > 0 ? QString("%1 hrs").arg(hours) : QString("%1 hours").arg(hours);
     }
 
     if (mins == 1)
-        s += "1 min ";
-    else
-        s += QString("%1 mins ").arg(mins);
+        s += " 1 min";
+    else if (mins > 0)
+        s += QString(" %1 mins").arg(mins);
 
+    if (s[0] == " ")
+        s = s.right(s.size() - 1);  // Dobby has no sock
     return s;
 }

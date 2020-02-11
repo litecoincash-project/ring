@@ -155,6 +155,9 @@ public:
     std::string getWalletName() override { return m_wallet->GetName(); }
 
     // Ring-fork: Hive: Interface pass-throughs
+    unsigned int getMinedBlockCount() override {
+        return m_wallet->getMinedBlockCount();
+    }
     std::vector<CDwarfCreationTransactionInfo> getDCTs(bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minRewardConfirmations) override
     {
         return m_wallet->GetDCTs(includeDead, scanRewards, consensusParams, minRewardConfirmations);
@@ -171,6 +174,7 @@ public:
     CWallet *get() override {
         return m_wallet.get();
     }
+
     // Ring-fork: Pop: Interface pass-throughs
     std::vector<CAvailableGame> getAvailableGames(const Consensus::Params& consensusParams) override {
         return m_wallet->GetAvailableGames(consensusParams);
@@ -178,6 +182,11 @@ public:
     bool submitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) override {
         return m_wallet->SubmitSolution(game, gameType, solution, strFailReason);
     }
+
+    // Ring-fork: The Village: Interface pass-throughs
+    const CKeyID getHDChainSeed() override {
+        return m_wallet->GetHDChain().seed_id;
+    }        
 
     bool getKeyFromPool(bool internal, CPubKey& pub_key) override
     {

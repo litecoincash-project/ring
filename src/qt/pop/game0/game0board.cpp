@@ -28,6 +28,7 @@ Game0Board::Game0Board(QWidget* parent)
 :	QWidget(parent),
 	done(true),
     soundsEnabled(false),
+    keysEnabled(false),
     autoSubmit(true)
 {
 	setMinimumSize(200, 200);
@@ -60,10 +61,16 @@ Game0Board::Game0Board(QWidget* parent)
     scoreMessage->setWordWrap(true);
 
 	// Create sound toggle
-	soundToggle = new QCheckBox("Enable sounds");
+	soundToggle = new QCheckBox("Sounds");
     soundToggle->setChecked(soundsEnabled);
     soundToggle->setStyleSheet("color: " + SKIN_TEXT + ";");
     connect(soundToggle, &QCheckBox::clicked, this, &Game0Board::on_soundToggle_clicked);
+
+	// Create keys toggle
+	keysToggle = new QCheckBox("Keyboard controls");
+    keysToggle->setChecked(keysEnabled);
+    keysToggle->setStyleSheet("color: " + SKIN_TEXT + ";");
+    connect(keysToggle, &QCheckBox::clicked, this, &Game0Board::on_keysToggle_clicked);
 
 	// Create auto submit toggle
 	autoSubmitToggle = new QCheckBox("Autosubmit on win");
@@ -157,6 +164,7 @@ Game0Board::Game0Board(QWidget* parent)
     layout->setRowStretch(row - 1, 1);
 
     layout->addWidget(soundToggle, row++, 1);
+    layout->addWidget(keysToggle, row++, 1);
     layout->addWidget(autoSubmitToggle, row++, 1);
     
     layout->addWidget(new QLabel(""), row++, 1);    // Blank expander
@@ -207,8 +215,7 @@ bool Game0Board::newGame(const CAvailableGame *newGame, bool updateTime, bool re
         currentGame->gameSourceHash = newGame->gameSourceHash;
         currentGame->blocksRemaining = newGame->blocksRemaining;
         currentGame->isPrivate = newGame->isPrivate;
-    }
-    
+    }    
 
     game.InitGame(currentGame->gameSourceHash);
     gameHashLabel->setText(QString::fromStdString(currentGame->gameSourceHash.ToString().substr(0,8) + "..."));
@@ -216,6 +223,45 @@ bool Game0Board::newGame(const CAvailableGame *newGame, bool updateTime, bool re
     if (updateTime)
         updateTimeLeft(currentGame->blocksRemaining, false);
     return true;
+}
+
+void Game0Board::clampHighlightedTileAndRedraw() {
+    if (highlightedTileX < 0) highlightedTileX = 0;
+    if (highlightedTileX > GAME0_BOARD_SIZE-1) highlightedTileX = GAME0_BOARD_SIZE-1;
+    if (highlightedTileY < 0) highlightedTileY = 0;
+    if (highlightedTileY > GAME0_BOARD_SIZE-1) highlightedTileY = GAME0_BOARD_SIZE-1;
+
+    update();   // Redraw
+}
+
+void Game0Board::keyPressEvent(QKeyEvent* event) {
+    if (done || !keysEnabled)
+        return;
+
+    switch(event->key()) {
+        case Qt::Key_Space:
+            placeTile();
+            break;
+        case Qt::Key_Shift:
+            rotateTile();
+            break;
+        case Qt::Key_Left:
+            highlightedTileX--;
+            clampHighlightedTileAndRedraw();
+            break;
+        case Qt::Key_Right:
+            highlightedTileX++;
+            clampHighlightedTileAndRedraw();
+            break;
+        case Qt::Key_Up:
+            highlightedTileY--;
+            clampHighlightedTileAndRedraw();
+            break;
+        case Qt::Key_Down:
+            highlightedTileY++;
+            clampHighlightedTileAndRedraw();
+            break;        
+    }
 }
 
 void Game0Board::mouseMoveEvent(QMouseEvent* event) {
@@ -234,15 +280,15 @@ void Game0Board::mousePressEvent(QMouseEvent* event) {
 	if (done)
         return;
 
-    if (event->button() == Qt::RightButton) {                   // Rotate on right-click
+    if (event->button() == Qt::RightButton)                     // Rotate on right-click
         rotateTile();
-        if (soundsEnabled) JustPlay(":/game0/rotate");
-    } else                                                      // Try to place tile on left-click
+    else                                                        // Try to place tile on left-click
         placeTile();
 }
 
 void Game0Board::rotateTile() {    
     currentTileRotation = (currentTileRotation + 1) % 4;        // Rotate current
+    if (soundsEnabled) JustPlay(":/game0/rotate");
     update();                                                   // Redraw
 }
 
@@ -272,10 +318,10 @@ bool Game0Board::placeTile() {
         if (soundsEnabled) JustPlay(":/game0/win");
     	done = true;
         restartButton->setEnabled(false);
-    	if (autoSubmit)
-            Q_EMIT solutionReady(currentGame, 0, game.GetSolution());
         Q_EMIT showMessage(tr("<big><b>Game Won!</b></big>"));
-       	submitButton->setEnabled(true);
+       	if (autoSubmit)
+            Q_EMIT solutionReady(currentGame, 0, game.GetSolution());
+        submitButton->setEnabled(true);            
         return true;
     }
 
@@ -343,7 +389,12 @@ void Game0Board::updateTimeLeft(int blocks, bool playTimeWarn) {
     if (done || !timeLeftLabel)
         return;
 
-    if (blocks <= 0) {
+    // Check for game leaving private realm
+    if (blocks > currentGame->blocksRemaining && currentGame->isPrivate)
+        currentGame->isPrivate = false;
+    currentGame->blocksRemaining = blocks;
+
+    if (blocks <= 0 || blocks > currentGame->blocksRemaining) {
         timeLeftLabel->setStyleSheet("color: red;");
         timeLeftCaptionLabel->setStyleSheet("color: red;");        
         timeLeftLabel->setText("EXPIRED!");
@@ -380,4 +431,8 @@ void Game0Board::on_soundToggle_clicked() {
 
 void Game0Board::on_autoSubmitToggle_clicked() {
     autoSubmit = !autoSubmit;
+}
+
+void Game0Board::on_keysToggle_clicked() {
+    keysEnabled = !keysEnabled;
 }

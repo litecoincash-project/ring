@@ -37,7 +37,7 @@ public:
         TYPE_COLUMN_WIDTH = 100,
         HASH_COLUMN_WIDTH = 100,
         BLOCKSLEFT_COLUMN_WIDTH = 100,
-        TIME_COLUMN_WIDTH = 120,
+        REWARD_COLUMN_WIDTH = 120,
         POP_COL_MIN_WIDTH = 100
     };
 

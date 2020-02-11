@@ -38,9 +38,9 @@ public:
 
     enum ColumnIndex {
         GameType = 0,
-        Hash = 1,
+        Reward = 1,
         BlocksLeft = 2,
-        EstimatedTime = 3,
+        Hash = 3,        
         NUMBER_OF_COLUMNS
     };
 

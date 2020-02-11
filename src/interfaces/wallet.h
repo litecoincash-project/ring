@@ -85,6 +85,7 @@ public:
     virtual std::string getWalletName() = 0;
 
     // Ring-fork: Hive: Passthroughs
+    virtual unsigned int getMinedBlockCount() = 0;
     virtual std::vector<CDwarfCreationTransactionInfo> getDCTs(bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minRewardConfirmations) = 0;
     virtual void blockUntilSyncedToCurrentChain() = 0;
     virtual bool commitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm, CReserveKey& reservekey, CConnman* connman, CValidationState& state) = 0;
@@ -94,6 +95,9 @@ public:
     // Ring-fork: Pop: Passthroughs
     virtual std::vector<CAvailableGame> getAvailableGames(const Consensus::Params& consensusParams) = 0;
     virtual bool submitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) = 0;
+
+    // Ring-fork: The Village: Passthroughs
+    virtual const CKeyID getHDChainSeed() = 0;
 
     // Get key from pool.
     virtual bool getKeyFromPool(bool internal, CPubKey& pub_key) = 0;

@@ -34,7 +34,9 @@
 MiningPage::MiningPage(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::MiningPage),
-    clientModel(nullptr)
+    clientModel(nullptr),
+    blocksFound(0),
+    previousBlocksFound(0)
 {
     ui->setupUi(this);
 
@@ -44,7 +46,6 @@ MiningPage::MiningPage(const PlatformStyle *platformStyle, QWidget *parent) :
     ui->threadCountSpinner->setMaximum(GetNumCores());
     
     makeMinotaurs();
-    drawMinotaurs(0);
     updateDisplayedOptions();
 }
 
@@ -65,10 +66,21 @@ void MiningPage::setClientModel(ClientModel *model)
     }
 }
 
+void MiningPage::setModel(WalletModel *_model) {
+    this->model = _model;
+
+    if(_model) {
+        previousBlocksFound = _model->getMinedBlockCount();
+        ui->previousBlocksFoundLabel->setText(QString::number(previousBlocksFound));
+    }
+}
+
 void MiningPage::increaseBlocksFound()
 {
-    static unsigned int blocksFound = 0;
-    ui->blocksFoundLabel->setText(QString::number(++blocksFound));
+    blocksFound++;
+    previousBlocksFound++;
+    ui->blocksFoundLabel->setText(QString::number(blocksFound));
+    ui->previousBlocksFoundLabel->setText(QString::number(previousBlocksFound));
 }
 
 void MiningPage::numConnectionsChanged(int connections)
@@ -159,12 +171,18 @@ void MiningPage::makeMinotaurs() {
 }
 
 void MiningPage::drawMinotaurs(int coloured) {
+    if (scene) {
+        scene->clear();
+        delete scene;
+    }
     scene = new QGraphicsScene(this);
+
     ui->graphicsView->setAlignment(Qt::AlignRight | Qt::AlignBottom);
     ui->graphicsView->setScene(scene);
 
     if (coloured == 0) {
-        scene->addPixmap(minotaurs[0]);
+        QGraphicsPixmapItem *item = scene->addPixmap(minotaurs[0]);
+        item->setOffset(0, 0);
         return;
     }
 

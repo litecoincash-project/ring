@@ -917,12 +917,14 @@ bool BusyDwarves(const Consensus::Params& consensusParams, int height) {
     if (verbose) LogPrintf("BusyDwarves: dwarfHashTarget             = %s\n", dwarfHashTarget.ToString());
 
     // Find bin size
-    std::vector<CDwarfCreationTransactionInfo> dcts = pwallet->GetDCTs(false, false, consensusParams);
+    std::vector<CDwarfCreationTransactionInfo> potentialDcts = pwallet->GetDCTs(false, false, consensusParams);
+    std::vector<CDwarfCreationTransactionInfo> dcts;
     int totalDwarves = 0;
-    for (std::vector<CDwarfCreationTransactionInfo>::const_iterator it = dcts.begin(); it != dcts.end(); it++) {
+    for (std::vector<CDwarfCreationTransactionInfo>::const_iterator it = potentialDcts.begin(); it != potentialDcts.end(); it++) {
         CDwarfCreationTransactionInfo dct = *it;
         if (dct.dwarfStatus != "mature")
             continue;
+        dcts.push_back(dct);
         totalDwarves += dct.dwarfCount;
     }
 

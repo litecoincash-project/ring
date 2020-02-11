@@ -112,6 +112,11 @@ class uint160 : public base_blob<160> {
 public:
     uint160() {}
     explicit uint160(const std::vector<unsigned char>& vch) : base_blob<160>(vch) {}
+
+    // Ring-fork
+    unsigned char ByteAt(unsigned int n) {
+        return data[n];
+    }    
 };
 
 // Ring-fork: 512-bit opaque blob

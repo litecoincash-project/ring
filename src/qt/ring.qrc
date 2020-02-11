@@ -73,6 +73,17 @@
         <file alias="refresh">res/icons/refresh.png</file>
         <file alias="minotaur">res/icons/minotaur.png</file>
         <file alias="rialtoicon">res/icons/rialto.png</file>
+        <file alias="rialtobadge">res/icons/rialto-pin-clouds.png</file>
+        <file alias="night_village_off">res/icons/night-village-off.png</file>
+        <file alias="night_b1_on">res/icons/night-b1-on.png</file>
+        <file alias="night_b2_on">res/icons/night-b2-on.png</file>
+        <file alias="night_b3_on">res/icons/night-b3-on.png</file>
+        <file alias="night_village_on">res/icons/night-village-on.png</file>
+        <file alias="day_village_off">res/icons/day-village-off.png</file>
+        <file alias="day_b1_on">res/icons/day-b1-on.png</file>
+        <file alias="day_b2_on">res/icons/day-b2-on.png</file>
+        <file alias="day_b3_on">res/icons/day-b3-on.png</file>
+        <file alias="day_village_on">res/icons/day-village-on.png</file>        
     </qresource>
     <qresource prefix="/movies">
         <file alias="spinner-000">res/movies/spinner-000.png</file>

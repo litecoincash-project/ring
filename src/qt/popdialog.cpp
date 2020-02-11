@@ -75,12 +75,12 @@ void PopDialog::setModel(WalletModel *_model) {
         tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
         tableView->setSelectionMode(QAbstractItemView::SingleSelection);
         tableView->setColumnWidth(AvailableGamesTableModel::GameType, TYPE_COLUMN_WIDTH);
-        tableView->setColumnWidth(AvailableGamesTableModel::Hash, HASH_COLUMN_WIDTH);
+        tableView->setColumnWidth(AvailableGamesTableModel::Reward, REWARD_COLUMN_WIDTH);
         tableView->setColumnWidth(AvailableGamesTableModel::BlocksLeft, BLOCKSLEFT_COLUMN_WIDTH);
-        tableView->setColumnWidth(AvailableGamesTableModel::EstimatedTime, TIME_COLUMN_WIDTH);
+        tableView->setColumnWidth(AvailableGamesTableModel::Hash, HASH_COLUMN_WIDTH);        
 
         // Last 2 columns are set by the columnResizingFixer, when the table geometry is ready.
-        columnResizingFixer = new GUIUtil::TableViewLastColumnResizingFixer(tableView, TIME_COLUMN_WIDTH, POP_COL_MIN_WIDTH, this);
+        columnResizingFixer = new GUIUtil::TableViewLastColumnResizingFixer(tableView, HASH_COLUMN_WIDTH, POP_COL_MIN_WIDTH, this);
 
         // Populate initial data
         updateGamesAvailable();
@@ -109,7 +109,6 @@ void PopDialog::updateGamesAvailable() {
                 return;
             }
         }
-        LogPrintf("** Current game expired.\n");
         game0board->updateTimeLeft(-1);
     }
 }
@@ -141,7 +140,7 @@ void PopDialog::on_playSelectedButton_clicked() {
     QModelIndexList selection = ui->gameTable->selectionModel()->selectedRows();
     QModelIndex index = selection.at(0);
     const AvailableGamesTableModel *submodel = model->getAvailableGamesTableModel();
-    const CAvailableGame *game = &(submodel->entry(index.row()));   // !!!!!
+    const CAvailableGame *game = &(submodel->entry(index.row()));
     
     if (game)
         game0board->newGame(game);

@@ -556,10 +556,6 @@ bool CheckPopProof(const CBlock* pblock, const Consensus::Params& consensusParam
         LogPrintf("CheckPopProof: Couldn't get previous block's CBlockIndex!\n");
         return false;
     }
-    if (!chainActive.Contains(pindexPrev)) {
-        LogPrintf("CheckPopProof: Previous block is not in active chain\n");
-        return false;
-    }    
     if (verbose)
         LogPrintf("CheckPopProof: nHeight              = %i\n", blockHeight);
 

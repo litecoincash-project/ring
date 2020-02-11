@@ -994,6 +994,9 @@ public:
 
     OutputType TransactionChangeType(OutputType change_type, const std::vector<CRecipient>& vecSend);
 
+    // Ring-fork: In-wallet miner: Get all-time count of mined pow blocks
+    unsigned int getMinedBlockCount();
+
     // Ring-fork: Hive: Create a DCT to gestate given number of dwarves
     bool CreateDwarfTransaction(int dwarfCount, CTransactionRef& tx, CReserveKey& reservekeyChange, CReserveKey& reservekeyReward, std::string rewardAddress, std::string changeAddress, bool communityContrib, std::string& strFailReason, const Consensus::Params& consensusParams);
 

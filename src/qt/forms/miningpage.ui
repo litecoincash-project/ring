@@ -14,8 +14,14 @@
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>18</number>
+   </property>
+   <property name="topMargin">
+    <number>18</number>
+   </property>
    <property name="rightMargin">
-    <number>0</number>
+    <number>18</number>
    </property>
    <property name="bottomMargin">
     <number>0</number>
@@ -24,7 +30,7 @@
     <widget class="QLabel" name="miningtitle">
      <property name="font">
       <font>
-       <pointsize>11</pointsize>
+       <pointsize>14</pointsize>
        <weight>50</weight>
        <bold>false</bold>
       </font>
@@ -260,7 +266,27 @@
         <item>
          <widget class="QLabel" name="threadCountLabel_5">
           <property name="text">
-           <string>blocks found this session</string>
+           <string>blocks this session</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="previousBlocksFoundLabel">
+          <property name="styleSheet">
+           <string notr="true">font-size: 36px;</string>
+          </property>
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="threadCountLabel_6">
+          <property name="text">
+           <string>all time</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -371,6 +397,9 @@
      </property>
      <property name="interactive">
       <bool>false</bool>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
    </item>

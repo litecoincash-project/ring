@@ -90,7 +90,7 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     typeWidget->addItem(tr("Sent to"), TransactionFilterProxy::TYPE(TransactionRecord::SendToAddress) |
                                   TransactionFilterProxy::TYPE(TransactionRecord::SendToOther));
     typeWidget->addItem(tr("To yourself"), TransactionFilterProxy::TYPE(TransactionRecord::SendToSelf));
-    typeWidget->addItem(tr("Mined"), TransactionFilterProxy::TYPE(TransactionRecord::Generated));
+    typeWidget->addItem(tr("Pow mined"), TransactionFilterProxy::TYPE(TransactionRecord::Generated));
     typeWidget->addItem(tr("Claimed"), TransactionFilterProxy::TYPE(TransactionRecord::ForeignChainImport));                // Ring-fork
     typeWidget->addItem(tr("Hive dwarf creation"), TransactionFilterProxy::TYPE(TransactionRecord::HiveDwarfCreation));     // Ring-fork: Hive
     typeWidget->addItem(tr("Hive community fund"), TransactionFilterProxy::TYPE(TransactionRecord::HiveCommunityFund));     // Ring-fork: Hive

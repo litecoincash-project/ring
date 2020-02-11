@@ -353,8 +353,8 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
         return tr("Sent to");
     case TransactionRecord::SendToSelf:
         return tr("Payment to yourself");
-    case TransactionRecord::Generated:
-        return tr("Mined");
+    case TransactionRecord::Generated:              // Ring-fork
+        return tr("Pow mined");
     case TransactionRecord::ForeignChainImport:     // Ring-fork
         return tr("Claimed from another chain");
     case TransactionRecord::HiveDwarfCreation:      // Ring-fork: Hive: Handle Hive record types

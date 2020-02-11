@@ -143,7 +143,7 @@ QVariant HiveTableModel::data(const QModelIndex &index, int role) const {
             if (rec->blocksFound == 0)
                 return QColor(200, 0, 0);
             if (rec->profit < 0)
-                return QColor(170, 70, 0);
+                return QColor(QString("#F5832F"));
             return QColor(27, 170, 45);
         }
         
@@ -151,7 +151,7 @@ QVariant HiveTableModel::data(const QModelIndex &index, int role) const {
             if (rec->dwarfStatus == "expired")
                 return QColor(200, 0, 0);
             if (rec->dwarfStatus == "immature")
-                return QColor(170, 70, 0);
+                return QColor(QString("#F5832F"));
             return QColor(27, 170, 45);
         }
 

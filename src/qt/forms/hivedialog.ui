@@ -32,7 +32,7 @@
       <widget class="QLabel" name="createDwarvesTitleLabel">
        <property name="font">
         <font>
-         <pointsize>11</pointsize>
+         <pointsize>14</pointsize>
          <weight>75</weight>
          <bold>true</bold>
         </font>
@@ -125,7 +125,7 @@
       <item row="0" column="0">
        <widget class="QLabel" name="currentDwarfCostLabel_2">
         <property name="text">
-         <string>Current dwarf cost:</string>
+         <string>Dwarf cost:</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -513,7 +513,7 @@ still fully unlock it to send funds.</string>
          <widget class="QLabel" name="globalNetworkHiveTitleLabel">
           <property name="font">
            <font>
-            <pointsize>11</pointsize>
+            <pointsize>14</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>
@@ -894,7 +894,7 @@ to make back their cost. At values below 100, it is expected at all dwarves will
          <widget class="QLabel" name="yourHiveStatsLabel">
           <property name="font">
            <font>
-            <pointsize>11</pointsize>
+            <pointsize>14</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>

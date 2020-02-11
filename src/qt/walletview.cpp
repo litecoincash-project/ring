@@ -138,7 +138,8 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     );
     // Ring-fork: Rialto: Skinning
     rialtoPage->setStyleSheet(
-        "QLabel {color: " + SKIN_TEXT + "};"
+        "QLabel {color: " + SKIN_TEXT + ";}"
+        "#textframe {background-color: " + SKIN_BG_PANEL + ";}"
     );
 }
 
@@ -200,6 +201,7 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
     sendCoinsPage->setModel(_walletModel);
     usedReceivingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
     usedSendingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
+    miningPage->setModel(_walletModel);         // Ring-fork: Mining page
     hivePage->setModel(_walletModel);           // Ring-fork: Hive page
     popPage->setModel(_walletModel);            // Ring-fork: Pop page
     
@@ -247,6 +249,10 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
     QString label = ttm->data(index, TransactionTableModel::LabelRole).toString();
 
     Q_EMIT incomingTransaction(date, walletModel->getOptionsModel()->getDisplayUnit(), amount, type, address, label, walletModel->getWalletName());
+
+    // Ring-fork: The Village
+    if (type == "Popmined")
+        overviewPage->enableVillagePop();
 }
 
 void WalletView::gotoOverviewPage()

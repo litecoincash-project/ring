@@ -38,11 +38,15 @@ public:
     ~MiningPage();
 
     void setClientModel(ClientModel *clientModel);
+    void setModel(WalletModel *model);
 
 private:
     Ui::MiningPage *ui;
     ClientModel *clientModel;
+    WalletModel *model;
     QTimer *displayUpdateTimer;
+    unsigned int blocksFound;
+    unsigned int previousBlocksFound;
 
     QGraphicsScene *scene;
     QPixmap minotaurs[8];

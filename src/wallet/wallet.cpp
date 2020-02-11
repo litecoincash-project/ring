@@ -3206,6 +3206,36 @@ std::vector<CAvailableGame> CWallet::GetAvailableGames(const Consensus::Params& 
     return games;
 }
 
+// Ring-fork: In-wallet miner: Return count of all pow-mined blocks found by this wallet
+unsigned int CWallet::getMinedBlockCount() {
+    unsigned int blockCount = 0;
+
+    if (chainActive.Height() == 0)  // Don't continue if chainActive is invalid; we may be reindexing
+        return blockCount;
+
+    auto locked_chain = chain().lock();
+    for (const std::pair<uint256, CWalletTx>& pairWtx : mapWallet) {
+        const CWalletTx& wtx = pairWtx.second;
+
+        // Skip unconfirmed transactions and orphans
+        if (wtx.GetDepthInMainChain(*locked_chain) < 1)
+            continue;
+
+        // Skip non-coinbase
+        if (!wtx.IsCoinBase())
+            continue;
+
+        // Skip Hive and Pop blocks
+        if (wtx.IsHiveCoinBase() || wtx.IsPopCoinBase())
+            continue;
+
+        // Looks good!
+        blockCount++;
+    }
+
+    return blockCount;
+}
+
 // Ring-fork: Hive: Return all DCTs known by this wallet, optionally including dead dwarves and optionally scanning for blocks minted by dwarves from each DCT
 std::vector<CDwarfCreationTransactionInfo> CWallet::GetDCTs(bool includeDead, bool scanRewards, const Consensus::Params& consensusParams, int minRewardConfirmations) {
     std::vector<CDwarfCreationTransactionInfo> dcts;
