@@ -34,7 +34,6 @@ Moves are packed into the solution vector 1 byte per move as follows:
 
 #define GAME0_BOARD_SIZE      7                                     // Board is GAME0_BOARD_SIZE x GAME0_BOARD_SIZE tiles
 #define GAME0_NUM_TILES       15                                    // Number of tile variations
-#define GAME0_SCORE_TARGET    80                                    // Score to count as a win
 
 struct Game0Tile {                                                  // A tile on the board
     int tileTypeIndex;
@@ -52,7 +51,7 @@ public:
     Game0();
 
     void InitGame(uint256 sourceHash) override;                     // Set up a fresh game given source hash. RESETS ALL INTERNAL STATE.
-    bool VerifyGameSolution(uint256 gameSourceHash, std::vector<unsigned char> solution, std::string& strError) override;    // Verify solution given a game source hash and a solution. OVERWRITES ALL INTERNAL STATE.
+    bool VerifyGameSolution(int targetScore, uint256 gameSourceHash, std::vector<unsigned char> solution, std::string& strError) override;    // Verify solution given a game source hash and a solution. OVERWRITES ALL INTERNAL STATE.
 
     bool HasNeighbour(int x, int y);                                // Check if {x,y} has a valid neighbour tile
     bool PlaceTile(int x, int y, int rotation, std::string& strError);   // Try and place the current tile. If successful, add the move to the solution and mutate the game state.

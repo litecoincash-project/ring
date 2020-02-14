@@ -87,6 +87,29 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     return bnNew.GetCompact();
 }
 
+// Ring-fork: Pop: Game score target adjust
+int GetNextPopScoreRequired(const CBlockIndex* pindexLast, const Consensus::Params& params) {
+    int windowSize = 24;
+    int intScaler = windowSize * windowSize;
+    int minScore = 70 * intScaler;
+    int maxScore = 200 * intScaler;
+    
+    int score = 0;
+    for (int i = 0; i < windowSize; i++) {
+        if (pindexLast->GetBlockHeader().IsPopMined(params))
+            score++;
+
+        assert (pindexLast->pprev);
+        pindexLast = pindexLast->pprev;
+    }
+
+    score *= score;
+    score = minScore + (score * (maxScore - minScore) / intScaler);
+    score /= intScaler;
+
+    return score;
+}
+
 // Ring-fork: Hive: SMA Hive Difficulty Adjust
 unsigned int GetNextHiveWorkRequired(const CBlockIndex* pindexLast, const Consensus::Params& params) {
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimitHive);
@@ -697,7 +720,7 @@ bool CheckPopProof(const CBlock* pblock, const Consensus::Params& consensusParam
     // Verify it's a valid game solution
     std::string strError;
     Game0 game0;
-    if (!game0.VerifyGameSolution(gameSourceHashBin, solution, strError)) {
+    if (!game0.VerifyGameSolution(GetNextPopScoreRequired(pindexPrev, consensusParams), gameSourceHashBin, solution, strError)) {
         LogPrintf("CheckPopProof: Invalid solution: %s\n", strError);
         return false;
     }

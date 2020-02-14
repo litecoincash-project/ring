@@ -53,7 +53,7 @@ void Game0::InitGame(uint256 sourceHash) {
 	nextTile = GetNextTile();
 }
 
-bool Game0::VerifyGameSolution(uint256 sourceHash, std::vector<unsigned char> solutionToVerify, std::string& strError) {
+bool Game0::VerifyGameSolution(int targetScore, uint256 sourceHash, std::vector<unsigned char> solutionToVerify, std::string& strError) {
     // Check solution size
     int tilesToPlace = solutionToVerify.size();
     if (tilesToPlace > GAME0_BOARD_SIZE * GAME0_BOARD_SIZE) {
@@ -77,8 +77,8 @@ bool Game0::VerifyGameSolution(uint256 sourceHash, std::vector<unsigned char> so
     // Calculate score and check against threshold
     std::string strDesc;
     int score = CalculateScore(strDesc);
-    if (score < GAME0_SCORE_TARGET) {
-        strError = "Solution does not meet score target; score=" + std::to_string(score) + ", target=" + std::to_string(GAME0_SCORE_TARGET);
+    if (score < targetScore) {
+        strError = "Solution does not meet score target; score=" + std::to_string(score) + ", target=" + std::to_string(targetScore);
         return false;
     }
 

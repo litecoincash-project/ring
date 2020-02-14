@@ -95,6 +95,7 @@ public:
     // Ring-fork: Pop: Passthroughs
     virtual std::vector<CAvailableGame> getAvailableGames(const Consensus::Params& consensusParams) = 0;
     virtual bool submitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) = 0;
+    virtual int getCurrentScoreTarget() = 0;
 
     // Ring-fork: The Village: Passthroughs
     virtual const CKeyID getHDChainSeed() = 0;

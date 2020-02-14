@@ -21,6 +21,7 @@
 #include <qt/transactiontablemodel.h>
 #include <qt/walletmodel.h>
 #include <qt/walletmodel.h>
+#include <qt/pop/availablegamestablemodel.h>
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
@@ -114,7 +115,7 @@ void MiningPage::updateHashRateDisplay() {
     double timeToSolve = (this->clientModel) ? this->clientModel->getTimeToSolve() : 0;
 
     if (timeToSolve > 0)
-        ui->timeToSolveDisplayLabel->setText(timeToSolve > 172800 ? "> 2 days" : QString::number(std::floor(timeToSolve)));
+        ui->timeToSolveDisplayLabel->setText(timeToSolve > 172800 ? "> 2 days" : AvailableGamesTableModel::secondsToString(std::floor(timeToSolve)));
     else
         ui->timeToSolveDisplayLabel->setText("N/A");
 }

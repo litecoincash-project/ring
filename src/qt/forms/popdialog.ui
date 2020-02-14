@@ -97,50 +97,6 @@
              </property>
             </spacer>
            </item>
-           <item>
-            <widget class="QLabel" name="label_2">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>&lt;span style=&quot;color:#ff0000;&quot;&gt;&lt;a href=&quot;XXXXXXXXXX&quot;&gt;&lt;span style=&quot;text-decoration: underline; color:#f19015;&quot;&gt;Learn how to play&lt;/span&gt;&lt;/a&gt;&lt;/span&gt;</string>
-             </property>
-             <property name="openExternalLinks">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label">
-             <property name="minimumSize">
-              <size>
-               <width>16</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16</width>
-               <height>16</height>
-              </size>
-             </property>
-             <property name="mouseTracking">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string/>
-             </property>
-             <property name="pixmap">
-              <pixmap resource="../ring.qrc">:/icons/warning</pixmap>
-             </property>
-             <property name="scaledContents">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
           </layout>
          </item>
          <item>

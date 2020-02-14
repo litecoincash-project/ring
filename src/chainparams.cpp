@@ -8,6 +8,7 @@
 
 #include <chainparamsseeds.h>
 #include <consensus/merkle.h>
+#include <consensus/consensus.h>    // Ring-fork: For COINBASE_MATURITY
 #include <tinyformat.h>
 #include <util/system.h>
 #include <util/strencodings.h>
@@ -26,9 +27,9 @@
 #define GENESIS_STRING      "In memory of Pawel 'demon2k13' Wyszynski (21/7/1994 - 3/7/2019) a ring is forged 17/1/2020"
 #define GENESIS_IMAGE       "89504E470D0A1A0A0000000D4948445200000020000000200800000000561125280000000467414D410000B18F0BFC6105000000206348524D00007A26000080840000FA00000080E8000075300000EA6000003A98000017709CBA513C00000002624B474400FF878FCCBF0000000970485973000015870000158701B219EEBA0000000774494D4507E307140D2810796DF2C90000031C4944415438CB2D914D6F1B5518469FE7BD77C6F638B19DA48DEDD4260A5584DA20151481C4062A10422AFC0F7E013F8B6D575D14169508422A9568F9688112689D90389DF86B66EC7B1F16657D3647E7D00300291AD8AE6B55141191A2648A043C09401689CD83B5BAA59AFE7632CDA6411000C939803046D77EDF5C3D6974FADBA7FB5731012118E029118816DF9E14E92C495B4D1F7C76414284402F1114D8DC382FE3725EBF5CCF976567FB575100440F8A20D0AB75D332247A352A18929DCE054C20A2F32448F0A093B5D79B584E574A3AED66F65C262A9A01A0624CBB9678A4994FE9935AEABBD7101005798AA078655A54CB32946539C766BEB5C9E13121307A6EBB9188938B642D4918502C382B47D9B575421641AFF276F1F26C56CDF54A9422D39AB7348ED25AC5481953EE1C3A96E5225F94AB30AFCCA78D8469923DBD845E3BBC98DC6CBF2A8687B9C6A362A17A5633552B3A50009D23AA7F5EB87450FA5B9F7CB42EA05E4BDBDB1B6BF58535EA8A1E8058F41B4F0EFA1FF83CACD01F8D5BCE7C7A7D373F9BF89F3D5E8F7EEF68F35ABA3ACF4F8E7FCC764E5FD85E6CD4EB038DA30741B1F7FDA4B765F9E338383FCFBE7AF470EFDF6F73518C3002919C8E5EDE08B45AE3E472ED4E37BFB5FB8E1724010601C4FDCF0F8FDAD3AD5E3EE7E03315C3FE864823250348E1FCDEF57B45583034F656D5B8087EB920A0087A1102F0C8EE4CB74B375CFBE5F7BFD22DE238300A82CC012410935EC77CFBCD7E363CFAA3887A1A2260049D013228D60E06A98B165D19626E57EE8E45518CFE35979D3DF9B030D5EAE367ABF6F079E35CFA3F7502026A74E6FE8BA0C4FD59DCF0573FEE7C6D390051302942ADD66235AA62B54AAEFA876170F1CDB3594B2464F400B58359E5B666CB663E7D2373AEFBE4BE4DFB39445BC1036E671E239A8727ADE5CB07318DA7DFFD10FCCE26CE260C9473697F12196C7777F956F9E0E9EDE747A3CB56326CAC4DD6BBCB2A9AB5BB174B92567CFA53A331F8321CE7E34C1D26556F52EEBFBBD7B1F46C993833C5FD9B479DEB93C77F5B6B352D424ADF9D4EE1FA7611124581C9B3BB3C993F3C8ACD5ED0620957C5D9A20AE3FF0021C5AE38E74A222800000020744558744372656174696F6E54696D6500323031373A30323A31372032333A34303A3031F1B710F60000002574455874646174653A63726561746500323031392D30372D32305431333A34303A31362B30333A303067C362F30000002574455874646174653A6D6F6469667900323031392D30372D32305431333A34303A31362B30333A3030169EDA4F0000001874455874536F667477617265007061696E742E6E657420342E312E36FD4E09E80000001174455874536F75726365004E494B4F4E204433303068FC3E620000000049454E44AE426082"
 
-#define LAST_ID_BLOCK_HASH  "0xc220e52a975536cdcd6a64646d7ecda9e0100ac2c1df85c5622bf885cdd1d847"
-#define LAST_ID_CHAINWORK   "0x197d10"
-#define LAST_ID_HEIGHT      2429
+#define LAST_ID_BLOCK_HASH  "0x0"
+#define LAST_ID_CHAINWORK   "0x0"
+#define LAST_ID_HEIGHT      1000000
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
@@ -112,25 +113,21 @@ public:
         // Ring-fork: General consensus fields
         consensus.lastInitialDistributionHeight = LAST_ID_HEIGHT;                                                                   // Height of last block containing initial distribution payouts to foreign coins
         consensus.powLimitInitialDistribution = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");       // Lower-than-powLimit difficulty for initial distribution blocks only
-        //consensus.slowStartBlocks = 2000;                                                                                           // Scale initial block reward up over this many blocks
-        consensus.slowStartBlocks = 500;                                                                                           // Scale initial block reward up over this many blocks
+        consensus.slowStartBlocks = 2000;                                                                                           // Scale initial block reward up over this many blocks
         consensus.blockSubsidyPow = 0.2 * COIN;             // Miner rewards for each block type
-        consensus.blockSubsidyHive = 0.6 * COIN;
+        consensus.blockSubsidyHive = 1 * COIN;
         consensus.blockSubsidyPopPrivate = 0.2 * COIN;
-        consensus.blockSubsidyPopPublic = 0.02 * COIN;
+        consensus.blockSubsidyPopPublic = 0.05 * COIN;
 
         // Ring-fork: Hive: Consensus Fields
-        consensus.dwarfCost = 0.006 * COIN;                 // Cost of a dwarf
+        consensus.dwarfCost = 0.01 * COIN;                  // Cost of a dwarf
         consensus.dwarfCreationAddress = "RNGSummonADwarvenMiningArmyXYzDNsz";  // Unspendable address for dwarf creation
         consensus.hiveCommunityAddress = "RNGBEERnxAdgdRfSa45NFy5bZfQPYbztkn";  // Community fund address
-        consensus.communityContribFactor = 10;              // Optionally, donate dct_value/maxCommunityContribFactor to community fund
-        
-        //consensus.dwarfGestationBlocks = 1.5*60*12;       // The number of blocks for a new dwarf to mature (12 hours)
-        consensus.dwarfGestationBlocks = 40;                // The number of blocks for a new dwarf to mature (12 hours)
-        
-        consensus.dwarfLifespanBlocks = 30000;              // The number of blocks a dwarf lives for after maturation
+        consensus.communityContribFactor = 5;               // Optionally, donate dct_value/maxCommunityContribFactor to community fund
+        consensus.dwarfGestationBlocks = 2880;              // The number of blocks for a new dwarf to mature (approx 24 hours)
+        consensus.dwarfLifespanBlocks = 30000;              // The number of blocks a dwarf lives for after maturation (approx 10 days)
         consensus.powLimitHive = uint256S("0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");  // Highest (easiest) dwarf hash target
-        consensus.minHiveCheckBlock = LAST_ID_HEIGHT + 1;   // Don't bother checking below this height for Hive blocks (not used for consensus/validation checks, just efficiency when looking for potential DCTs)
+        consensus.minHiveCheckBlock = consensus.lastInitialDistributionHeight + 1;   // Don't bother checking below this height for Hive blocks (not used for consensus/validation checks, just efficiency when looking for potential DCTs)
         consensus.hiveBlockSpacingTarget = 2;               // Target Hive block frequency (1 out of this many Hive and pow blocks combined should be Hivemined)
         consensus.hiveBlockSpacingTargetTypical = 2;        // Observed Hive block frequency (1 out of this many Hive and pow blocks combined are observed to be Hive)
         consensus.hiveNonceMarker = 1;                      // Nonce marker for hivemined blocks
@@ -146,9 +143,9 @@ public:
         // Ring-fork: Pop: Consensus fields
         consensus.popBlocksPerHive = 1;                     // Expected number of pop blocks per Hive block. Note that increasing this here is not enough to spawn additional games, etc; this is used for time estimations.
         consensus.popNonceMarker = 2;                       // Nonce marker for popmined blocks
-        consensus.popMinPrivateGameDepth = 8;               // Private game source transactions must be at least this many blocks deep
-        consensus.popMaxPrivateGameDepth = 50;              // Private game source transactions must be at most this many blocks deep
-        consensus.popMaxPublicGameDepth = consensus.popMaxPrivateGameDepth + 200;             // Public game source transactions must be at most this many blocks deep
+        consensus.popMinPrivateGameDepth = COINBASE_MATURITY;                           // Private game source transactions must be at least this many blocks deep
+        consensus.popMaxPrivateGameDepth = COINBASE_MATURITY + 50;                      // Private game source transactions must be at most this many blocks deep
+        consensus.popMaxPublicGameDepth = consensus.popMaxPrivateGameDepth + 200;       // Public game source transactions must be at most this many blocks deep
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S(LAST_ID_CHAINWORK);                  // At lastInitialDistributionHeight
@@ -182,7 +179,7 @@ public:
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
         //vSeeds.emplace_back("xxxxx.xxxxx");
-        vSeeds.emplace_back("tr1-seeds.litecoinca.sh");
+        vSeeds.clear();
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);  // for R
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,81);  // for Z
@@ -198,6 +195,9 @@ public:
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
 
+        vFixedSeeds.clear();
+        vSeeds.clear();
+
         checkpointData = {
             {
                 {0, uint256S(GENESIS_HASH)},
@@ -211,8 +211,8 @@ public:
             /* dTxRate  */ 0.001
         };
 
-        /* disable fallback fee on mainnet */
-        m_fallback_fee_enabled = false;
+        /* Allow fallback fee on mainnet */
+        m_fallback_fee_enabled = true;
     }
 };
 
@@ -234,8 +234,8 @@ public:
         consensus.nExpectedBlockSpacing = consensus.nPowTargetSpacing / 3;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 30; // Require 75% of last 40 blocks to activate rulechanges
-        consensus.nMinerConfirmationWindow = 40;
+        consensus.nRuleChangeActivationThreshold = 75; // Require 75% of last 100 blocks to activate rulechanges
+        consensus.nMinerConfirmationWindow = 100;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
@@ -267,41 +267,41 @@ public:
         std::copy(std::begin(foreignCoinBech32HRPs), std::end(foreignCoinBech32HRPs), std::begin(consensus.foreignCoinBech32HRPs));
 
         // Ring-fork: General consensus fields
-        consensus.lastInitialDistributionHeight = 10000;    // Height of last block containing initial distribution payouts to foreign coins
+        consensus.lastInitialDistributionHeight = 2000;                                                                             // Height of last block containing initial distribution payouts to foreign coins
         consensus.powLimitInitialDistribution = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");       // Lower-than-powLimit difficulty for initial distribution blocks only
-        consensus.slowStartBlocks = 40;                     // Scale initial block reward up over this many blocks
+        consensus.slowStartBlocks = 400;                                                                                            // Scale initial block reward up over this many blocks      
         consensus.blockSubsidyPow = 0.2 * COIN;             // Miner rewards for each block type
-        consensus.blockSubsidyHive = 0.6 * COIN;
+        consensus.blockSubsidyHive = 1 * COIN;
         consensus.blockSubsidyPopPrivate = 0.2 * COIN;
-        consensus.blockSubsidyPopPublic = 0.02 * COIN;
+        consensus.blockSubsidyPopPublic = 0.05 * COIN;
 
         // Ring-fork: Hive: Consensus Fields
-        consensus.dwarfCost = 0.03 * COIN;                  // Cost of a dwarf
+        consensus.dwarfCost = 0.01 * COIN;                  // Cost of a dwarf
         consensus.dwarfCreationAddress = "SUmmonTheTestnetDwarvenArmyXaNdvvm";  // Unspendable address for dwarf creation
         consensus.hiveCommunityAddress = "SW4fmbrApQcUhDd2RtVsRVts7ptizk39C9";  // Community fund address
-        consensus.communityContribFactor = 10;              // Optionally, donate dct_value/maxCommunityContribFactor to community fund
-        consensus.dwarfGestationBlocks = 48*24;             // The number of blocks for a new dwarf to mature
-        consensus.dwarfLifespanBlocks = 48*24*14;           // The number of blocks a dwarf lives for after maturation
+        consensus.communityContribFactor = 5;               // Optionally, donate dct_value/maxCommunityContribFactor to community fund
+        consensus.dwarfGestationBlocks = 2880;              // The number of blocks for a new dwarf to mature (approx 24 hours)
+        consensus.dwarfLifespanBlocks = 30000;              // The number of blocks a dwarf lives for after maturation (approx 10 days)
         consensus.powLimitHive = uint256S("0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");  // Highest (easiest) dwarf hash target
-        consensus.minHiveCheckBlock = LAST_ID_HEIGHT + 1;   // Don't bother checking below this height for Hive blocks (not used for consensus/validation checks, just efficiency when looking for potential DCTs)
-        consensus.hiveBlockSpacingTarget = 2;               // Target Hive block frequency (1 out of this many blocks should be Hivemined)
-        consensus.hiveBlockSpacingTargetTypical = 2;        // Observed Hive block frequency (1 out of this many blocks are observed to be Hive)
+        consensus.minHiveCheckBlock = consensus.lastInitialDistributionHeight + 1;   // Don't bother checking below this height for Hive blocks (not used for consensus/validation checks, just efficiency when looking for potential DCTs)
+        consensus.hiveBlockSpacingTarget = 2;               // Target Hive block frequency (1 out of this many Hive and pow blocks combined should be Hivemined)
+        consensus.hiveBlockSpacingTargetTypical = 2;        // Observed Hive block frequency (1 out of this many Hive and pow blocks combined are observed to be Hive)
         consensus.hiveNonceMarker = 1;                      // Nonce marker for hivemined blocks
-        consensus.minK = 1;                                 // Minimum chainwork scale for Hive blocks (see Hive whitepaper section 5)
-        consensus.maxK = 7;                                 // Maximum chainwork scale for Hive blocks (see Hive whitepaper section 5)
-        consensus.maxHiveDiff = 0.006;                      // Hive difficulty at which max chainwork bonus is awarded
+        consensus.minK = 2;                                 // Minimum chainwork scale for Hive blocks (see Hive whitepaper section 5)
+        consensus.maxK = 16;                                // Maximum chainwork scale for Hive blocks (see Hive whitepaper section 5)
+        consensus.maxHiveDiff = 0.001;                      // Hive difficulty at which max chainwork bonus is awarded
         consensus.maxKPow = 5;                              // Maximum chainwork scale for PoW blocks
-        consensus.powSplit1 = 0.005;                        // Below this Hive difficulty threshold, PoW block chainwork bonus is halved
-        consensus.powSplit2 = 0.0025;                       // Below this Hive difficulty threshold, PoW block chainwork bonus is halved again
+        consensus.powSplit1 = 0.0004;                       // Below this Hive difficulty threshold, PoW block chainwork bonus is halved
+        consensus.powSplit2 = 0.0002;                       // Below this Hive difficulty threshold, PoW block chainwork bonus is halved again
         consensus.maxConsecutiveHiveBlocks = 2;             // Maximum hive blocks that can occur consecutively before a PoW block is required
-        consensus.hiveDifficultyWindow = 24;                // How many blocks the SMA averages over in hive difficulty adjust
+        consensus.hiveDifficultyWindow = 36;                // How many blocks the SMA averages over in hive difficulty adjust
 
         // Ring-fork: Pop: Consensus fields
-        consensus.popBlocksPerHive = 1;                     // Expected number of pop blocks per Hive block. Note that increasing this here is not enough to spawn additional games, etc; this is used for time estimations.        
+        consensus.popBlocksPerHive = 1;                     // Expected number of pop blocks per Hive block. Note that increasing this here is not enough to spawn additional games, etc; this is used for time estimations.
         consensus.popNonceMarker = 2;                       // Nonce marker for popmined blocks
-        consensus.popMinPrivateGameDepth = 2;               // Private game source transactions must be at least this many blocks deep
-        consensus.popMaxPrivateGameDepth = 50;              // Private game source transactions must be at most this many blocks deep
-        consensus.popMaxPublicGameDepth = 120;              // Public game source transactions must be at most this many blocks deep
+        consensus.popMinPrivateGameDepth = COINBASE_MATURITY;                           // Private game source transactions must be at least this many blocks deep
+        consensus.popMaxPrivateGameDepth = consensus.popMinPrivateGameDepth + 50;       // Private game source transactions must be at most this many blocks deep
+        consensus.popMaxPublicGameDepth = consensus.popMaxPrivateGameDepth + 200;       // Public game source transactions must be at most this many blocks deep
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0");
@@ -324,10 +324,8 @@ public:
         assert(genesis.hashMerkleRoot == uint256S(GENESIS_MERKLE));
 
         vFixedSeeds.clear();
-        vSeeds.clear();
-        // nodes with support for servicebits filtering should be at the top
-        //vSeeds.emplace_back("xxxx.xxxx");
-
+        vSeeds.emplace_back("testnet.ringcoin.tech");
+        
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,63); // For S
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,78); // For Y
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,238);
@@ -342,10 +340,10 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
 
-
         checkpointData = {
             {
                 {0, uint256S(GENESIS_HASH)},
+                {1, uint256S("0xc43912872861c4e3b1991dfde9eb67daa3f92f4cb72489c9d1ba1e27921a2731")},
             }
         };
 

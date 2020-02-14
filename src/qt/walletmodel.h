@@ -161,7 +161,7 @@ public:
     RecentRequestsTableModel *getRecentRequestsTableModel();
     HiveTableModel *getHiveTableModel();                        // Ring-fork: Hive
     AvailableGamesTableModel *getAvailableGamesTableModel();    // Ring-fork: Pop
-
+    
     EncryptionStatus getEncryptionStatus() const;
 
     // Check address for validity
@@ -221,8 +221,9 @@ public:
     bool createDwarves(int dwarfCount, bool communityContrib, QWidget *parent, double dwarfPopIndex);                                   // Ring-fork: Hive
     void getAvailableGames(std::vector<CAvailableGame>& vGames);                                                                        // Ring-fork: Pop
     bool submitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason);       // Ring-fork: Pop
+    int getCurrentScoreTarget();                                                                                                        // Ring-fork: Pop
     unsigned int getMinedBlockCount();                                                                                                  // Ring-fork: In-wallet miner
-    const CKeyID getHDChainSeed();                                                                                                        // Ring-fork: The village
+    const CKeyID getHDChainSeed();                                                                                                      // Ring-fork: The village
         
     bool bumpFee(uint256 hash, uint256& new_hash);
 

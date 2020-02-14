@@ -103,13 +103,15 @@ void PopDialog::updateGamesAvailable() {
         if (!currentGame)
             return;
 
+        int targetScore = model->getCurrentScoreTarget();
+
         for (CAvailableGame& game : games) {
             if (game.gameSourceHash == currentGame->gameSourceHash) {
-                game0board->updateTimeLeft(game.blocksRemaining);
+                game0board->updateCurrentGameInfo(targetScore, game.blocksRemaining);
                 return;
             }
         }
-        game0board->updateTimeLeft(-1);
+        game0board->updateCurrentGameInfo(targetScore, -1);
     }
 }
 
@@ -142,8 +144,9 @@ void PopDialog::on_playSelectedButton_clicked() {
     const AvailableGamesTableModel *submodel = model->getAvailableGamesTableModel();
     const CAvailableGame *game = &(submodel->entry(index.row()));
     
+    int targetScore = model->getCurrentScoreTarget();
     if (game)
-        game0board->newGame(game);
+        game0board->newGame(targetScore, game);
 }
 
 void PopDialog::submitSolution(CAvailableGame *g, uint8_t gameType, std::vector<unsigned char> solution) {

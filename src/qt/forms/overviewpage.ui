@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>893</width>
-    <height>510</height>
+    <width>882</width>
+    <height>605</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>0</width>
+    <height>600</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -747,7 +753,7 @@
             <property name="sizeHint" stdset="0">
              <size>
               <width>20</width>
-              <height>8</height>
+              <height>1</height>
              </size>
             </property>
            </spacer>

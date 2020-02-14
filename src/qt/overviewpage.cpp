@@ -155,6 +155,9 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     ui->graphicsView->setScene(scene);
     drawVillage();
     setDayNightTimer();
+
+    // Fire a resize
+    this->resize(this->geometry().width(), this->geometry().height());
 }
 
 void OverviewPage::handleTransactionClicked(const QModelIndex &index)
@@ -457,7 +460,7 @@ void OverviewPage::setVillageName() {
     };
 
     QString name;
-    unsigned int digraphCount = (seed.ByteAt(0) & 3) + 1;
+    unsigned int digraphCount = (seed.ByteAt(0) & 3) + 2;
     for (unsigned int i = 0; i < digraphCount; i++)
         name += digraphs[seed.ByteAt(i+1) & 127];
         

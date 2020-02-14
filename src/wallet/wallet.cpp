@@ -40,6 +40,7 @@
 #include <script/ismine.h>          // Ring-fork: Hive
 #include <consensus/merkle.h>       // Ring-fork: Pop
 #include <miner.h>                  // Ring-fork: Pop
+#include <pow.h>                    // Ring-fork: Pop
 #include <crypto/pop/game0/game0.h> // Ring-fork: Pop
 
 static const size_t OUTPUT_GROUP_MAX_ENTRIES = 10;
@@ -2892,6 +2893,14 @@ CDwarfCreationTransactionInfo CWallet::GetDCT(const CWalletTx& wtx, bool include
     return dct;
 }
 
+// Ring-fork: Pop: Get the current target score
+int CWallet::GetCurrentScoreTarget() {
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    assert(pindexPrev != nullptr);    
+    GetNextPopScoreRequired(pindexPrev, consensusParams);
+}
+
 // Ring-fork: Pop: Submit a game solution
 bool CWallet::SubmitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason, std::string rewardAddress) {
     const Consensus::Params& consensusParams = Params().GetConsensus();
@@ -2911,7 +2920,7 @@ bool CWallet::SubmitSolution(CAvailableGame *game, uint8_t gameType, std::vector
     // Sanity checks
     std::string verifyFailReason;
     Game0 game0;
-    if(!game0.VerifyGameSolution(game->gameSourceHash, solution, verifyFailReason)) {
+    if(!game0.VerifyGameSolution(GetNextPopScoreRequired(pindexPrev, consensusParams), game->gameSourceHash, solution, verifyFailReason)) {
         strFailReason = "SubmitSolution: Solution does not verify: " + verifyFailReason;
         return false;
     }

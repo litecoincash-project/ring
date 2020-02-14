@@ -182,6 +182,9 @@ public:
     bool submitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) override {
         return m_wallet->SubmitSolution(game, gameType, solution, strFailReason);
     }
+    int getCurrentScoreTarget() override {
+        return m_wallet->GetCurrentScoreTarget();
+    }
 
     // Ring-fork: The Village: Interface pass-throughs
     const CKeyID getHDChainSeed() override {

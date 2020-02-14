@@ -92,7 +92,7 @@ Game0Board::Game0Board(QWidget* parent)
     connect(submitButton, &QPushButton::clicked, this, &Game0Board::on_submitButton_clicked);
 
 	// Create overlay message
-	QLabel* message = new QLabel(tr("To begin, choose an available game from the left-hand list."), this);
+	QLabel* message = new QLabel(tr("To play, left-click to place a tile, and right-click to rotate it.\n\nChoose an available game from the list to start."), this);
 	message->setAttribute(Qt::WA_TransparentForMouseEvents);
 	message->setAlignment(Qt::AlignCenter);
 	message->setStyleSheet(
@@ -132,13 +132,13 @@ Game0Board::Game0Board(QWidget* parent)
     scoreTitleLabel->setAlignment(Qt::AlignCenter);
     scoreTitleLabel->setStyleSheet("color: " + SKIN_TEXT + ";");
 
-    QLabel *scoreTargetLabel1 = new QLabel("Target");
-    scoreTargetLabel1->setAlignment(Qt::AlignCenter);
-    scoreTargetLabel1->setStyleSheet("color: " + SKIN_TEXT + ";");
+    QLabel *scoreTargetLabelCaption = new QLabel("Target");
+    scoreTargetLabelCaption->setAlignment(Qt::AlignCenter);
+    scoreTargetLabelCaption->setStyleSheet("color: " + SKIN_TEXT + ";");
 
-    QLabel *scoreTargetLabel2 = new QLabel(QString::number(GAME0_SCORE_TARGET));
-    scoreTargetLabel2->setAlignment(Qt::AlignCenter);
-    scoreTargetLabel2->setStyleSheet("color: " + SKIN_TEXT + ";");    
+    scoreTargetLabel = new QLabel("N / A");
+    scoreTargetLabel->setAlignment(Qt::AlignCenter);
+    scoreTargetLabel->setStyleSheet("color: " + SKIN_TEXT + ";");    
 
 	// Assemble layout
 	QGridLayout* layout = new QGridLayout;
@@ -155,8 +155,8 @@ Game0Board::Game0Board(QWidget* parent)
 
 	layout->addWidget(scoreTitleLabel, row++, 1);
     layout->addWidget(scoreLabel, row++, 1);
-    layout->addWidget(scoreTargetLabel1, row++, 1);
-    layout->addWidget(scoreTargetLabel2, row++, 1);
+    layout->addWidget(scoreTargetLabelCaption, row++, 1);
+    layout->addWidget(scoreTargetLabel, row++, 1);
 
     layout->addWidget(scoreMessage, row++, 1);
     
@@ -191,7 +191,7 @@ bool Game0Board::endGame() {
     return false;
 }
 
-bool Game0Board::newGame(const CAvailableGame *newGame, bool updateTime, bool restart) {
+bool Game0Board::newGame(int currentTargetScore, const CAvailableGame *newGame, bool updateTime, bool restart) {
     // Confirm abandoning game if in progress
     if (!endGame())
 		return false;
@@ -221,7 +221,7 @@ bool Game0Board::newGame(const CAvailableGame *newGame, bool updateTime, bool re
     gameHashLabel->setText(QString::fromStdString(currentGame->gameSourceHash.ToString().substr(0,8) + "..."));
     preview->setPixmap(tileImageThumbs[game.GetNextTileType()]);
     if (updateTime)
-        updateTimeLeft(currentGame->blocksRemaining, false);
+        updateCurrentGameInfo(currentTargetScore, currentGame->blocksRemaining, false);
     return true;
 }
 
@@ -313,17 +313,9 @@ bool Game0Board::placeTile() {
     scoreLabel->setText(QString::number(score));
     scoreMessage->setText(QString(strDesc.c_str()));
 
-    // Check for win condition
-    if (score >= GAME0_SCORE_TARGET) {
-        if (soundsEnabled) JustPlay(":/game0/win");
-    	done = true;
-        restartButton->setEnabled(false);
-        Q_EMIT showMessage(tr("<big><b>Game Won!</b></big>"));
-       	if (autoSubmit)
-            Q_EMIT solutionReady(currentGame, 0, game.GetSolution());
-        submitButton->setEnabled(true);            
+    // Check for win and handle
+    if (winCheck())
         return true;
-    }
 
     // Check for lose condition (out of room)
     if (game.GetTilesPlaced() == GAME0_BOARD_SIZE * GAME0_BOARD_SIZE) {
@@ -337,6 +329,20 @@ bool Game0Board::placeTile() {
         JustPlay(score > oldScore ? ":/game0/score" : ":/game0/goodclick");
 
     return true;
+}
+
+bool Game0Board::winCheck() {
+    // Check for win condition
+    if (score >= targetScore) {
+        if (soundsEnabled) JustPlay(":/game0/win");
+    	done = true;
+        restartButton->setEnabled(false);
+        Q_EMIT showMessage(tr("<big><b>Game Won!</b></big>"));
+       	if (autoSubmit)
+            Q_EMIT solutionReady(currentGame, 0, game.GetSolution());
+        submitButton->setEnabled(true);            
+        return true;
+    }
 }
 
 void Game0Board::paintEvent(QPaintEvent*) {
@@ -385,8 +391,8 @@ void Game0Board::resizeEvent(QResizeEvent* event) {
     }
 }
 
-void Game0Board::updateTimeLeft(int blocks, bool playTimeWarn) {
-    if (done || !timeLeftLabel)
+void Game0Board::updateCurrentGameInfo(int currentTargetScore, int blocks, bool playTimeWarn) {
+    if (done || !timeLeftLabel || !scoreTargetLabel)
         return;
 
     // Check for game leaving private realm
@@ -401,7 +407,7 @@ void Game0Board::updateTimeLeft(int blocks, bool playTimeWarn) {
         if (soundsEnabled) JustPlay(":/game0/lose");
         done = true;
         restartButton->setEnabled(false);
-	    Q_EMIT showMessage(tr("<big><b>Game Expired!</b></big>"));        
+	    Q_EMIT showMessage(tr("<big><b>Game Expired!</b></big>"));
         return;
     } else
         timeLeftLabel->setText(QString::number(blocks) + " blocks<br>(" + AvailableGamesTableModel::secondsToString(blocks * Params().GetConsensus().nExpectedBlockSpacing) + ")");
@@ -415,10 +421,14 @@ void Game0Board::updateTimeLeft(int blocks, bool playTimeWarn) {
         timeLeftLabel->setStyleSheet("color: " + SKIN_TEXT + ";");
         timeLeftCaptionLabel->setStyleSheet("color: " + SKIN_TEXT + ";");
     }
+
+    targetScore = currentTargetScore;
+    scoreTargetLabel->setText(QString::number(targetScore));
+    winCheck();
 }
 
 void Game0Board::on_restartButton_clicked() {
-    newGame(currentGame, false, true);
+    newGame(targetScore, currentGame, false, true);
 }
 
 void Game0Board::on_submitButton_clicked() {

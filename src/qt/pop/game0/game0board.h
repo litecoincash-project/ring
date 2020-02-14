@@ -22,9 +22,9 @@ class Game0Board : public QWidget
 	Q_OBJECT
 public:
 	Game0Board(QWidget* parent = 0);
-    bool newGame(const CAvailableGame *newGame, bool updateTime = true, bool restart = false);
+    bool newGame(int currentTargetScore, const CAvailableGame *newGame, bool updateTime = true, bool restart = false);
     CAvailableGame *getCurrentGame() { return currentGame; }
-    void updateTimeLeft(int blocks, bool playTimeWarn = true);
+    void updateCurrentGameInfo(int currentTargetScore, int blocks, bool playTimeWarn = true);
 
 Q_SIGNALS:
 	void solutionReady(CAvailableGame *g, uint8_t gameType, std::vector<unsigned char> solution);
@@ -41,6 +41,7 @@ private:
     bool placeTile();
     void rotateTile();
 	bool endGame();
+    bool winCheck();
     void clampHighlightedTileAndRedraw();   // Helper for keypress handler
 
     CAvailableGame *currentGame = NULL;
@@ -50,6 +51,7 @@ private:
     QLabel *scoreMessage;
     QLabel *gameHashLabel;
     QLabel *timeLeftLabel = NULL;
+    QLabel *scoreTargetLabel = NULL;
     QLabel *timeLeftCaptionLabel;
     QPushButton *restartButton;
     QPushButton *submitButton;
@@ -59,7 +61,7 @@ private:
     int tileSize;
 	int currentTileRotation;
     int highlightedTileX, highlightedTileY;
-    int score;
+    int score, targetScore;
 	bool done;
     QCheckBox *autoSubmitToggle, *soundToggle, *keysToggle;
     bool autoSubmit, soundsEnabled, keysEnabled;

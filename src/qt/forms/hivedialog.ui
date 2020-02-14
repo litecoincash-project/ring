@@ -221,7 +221,7 @@
            <string>The community fund works by diverting a portion of the unspendable dwarf creation fee to the spendable community fund address. This enables us to keep developing Ring.</string>
           </property>
           <property name="text">
-           <string>Send 10% of dwarf fee to Community Fund (Dwarf price remains the same and you still get the same number of dwarves)</string>
+           <string>Send 20% of dwarf fee to Community Fund (Dwarf price remains the same and you still get the same number of dwarves)</string>
           </property>
           <property name="checked">
            <bool>true</bool>

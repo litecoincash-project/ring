@@ -87,9 +87,9 @@ QVariant AvailableGamesTableModel::data(const QModelIndex &index, int role) cons
         if (index.column() == BlocksLeft && rec->blocksRemaining <= 10)
             return QColor(255, 0, 0);
         else if (rec->isPrivate)
-            return QColor(27, 170, 45);
+            return QColor(SKIN_BG_BUTTON);
         else
-            return SKIN_TEXT;
+            return QColor(SKIN_TEXT);
     } else if (role == Qt::DecorationRole) {
         if (index.column() == BlocksLeft && rec->blocksRemaining <= 10)
             return platformStyle->SingleColorIcon(":/icons/warning");
@@ -161,7 +161,7 @@ QString AvailableGamesTableModel::secondsToString(qint64 seconds) {
     else if (mins > 0)
         s += QString(" %1 mins").arg(mins);
 
-    if (s[0] == " ")
+    if (s[0] == ' ')
         s = s.right(s.size() - 1);  // Dobby has no sock
     return s;
 }

@@ -343,6 +343,12 @@ AvailableGamesTableModel *WalletModel::getAvailableGamesTableModel()
 }
 
 // Ring-fork: Pop
+int WalletModel::getCurrentScoreTarget()
+{
+    return m_wallet->getCurrentScoreTarget();
+}
+
+// Ring-fork: Pop
 bool WalletModel::submitSolution(CAvailableGame *game, uint8_t gameType, std::vector<unsigned char> solution, std::string& strFailReason) {
     m_wallet->blockUntilSyncedToCurrentChain();
     return m_wallet->submitSolution(game, gameType, solution, strFailReason);
