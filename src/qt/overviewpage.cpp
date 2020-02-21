@@ -157,7 +157,10 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     setDayNightTimer();
 
     // Fire a resize
-    this->resize(this->geometry().width(), this->geometry().height());
+    QTimer::singleShot(500, [this]{
+        ui->graphicsView->resize(ui->graphicsView->width(), ui->graphicsView->height());
+        ui->graphicsView->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
+    });
 }
 
 void OverviewPage::handleTransactionClicked(const QModelIndex &index)
@@ -407,6 +410,7 @@ void OverviewPage::drawVillage() {
         }
     }
 
+    ui->graphicsView->resize(ui->graphicsView->width(), ui->graphicsView->height());
     ui->graphicsView->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
 }
 
@@ -431,6 +435,7 @@ void OverviewPage::enableVillagePop() {
 
 // Ring-fork: The Village: Handle resize
 void OverviewPage::resizeEvent(QResizeEvent* event) {
+    ui->graphicsView->resize(ui->graphicsView->width(), ui->graphicsView->height());
     ui->graphicsView->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
 }
 

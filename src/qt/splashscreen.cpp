@@ -58,21 +58,11 @@ SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const Netw
     QPainter pixPaint(&pixmap);
     pixPaint.setPen(QColor(SKIN_TEXT));       // Ring-fork: Skinning
 
-    // draw a slightly radial gradient
-    QRadialGradient gradient(QPoint(0,0), splashSize.width()/devicePixelRatio);
-    gradient.setColorAt(0, QColor(QString("#23272860"))); // Ring-fork: Skinning
-    gradient.setColorAt(1, QColor(QString("#36395060"))); // Ring-fork: Skinning
-    QRect rGradient(QPoint(0,0), splashSize);
-    pixPaint.fillRect(rGradient, gradient);
-
-    // draw the ring icon, expected size of PNG: 1024x1024
-    // Ring-fork: Adjusted to show whole logo
-    QRect rectIcon(QPoint(10,20), QSize(256,256));
-    const QSize requiredSize(256,256);
-
-    QPixmap icon(networkStyle->getAppIcon().pixmap(requiredSize));
-
-    pixPaint.drawPixmap(rectIcon, icon);
+    // Ring-fork: Draw splash background
+    QRect rectIcon(QPoint(0,0), QSize(480,320));
+    const QSize requiredSize(480,320);
+    QPixmap splashBackground = titleAddText.isEmpty() ? (QIcon(":icons/splash").pixmap(requiredSize)) : (QIcon(":icons/splash_testnet").pixmap(requiredSize));    
+    pixPaint.drawPixmap(rectIcon, splashBackground);
 
     // check font size and drawing with
     pixPaint.setFont(QFont(font, 33*fontFactor));

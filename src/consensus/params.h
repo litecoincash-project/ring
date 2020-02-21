@@ -127,6 +127,9 @@ struct Params {
     int popMinPrivateGameDepth;         // Private game source transactions must be at least this many blocks deep
     int popMaxPrivateGameDepth;         // Private game source transactions must be at most this many blocks deep
     int popMaxPublicGameDepth;          // Public game source transactions must be at most this many blocks deep
+    int popScoreAdjustWindowSize;       // Windows size for adjusting pop score target
+    int popMinScoreTarget;              // Min score target
+    int popMaxScoreTarget;              // Max score target
 };
 } // namespace Consensus
 

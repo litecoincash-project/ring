@@ -89,13 +89,12 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 
 // Ring-fork: Pop: Game score target adjust
 int GetNextPopScoreRequired(const CBlockIndex* pindexLast, const Consensus::Params& params) {
-    int windowSize = 24;
-    int intScaler = windowSize * windowSize;
-    int minScore = 70 * intScaler;
-    int maxScore = 200 * intScaler;
-    
+    int intScaler = params.popScoreAdjustWindowSize * params.popScoreAdjustWindowSize;
+    int minScore = params.popMinScoreTarget * intScaler;
+    int maxScore = params.popMaxScoreTarget * intScaler;
+
     int score = 0;
-    for (int i = 0; i < windowSize; i++) {
+    for (int i = 0; i < params.popScoreAdjustWindowSize; i++) {
         if (pindexLast->GetBlockHeader().IsPopMined(params))
             score++;
 

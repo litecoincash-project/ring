@@ -48,7 +48,7 @@ private:
     unsigned int blocksFound;
     unsigned int previousBlocksFound;
 
-    QGraphicsScene *scene;
+    QGraphicsScene *scene = NULL;
     QPixmap minotaurs[8];
     void drawMinotaurs(int coloured);
     void makeMinotaurs();

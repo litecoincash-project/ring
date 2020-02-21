@@ -177,10 +177,8 @@ void MiningPage::drawMinotaurs(int coloured) {
         delete scene;
     }
     scene = new QGraphicsScene(this);
-
     ui->graphicsView->setAlignment(Qt::AlignRight | Qt::AlignBottom);
     ui->graphicsView->setScene(scene);
-
     if (coloured == 0) {
         QGraphicsPixmapItem *item = scene->addPixmap(minotaurs[0]);
         item->setOffset(0, 0);

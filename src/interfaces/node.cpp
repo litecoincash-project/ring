@@ -189,7 +189,7 @@ public:
         }
         return Params().GenesisBlock().GetBlockTime(); // Genesis block's time of current network
     }
-    double getTimeToSolve()   // Ring-fork: Get time to solve
+    double getTimeToSolve() override   // Ring-fork: Get time to solve
     {
         return GetTimeToSolve();
     }

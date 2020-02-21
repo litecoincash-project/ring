@@ -331,6 +331,8 @@ RES_ICONS = \
   qt/res/icons/ring.ico \
   qt/res/icons/ring_testnet.ico \
   qt/res/icons/ring.png \
+  qt/res/icons/splash.png \
+  qt/res/icons/splash-testnet.png \
   qt/res/icons/chevron.png \
   qt/res/icons/clock1.png \
   qt/res/icons/clock2.png \

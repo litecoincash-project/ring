@@ -39,6 +39,8 @@
 
 #include <univalue.h>
 
+#include <pow.h>                   // Ring-fork: Pop: For GetNextPopScoreRequired
+
 #include <boost/thread/thread.hpp> // boost::thread::interrupt
 
 #include <memory>
@@ -432,6 +434,26 @@ static UniValue gethivedifficulty(const JSONRPCRequest& request)
     assert(pindexPrev != nullptr);
     LOCK(cs_main);
     return GetDifficulty(pindexPrev, true);
+}
+
+// Ring-fork: Pop: Get pop score target
+static UniValue getpopscoretarget(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+            "getpopscoretarget\n"
+            "\nReturns the Proof of play score target.\n"
+            "\nResult:\n"
+            "n.nnn       (numeric) the Proof of play score target.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getpopscoretarget", "")
+            + HelpExampleRpc("getpopscoretarget", "")
+        );
+
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    assert(pindexPrev != nullptr);
+    LOCK(cs_main);
+    return GetNextPopScoreRequired(pindexPrev, Params().GetConsensus());
 }
 
 static std::string EntryDescriptionString()
@@ -1347,6 +1369,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             "  \"bestblockhash\": \"...\",       (string) the hash of the currently best block\n"
             "  \"difficulty\": xxxxxx,         (numeric) the current pow difficulty\n"      // Ring-fork: Show both pow and hive diff
             "  \"hivedifficulty\": xxxxxx,     (numeric) the current hive difficulty\n"     // Ring-fork: Show both pow and hive diff
+            "  \"popscoretarget\": xxxxxx,     (numeric) the current pop score target\n"    // Ring-fork: Show Pop Score Target too
             "  \"mediantime\": xxxxxx,         (numeric) median time for the current best block\n"
             "  \"verificationprogress\": xxxx, (numeric) estimate of verification progress [0..1]\n"
             "  \"initialblockdownload\": xxxx, (bool) (debug information) estimate of whether this node is in Initial Block Download mode.\n"
@@ -1392,7 +1415,9 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
+    const Consensus::Params& consensusParams = Params().GetConsensus();
     const CBlockIndex* tip = chainActive.Tip();
+
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("chain",                 Params().NetworkIDString());
     obj.pushKV("blocks",                (int)chainActive.Height());
@@ -1400,6 +1425,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     obj.pushKV("bestblockhash",         tip->GetBlockHash().GetHex());
     obj.pushKV("difficulty",            (double)GetDifficulty(tip));
     obj.pushKV("hivedifficulty",        (double)GetDifficulty(tip, true));  // Ring-fork: Show Hive difficulty too
+    obj.pushKV("popscoretarget",        (double)GetNextPopScoreRequired(tip, consensusParams));  // Ring-fork: Show Pop Score Target too
     obj.pushKV("mediantime",            (int64_t)tip->GetMedianTimePast());
     obj.pushKV("verificationprogress",  GuessVerificationProgress(Params().TxData(), tip));
     obj.pushKV("initialblockdownload",  IsInitialBlockDownload());
@@ -1423,7 +1449,6 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
         }
     }
 
-    const Consensus::Params& consensusParams = Params().GetConsensus();
     UniValue softforks(UniValue::VARR);
     UniValue bip9_softforks(UniValue::VOBJ);
     softforks.push_back(SoftForkDesc("bip34", 2, tip, consensusParams));
@@ -2394,6 +2419,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getchaintips",           &getchaintips,           {} },
     { "blockchain",         "getdifficulty",          &getdifficulty,          {} },
     { "blockchain",         "gethivedifficulty",      &gethivedifficulty,      {} },        // Ring-fork: Get Hive difficulty
+    { "blockchain",         "getpopscoretarget",      &getpopscoretarget,      {} },        // Ring-fork: Get PoP Score target
     { "blockchain",         "getmempoolancestors",    &getmempoolancestors,    {"txid","verbose"} },
     { "blockchain",         "getmempooldescendants",  &getmempooldescendants,  {"txid","verbose"} },
     { "blockchain",         "getmempoolentry",        &getmempoolentry,        {"txid"} },

@@ -345,7 +345,7 @@ AvailableGamesTableModel *WalletModel::getAvailableGamesTableModel()
 // Ring-fork: Pop
 int WalletModel::getCurrentScoreTarget()
 {
-    return m_wallet->getCurrentScoreTarget();
+    return m_wallet->getCurrentScoreTarget();    
 }
 
 // Ring-fork: Pop

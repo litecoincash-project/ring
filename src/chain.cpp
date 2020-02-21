@@ -126,7 +126,9 @@ void CBlockIndex::BuildSkip()
 // Ring-fork: Hive: Grant hive-mined blocks bonus work value
 arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
-    bool verbose = false;//LogAcceptCategory(BCLog::HIVE);
+    bool verbose = false;
+    bool slightyVerbose = LogAcceptCategory(BCLog::HIVE);
+
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
     arith_uint256 bnTarget;
@@ -169,11 +171,8 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
 
         bnTargetScaled *= k;
 
-        if (verbose) {
-            LogPrintf("**** k = %d\n", k);
-            LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
-            LogPrintf("**** Hive chainwork scalar k = %d\n", k);
-        }        
+        if (slightyVerbose) LogPrintf("Hive k = %d\n", k);
+        if (verbose) LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
     } else {
         if (verbose) {
             LogPrintf("**** HIVE-1.1: CHECKING FOR BONUS CHAINWORK ON POW/POP BLOCK %s\n", block.GetBlockHash().ToString());
@@ -215,11 +214,8 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
 
         bnTargetScaled *= k;
 
-        if (verbose) {
-            LogPrintf("**** k = %d\n", k);
-            LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
-            LogPrintf("**** Pow/Pop chainwork scalar k = %d\n", k);  // Ring-fork: Pop: Label changed
-        }
+        if (slightyVerbose) LogPrintf("Pow/Pop k = %d\n", k);  // Ring-fork: Pop: Label changed
+        if (verbose) LogPrintf("**** Final scaled chainwork =  %s\n", bnTargetScaled.ToString());
     }
 
     return bnTargetScaled;

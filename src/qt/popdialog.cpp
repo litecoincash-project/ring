@@ -62,7 +62,7 @@ void PopDialog::setModel(WalletModel *_model) {
 
         //connect(_model->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &PopDialog::updateDisplayUnit);
         //updateDisplayUnit();
-        
+
         if (_model->getEncryptionStatus() != WalletModel::Locked)
             ui->releaseSwarmButton->hide();
         connect(_model, SIGNAL(encryptionStatusChanged(int)), this, SLOT(setEncryptionStatus(int)));
@@ -135,15 +135,12 @@ void PopDialog::on_releaseSwarmButton_clicked() {
 void PopDialog::on_playSelectedButton_clicked() {
     if (!model)
         return;
-
     if (!ui->gameTable->selectionModel()->hasSelection())
         return;
-
     QModelIndexList selection = ui->gameTable->selectionModel()->selectedRows();
     QModelIndex index = selection.at(0);
     const AvailableGamesTableModel *submodel = model->getAvailableGamesTableModel();
     const CAvailableGame *game = &(submodel->entry(index.row()));
-    
     int targetScore = model->getCurrentScoreTarget();
     if (game)
         game0board->newGame(targetScore, game);

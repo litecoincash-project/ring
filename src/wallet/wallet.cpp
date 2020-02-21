@@ -2897,8 +2897,8 @@ CDwarfCreationTransactionInfo CWallet::GetDCT(const CWalletTx& wtx, bool include
 int CWallet::GetCurrentScoreTarget() {
     const Consensus::Params& consensusParams = Params().GetConsensus();
     CBlockIndex* pindexPrev = chainActive.Tip();
-    assert(pindexPrev != nullptr);    
-    GetNextPopScoreRequired(pindexPrev, consensusParams);
+    assert(pindexPrev != nullptr);
+    return GetNextPopScoreRequired(pindexPrev, consensusParams);
 }
 
 // Ring-fork: Pop: Submit a game solution

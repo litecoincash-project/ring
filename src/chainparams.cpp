@@ -146,6 +146,9 @@ public:
         consensus.popMinPrivateGameDepth = COINBASE_MATURITY;                           // Private game source transactions must be at least this many blocks deep
         consensus.popMaxPrivateGameDepth = COINBASE_MATURITY + 50;                      // Private game source transactions must be at most this many blocks deep
         consensus.popMaxPublicGameDepth = consensus.popMaxPrivateGameDepth + 200;       // Public game source transactions must be at most this many blocks deep
+        consensus.popScoreAdjustWindowSize = 24;            // Windows size for adjusting pop score target
+        consensus.popMinScoreTarget = 70;                   // Min score target
+        consensus.popMaxScoreTarget = 200;                  // Max score target
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S(LAST_ID_CHAINWORK);                  // At lastInitialDistributionHeight
@@ -194,9 +197,6 @@ public:
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
-
-        vFixedSeeds.clear();
-        vSeeds.clear();
 
         checkpointData = {
             {
@@ -302,6 +302,9 @@ public:
         consensus.popMinPrivateGameDepth = COINBASE_MATURITY;                           // Private game source transactions must be at least this many blocks deep
         consensus.popMaxPrivateGameDepth = consensus.popMinPrivateGameDepth + 50;       // Private game source transactions must be at most this many blocks deep
         consensus.popMaxPublicGameDepth = consensus.popMaxPrivateGameDepth + 200;       // Public game source transactions must be at most this many blocks deep
+        consensus.popScoreAdjustWindowSize = 24;            // Windows size for adjusting pop score target
+        consensus.popMinScoreTarget = 70;                   // Min score target
+        consensus.popMaxScoreTarget = 200;                  // Max score target
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0");

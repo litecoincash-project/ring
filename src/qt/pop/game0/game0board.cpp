@@ -210,7 +210,6 @@ bool Game0Board::newGame(int currentTargetScore, const CAvailableGame *newGame, 
     if(!restart) {
         if (currentGame)
             delete currentGame;
-
         currentGame = new CAvailableGame();
         currentGame->gameSourceHash = newGame->gameSourceHash;
         currentGame->blocksRemaining = newGame->blocksRemaining;
@@ -222,6 +221,7 @@ bool Game0Board::newGame(int currentTargetScore, const CAvailableGame *newGame, 
     preview->setPixmap(tileImageThumbs[game.GetNextTileType()]);
     if (updateTime)
         updateCurrentGameInfo(currentTargetScore, currentGame->blocksRemaining, false);
+
     return true;
 }
 
@@ -343,6 +343,8 @@ bool Game0Board::winCheck() {
         submitButton->setEnabled(true);            
         return true;
     }
+
+    return false;
 }
 
 void Game0Board::paintEvent(QPaintEvent*) {

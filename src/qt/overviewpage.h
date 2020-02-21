@@ -80,7 +80,7 @@ private Q_SLOTS:
     void checkVillageGenerate();                // Ring-fork: The Village
     void tickDayNightCycle();                   // Ring-fork: The Village
     void on_hiveButton_clicked();               // Ring-fork: Hive: Hive button handler
-    void updateHiveSummary();                   // Ring-fork: Hive: Update hive summary    
+    void updateHiveSummary();                   // Ring-fork: Hive: Update hive summary
 };
 
 #endif // RING_QT_OVERVIEWPAGE_H
