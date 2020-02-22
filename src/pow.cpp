@@ -51,10 +51,10 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     const CBlockIndex *pindex = pindexLast;
     arith_uint256 bnPastTargetAvg;
 
-    for (unsigned int i = 1; i <= nPastBlocks; i++) {        
+    for (unsigned int i = 1; i <= nPastBlocks; i++) {
         // Ring-fork: Hive: Skip over Hivemined blocks; we only want to consider PoW blocks
         // Ring-fork: Pop: Skip over pop blocks too
-        while (pindex->GetBlockHeader().IsHiveMined(params) || pindexLast->GetBlockHeader().IsPopMined(params)) {
+        while (pindex->GetBlockHeader().IsHiveMined(params) || pindex->GetBlockHeader().IsPopMined(params)) {
             //LogPrintf("Skipping popmined block at %i\n", pindex->nHeight);
             assert(pindex->pprev); // should never fail
             pindex = pindex->pprev;

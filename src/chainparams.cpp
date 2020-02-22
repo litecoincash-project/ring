@@ -198,6 +198,9 @@ public:
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
 
+        vFixedSeeds.clear();
+        vSeeds.clear();
+
         checkpointData = {
             {
                 {0, uint256S(GENESIS_HASH)},
@@ -230,7 +233,7 @@ public:
         consensus.BIP65Height = 1;
         consensus.BIP66Height = 1;
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetSpacing = 2.5 * 60; // 2.5 minutes
+        consensus.nPowTargetSpacing = 90; // 90 secs
         consensus.nExpectedBlockSpacing = consensus.nPowTargetSpacing / 3;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
@@ -280,7 +283,7 @@ public:
         consensus.dwarfCreationAddress = "SUmmonTheTestnetDwarvenArmyXaNdvvm";  // Unspendable address for dwarf creation
         consensus.hiveCommunityAddress = "SW4fmbrApQcUhDd2RtVsRVts7ptizk39C9";  // Community fund address
         consensus.communityContribFactor = 5;               // Optionally, donate dct_value/maxCommunityContribFactor to community fund
-        consensus.dwarfGestationBlocks = 2880;              // The number of blocks for a new dwarf to mature (approx 24 hours)
+        consensus.dwarfGestationBlocks = 720;               // The number of blocks for a new dwarf to mature (approx 24 hours)
         consensus.dwarfLifespanBlocks = 30000;              // The number of blocks a dwarf lives for after maturation (approx 10 days)
         consensus.powLimitHive = uint256S("0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");  // Highest (easiest) dwarf hash target
         consensus.minHiveCheckBlock = consensus.lastInitialDistributionHeight + 1;   // Don't bother checking below this height for Hive blocks (not used for consensus/validation checks, just efficiency when looking for potential DCTs)
@@ -304,10 +307,10 @@ public:
         consensus.popMaxPublicGameDepth = consensus.popMaxPrivateGameDepth + 200;       // Public game source transactions must be at most this many blocks deep
         consensus.popScoreAdjustWindowSize = 24;            // Windows size for adjusting pop score target
         consensus.popMinScoreTarget = 70;                   // Min score target
-        consensus.popMaxScoreTarget = 200;                  // Max score target
+        consensus.popMaxScoreTarget = 210;                  // Max score target
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0");
+        consensus.nMinimumChainWork = uint256S("0x17d010");
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S(GENESIS_HASH); // 0
@@ -346,7 +349,7 @@ public:
         checkpointData = {
             {
                 {0, uint256S(GENESIS_HASH)},
-                {1, uint256S("0xc43912872861c4e3b1991dfde9eb67daa3f92f4cb72489c9d1ba1e27921a2731")},
+                {consensus.lastInitialDistributionHeight, uint256S("0x04af9e4f758c1642c6f625f20fbcb61fdd64e5a43d7c74cff72885d38a74c3af")},
             }
         };
 

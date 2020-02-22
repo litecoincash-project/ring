@@ -74,7 +74,7 @@ double GetDifficulty(const CBlockIndex* blockindex, bool getHiveDifficulty)
             }
 
             blockindex = blockindex->pprev;
-        }        
+        }
     } else {
         // Ring-fork: Pop: Step over pop blocks as well
         while (blockindex->GetBlockHeader().IsHiveMined(consensusParams) || blockindex->GetBlockHeader().IsPopMined(consensusParams)) {
@@ -841,7 +841,8 @@ static UniValue getblockheader(const JSONRPCRequest& request)
             "  \"mediantime\" : ttt,    (numeric) The median block time in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"nonce\" : n,           (numeric) The nonce (shown for pow blocks only)\n"                  // Ring-fork
             "  \"bits\" : \"1d00ffff\", (string) The bits (shown for pow blocks and hive blocks only)\n"    // Ring-fork
-            "  \"difficulty\" : x.xxx,  (numeric) The difficulty\n"
+            "  \"difficulty\" : x.xxx,  (numeric) The pow difficulty\n"                                     // Ring-fork
+            "  \"hivedifficulty\" : x.xxx, (numeric) The hive difficulty\n"                                 // Ring-fork
             "  \"chainwork\" : \"0000...1f3\"     (string) Expected number of hashes required to produce the current chain (in hex)\n"
             "  \"nTx\" : n,             (numeric) The number of transactions in the block.\n"
             "  \"previousblockhash\" : \"hash\",  (string) The hash of the previous block\n"
@@ -946,7 +947,8 @@ static UniValue getblock(const JSONRPCRequest& request)
             "  \"mediantime\" : ttt,    (numeric) The median block time in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"nonce\" : n,           (numeric) The nonce (shown for pow blocks only)\n"                  // Ring-fork
             "  \"bits\" : \"1d00ffff\", (string) The bits (shown for pow blocks and hive blocks only)\n"    // Ring-fork            
-            "  \"difficulty\" : x.xxx,  (numeric) The difficulty\n"
+            "  \"difficulty\" : x.xxx,  (numeric) The pow difficulty\n"                                     // Ring-fork
+            "  \"hivedifficulty\" : x.xxx, (numeric) The hive difficulty\n"                                 // Ring-fork
             "  \"chainwork\" : \"xxxx\",  (string) Expected number of hashes required to produce the chain up to this block (in hex)\n"
             "  \"nTx\" : n,             (numeric) The number of transactions in the block.\n"
             "  \"previousblockhash\" : \"hash\",  (string) The hash of the previous block\n"
