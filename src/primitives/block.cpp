@@ -28,6 +28,12 @@ uint256 CBlockHeader::GetPowHash() const
     return Minotaur(BEGIN(nVersion), END(nNonce));
 }
 
+// Ring-fork: Hash arbitrary date with Minotaur
+uint256 CBlockHeader::MinotaurHashArbitrary(const char *data)
+{
+    return Minotaur(BEGIN(data), END(data));
+}
+
 // Ring-fork: Seperate block hash and pow hash: Include powHash in ToString()
 // Ring-fork: Hive: Include block type in ToString()
 // Ring-fork: Pop: Include block type in ToString()

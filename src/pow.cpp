@@ -380,10 +380,12 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
     dwarfHashTarget.SetCompact(GetNextHiveWorkRequired(pindexPrev, consensusParams));
     if (verbose)
         LogPrintf("CheckHiveProof: dwarfHashTarget     = %s\n", dwarfHashTarget.ToString());
-    std::string hashHex = (CHashWriter(SER_GETHASH, 0) << deterministicRandString << txidStr << dwarfNonce).GetHash().GetHex();
-    arith_uint256 dwarfHash = arith_uint256(hashHex);
+
+    arith_uint256 dwarfHash(CBlockHeader::MinotaurHashArbitrary(std::string(deterministicRandString + txidStr + std::to_string(dwarfNonce)).c_str()).ToString());
+    dwarfHash = arith_uint256(CBlockHeader::MinotaurHashArbitrary(dwarfHash.ToString().c_str()).ToString());
+
     if (verbose)
-        LogPrintf("CheckHiveProof: dwarfHash           = %s\n", hashHex);
+        LogPrintf("CheckHiveProof: dwarfHash           = %s\n", dwarfHash.ToString());
     if (dwarfHash >= dwarfHashTarget) {
         LogPrintf("CheckHiveProof: Dwarf does not meet hash target!\n");
         return false;

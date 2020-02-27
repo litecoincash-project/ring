@@ -349,7 +349,7 @@ public:
         checkpointData = {
             {
                 {0, uint256S(GENESIS_HASH)},
-                {consensus.lastInitialDistributionHeight, uint256S("0x04af9e4f758c1642c6f625f20fbcb61fdd64e5a43d7c74cff72885d38a74c3af")},
+                {consensus.lastInitialDistributionHeight, uint256S("0xf953639bd2fa1645d38806dd41d2c92a51b4b0957d12382992c17f76e93adda8")},
             }
         };
 

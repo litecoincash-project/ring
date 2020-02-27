@@ -835,8 +835,9 @@ void CheckBin(int threadID, std::vector<CDwarfRange> bin, std::string determinis
                 }
             }
             // Hash the dwarf
-            std::string hashHex = (CHashWriter(SER_GETHASH, 0) << deterministicRandString << dwarfRange.txid << i).GetHash().GetHex();
-            arith_uint256 dwarfHash = arith_uint256(hashHex);
+            arith_uint256 dwarfHash(CBlockHeader::MinotaurHashArbitrary(std::string(deterministicRandString + dwarfRange.txid + std::to_string(i)).c_str()).ToString());
+            dwarfHash = arith_uint256(CBlockHeader::MinotaurHashArbitrary(dwarfHash.ToString().c_str()).ToString());
+
             // Compare to target and write out result if successful
             if (dwarfHash < dwarfHashTarget) {
                 //LogPrintf("THREAD #%i: Solution found, returning\n", threadID);
