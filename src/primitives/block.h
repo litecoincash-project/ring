@@ -62,7 +62,7 @@ public:
 
     uint256 GetHash() const;
     uint256 GetPowHash() const;     // Ring-fork: Seperate block hash and pow hash
-    static uint256 MinotaurHashArbitrary(const char *data);
+    static uint256 MinotaurHashArbitrary(const char *data);     // Ring-fork: Hash arbitrary data with Minotaur
 
     int64_t GetBlockTime() const
     {
