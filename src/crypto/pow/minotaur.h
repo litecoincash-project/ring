@@ -182,7 +182,7 @@ void LinkNodes(TortureNode *parent, TortureNode *childLeft, TortureNode *childRi
 }
 
 // Produce a Minotaur 32-byte hash from variable length data
-template<typename T> inline uint256 Minotaur(const T begin, const T end) {
+template<typename T> uint256 Minotaur(const T begin, const T end) {
     // Create torture garden nodes. Note that both sides of 19 and 20 lead to 21, and 21 has no children (to make traversal complete).
     // Every path through the garden stops at 7 nodes.
     TortureGarden garden;

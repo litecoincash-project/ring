@@ -168,7 +168,8 @@ public:
      * that it doesn't descend from an invalid block, and then add it to mapBlockIndex.
      */
     bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-    bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    // Ring-fork: Pop: Added fPopCheckActiveChain
+    bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock, bool fPopCheckActiveChain = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     // Block (dis)connection on a given view:
     DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
@@ -3156,7 +3157,8 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     return true;
 }
 
-bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot)
+// Ring-fork: Pop: Added fPopCheckActiveChain
+bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot, bool fPopCheckActiveChain)
 {
     // These are checks that are independent of context.
 
@@ -3174,7 +3176,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         if (!CheckHiveProof(&block, consensusParams))
             return state.DoS(100, false, REJECT_INVALID, "bad-hive-proof", false, "proof of hive failed");
     } else if (block.IsPopMined(consensusParams)) {
-        if (!CheckPopProof(&block, consensusParams))
+        if (!CheckPopProof(&block, consensusParams, fPopCheckActiveChain))
             return state.DoS(100, false, REJECT_INVALID, "bad-pop-proof", false, "proof of play failed");
     }
 
@@ -3628,7 +3630,8 @@ static CDiskBlockPos SaveBlockToDisk(const CBlock& block, int nHeight, const CCh
 }
 
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
-bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock)
+// Ring-fork: Pop: Added fPopCheckActiveChain
+bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock, bool fPopCheckActiveChain)
 {
     const CBlock& block = *pblock;
 
@@ -3673,7 +3676,8 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         if (pindex->nChainWork < nMinimumChainWork) return true;
     }
 
-    if (!CheckBlock(block, state, chainparams.GetConsensus()) ||
+    // Ring-fork: Pop: Added fPopCheckActiveChain
+    if (!CheckBlock(block, state, chainparams.GetConsensus(), true, true, fPopCheckActiveChain) ||
         !ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindex->pprev)) {
         if (state.IsInvalid() && !state.CorruptionPossible()) {
             pindex->nStatus |= BLOCK_FAILED_VALID;
@@ -4633,7 +4637,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                     CBlockIndex* pindex = LookupBlockIndex(hash);
                     if (!pindex || (pindex->nStatus & BLOCK_HAVE_DATA) == 0) {
                       CValidationState state;
-                      if (g_chainstate.AcceptBlock(pblock, state, chainparams, nullptr, true, dbp, nullptr)) {
+                      if (g_chainstate.AcceptBlock(pblock, state, chainparams, nullptr, true, dbp, nullptr, false)) {   // Ring-fork: Pop: Pass fPopCheckActiveChain=false
                           nLoaded++;
                       }
                       if (state.IsError()) {
@@ -4664,13 +4668,13 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                     while (range.first != range.second) {
                         std::multimap<uint256, CDiskBlockPos>::iterator it = range.first;
                         std::shared_ptr<CBlock> pblockrecursive = std::make_shared<CBlock>();
-                        if (ReadBlockFromDisk(*pblockrecursive, it->second, chainparams.GetConsensus()))
+                        if (ReadBlockFromDisk(*pblockrecursive, it->second, chainparams.GetConsensus(), false)) // Ring-fork: Pop: Pass fullValidation = false
                         {
                             LogPrint(BCLog::REINDEX, "%s: Processing out of order child %s of %s\n", __func__, pblockrecursive->GetHash().ToString(),
                                     head.ToString());
                             LOCK(cs_main);
                             CValidationState dummy;
-                            if (g_chainstate.AcceptBlock(pblockrecursive, dummy, chainparams, nullptr, true, &it->second, nullptr))
+                            if (g_chainstate.AcceptBlock(pblockrecursive, dummy, chainparams, nullptr, true, &it->second, nullptr, false))  // Ring-fork: Pop: Pass fPopCheckActiveChain=false
                             {
                                 nLoaded++;
                                 queue.push_back(pblockrecursive->GetHash());

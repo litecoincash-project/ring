@@ -562,7 +562,7 @@ bool CheckHiveProof(const CBlock* pblock, const Consensus::Params& consensusPara
 }
 
 // Ring-fork: Pop: Check the pop proof for given block
-bool CheckPopProof(const CBlock* pblock, const Consensus::Params& consensusParams) {  
+bool CheckPopProof(const CBlock* pblock, const Consensus::Params& consensusParams, bool checkActiveChain) {
     bool verbose = LogAcceptCategory(BCLog::POP);
 
     if (verbose)
@@ -642,7 +642,9 @@ bool CheckPopProof(const CBlock* pblock, const Consensus::Params& consensusParam
         LogPrintf("CheckPopProof: Couldn't find claimed source block\n");
         return false;
     }
-    if (!chainActive.Contains(pindexSourceBlock)) {
+
+    // Check claimed source block is in active chain
+    if (checkActiveChain && !chainActive.Contains(pindexSourceBlock)) {
         LogPrintf("CheckPopProof: Claimed source block is not in active chain\n");
         return false;
     }

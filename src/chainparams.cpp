@@ -200,7 +200,6 @@ public:
 
         vFixedSeeds.clear();
         vSeeds.clear();
-
         checkpointData = {
             {
                 {0, uint256S(GENESIS_HASH)},
@@ -310,10 +309,10 @@ public:
         consensus.popMaxScoreTarget = 210;                  // Max score target
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x17d010");
+        consensus.nMinimumChainWork = uint256S("0x1304303f1de");    // 5400
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S(GENESIS_HASH); // 0
+        consensus.defaultAssumeValid = uint256S("0x468f8ab3e6e257f7e21a0c330986e3fd70413a381e77ce16afbadabfd26b733a"); // 5400
 
         pchMessageStart[0] = 0xb2;
         pchMessageStart[1] = 0xc4;
@@ -350,13 +349,14 @@ public:
             {
                 {0, uint256S(GENESIS_HASH)},
                 {consensus.lastInitialDistributionHeight, uint256S("0xf953639bd2fa1645d38806dd41d2c92a51b4b0957d12382992c17f76e93adda8")},
+                {5400, uint256S("0x468f8ab3e6e257f7e21a0c330986e3fd70413a381e77ce16afbadabfd26b733a")}
             }
         };
 
         chainTxData = ChainTxData{
-            /* nTime    */ GENESIS_TIMESTAMP,
-            /* nTxCount */ 0,
-            /* dTxRate  */ 0.001
+            /* nTime    */ 1582987997,
+            /* nTxCount */ 5603,
+            /* dTxRate  */ 0.029
         };
 
         /* enable fallback fee on testnet */
