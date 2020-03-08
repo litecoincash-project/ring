@@ -12,7 +12,7 @@ Proof of Work uses our custom CPU-friendly hashing algorithm, Minotaur.
 
 Hive Mining allows users to create on-chain dwarf agents who mine on their owner's behalf.
 
-Finally, Proof of Play allows users to play games right within the wallet. Their gameplay directy secures the blockchain, while earning rewards.
+Finally, Proof of Play allows users to play games right within the wallet. Their gameplay directly secures the blockchain, while earning rewards.
 
 Ring features provably the widest initial distribution of a cryptocurrency ever, paying UTXOs from a total
 of over 30 years of blockchain history.
