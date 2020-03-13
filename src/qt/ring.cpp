@@ -511,10 +511,6 @@ int GuiMain(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    // Ring-fork: Prevent startup on mainnet
-    if (gArgs.GetChainName() != CBaseChainParams::TESTNET)
-        return EXIT_FAILURE;
-
     /// 7. Determine network (and switch to network specific options)
     // - Do not call Params() before this step
     // - Do this after parsing the configuration file, as the network can be switched there
