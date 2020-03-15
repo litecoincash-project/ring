@@ -77,8 +77,8 @@ public:
         consensus.nExpectedBlockSpacing = consensus.nPowTargetSpacing / 3;
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 16128; // 80% required for UASF activation
-        consensus.nMinerConfirmationWindow = 20160;       // Expected to take 1 week
+        consensus.nRuleChangeActivationThreshold = 4740; // 80% required for UASF activation
+        consensus.nMinerConfirmationWindow = 5925;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601;    // January 1, 2008
